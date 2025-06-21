@@ -1,7 +1,15 @@
-import { Button, Text, View } from "react-native";
+import { View, Pressable } from "react-native";
+import { Button, Text  } from "react-native-paper";
 import { getRandomReminder } from "@/components/reminders";
+import { useState } from "react";
 
 export default function Index() {
+  const [currentReminder, setCurrentReminder] = useState(getRandomReminder());
+
+  const handleGetNewReminder = () => {
+    setCurrentReminder(getRandomReminder());
+  };
+
   return (
     <View
       style={{
@@ -10,8 +18,20 @@ export default function Index() {
         alignItems: "center",
       }}
     >
-      <Text>{getRandomReminder()}</Text>
-      <Button>Test</Button>
+      <Text
+        style={{
+          fontSize: 18,
+          fontWeight: "bold",
+          color: "#333",
+          textAlign: "center",
+          marginBottom: 20,
+          paddingHorizontal: 20,
+          lineHeight: 24,
+        }}
+      >
+        {currentReminder}
+      </Text>
+      <Button mode="contained" onPress={handleGetNewReminder}>Refresh</Button>
     </View>
   );
 }
