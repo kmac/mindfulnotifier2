@@ -1,45 +1,38 @@
+import { Controller } from "@/components/controller";
 import { Duration, addDuration, subtractDuration } from "@/components/timedate";
 import { QuietHours } from "@/components/quiethours";
+import { oneShotAt } from "@/components/timerservice";
 
 export type NextFireDate = {
   date: Date;
   postQuiet: boolean;
 };
 
-function getRandomInt(max: number) {
-  return Math.floor(Math.random() * max);
-}
-
-export class Scheduler {
-  running: boolean = false;
-
-  constructor() {}
-
-  enable(restart: boolean = false) {
-    console.info(`Scheduler enable, restart=${restart}`);
-  }
-
-  shutdown() {
-    console.info("Scheduler shutdown");
-  }
-
-  initialScheduleComplete() {
-    console.info("Scheduler initialScheduleComplete");
-  }
-}
-
 export enum ScheduleType {
   periodic,
   random,
 }
 
+function getRandomInt(max: number) {
+  return Math.floor(Math.random() * max);
+}
+
+async function scheduleCallback() {
+  console.log(`[${Date.now()}] scheduleCallback`);
+  let controller: Controller = /*await*/ Controller.getInstance();
+  // await scheduler.checkInitialized();
+
+  // change here is to just re-initialize the scheduler every time and just schedule next
+  controller.triggerNotification();
+}
+
 abstract class DelegatedScheduler {
   readonly scheduleType: ScheduleType;
-  readonly scheduler: Scheduler;
+  readonly controller: Controller;
   readonly quietHours: QuietHours;
 
   scheduled: boolean = false;
-  _nextDate?: Date;
+  _nextDate?: NextFireDate;
 
   // Add some padding for alarm scheduling. This is to ensure we will schedule into the future
   readonly alarmPadding: Duration = {
@@ -51,28 +44,28 @@ abstract class DelegatedScheduler {
 
   constructor(
     scheduleType: ScheduleType,
-    scheduler: Scheduler,
     quietHours: QuietHours,
   ) {
     this.scheduleType = scheduleType;
-    this.scheduler = scheduler;
     this.quietHours = quietHours;
+    this.controller = Controller.getInstance();
   }
 
   async cancel() {
-    console.info("Cancelling notification schedule ${getCurrentIsolate()}");
+    console.info("Cancelling notification schedule");
+
     this.quietHours.cancelTimers();
     // TimerService timerService = await getAlarmManagerTimerService();
     // await timerService.cancel(scheduleAlarmID);
   }
 
-  queryNext(): Date {
+  queryNext(): NextFireDate {
     return this._nextDate!;
   }
 
-  abstract getNextFireDateImpl(fromTime: Date, adjustFromQuiet?: boolean): Date;
+  abstract getNextFireDateImpl(fromTime?: Date, adjustFromQuiet?: boolean): Date;
 
-  getNextFireDate(fromTime: Date): NextFireDate {
+  getNextFireDate(fromTime?: Date): NextFireDate {
     let nextFire = this.getNextFireDateImpl(fromTime);
     let postQuiet: boolean = false;
 
@@ -95,7 +88,6 @@ abstract class DelegatedScheduler {
   async scheduleNext(restart: boolean = false) {
     console.debug(`Scheduling next notification, type=${this.scheduleType}`);
 
-    this._nextDate = undefined;
     // if (restart) {
     //   // use nextAlarm if possible; otherwise it gets left null
     //   nextAlarmStr :String = this.scheduler.ds!.nextAlarm;
@@ -107,8 +99,9 @@ abstract class DelegatedScheduler {
     //     }
     //   }
     // }
-    // _nextDate ??= getNextFireTime();
-    //
+
+    this._nextDate ??= this.getNextFireDate();
+
     // if (rescheduleAfterQuietHours && quietHours.isInQuietHours(_nextDate!)) {
     //   _nextDate = getNextFireTime(
     //       fromTime: quietHours.getNextQuietEnd(), adjustFromQuiet: true);
@@ -120,6 +113,9 @@ abstract class DelegatedScheduler {
     //   scheduler.sendInfoMessage("Next reminder at ${formatHHMMSS(_nextDate!)}");
     // }
     //
+
+    oneShotAt(this._nextDate.date, scheduleCallback);
+
     // TimerService timerService = await getAlarmManagerTimerService();
     // timerService.oneShotAt(_nextDate!, scheduleAlarmID, scheduleCallback);
     // scheduler.updateDS(
@@ -132,7 +128,7 @@ abstract class DelegatedScheduler {
   }
 
   initialScheduleComplete() {
-    this.scheduler.initialScheduleComplete();
+    this.controller.initialScheduleComplete();
   }
 }
 
@@ -141,12 +137,11 @@ export class PeriodicScheduler extends DelegatedScheduler {
   readonly durationMinutes: number; // minimum granularity: 15m
 
   constructor(
-    scheduler: Scheduler,
     quietHours: QuietHours,
     durationHours: number,
     durationMinutes: number,
   ) {
-    super(ScheduleType.periodic, scheduler, quietHours);
+    super(ScheduleType.periodic, quietHours);
     this.durationHours = durationHours;
     this.durationMinutes = durationMinutes;
   }
@@ -214,18 +209,17 @@ export class RandomScheduler extends DelegatedScheduler {
   readonly minMinutes: number;
 
   constructor(
-    scheduler: Scheduler,
     quietHours: QuietHours,
     minMinutes: number,
     maxMinutes: number,
   ) {
-    super(ScheduleType.random, scheduler, quietHours);
+    super(ScheduleType.random, quietHours);
     this.minMinutes = minMinutes;
     this.maxMinutes = maxMinutes;
   }
 
   initialScheduleComplete() {
-    this.scheduler.initialScheduleComplete();
+    this.controller.initialScheduleComplete();
     this.scheduled = true;
   }
 

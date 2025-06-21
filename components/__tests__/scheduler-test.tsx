@@ -4,6 +4,7 @@ import {
   addDuration,
   subtractDuration,
 } from "../timedate";
+import { Controller } from "../controller";
 import { QuietHours } from "../quiethours";
 import * as scheduler from "../scheduler";
 
@@ -19,7 +20,6 @@ test("periodic", () => {
   let quietHours = new QuietHours(quietStart, quietEnd);
 
   let periodic = new scheduler.PeriodicScheduler(
-    new scheduler.Scheduler(),
     quietHours,
     PeriodicDurationHours,
     PeriodicDurationMins,
@@ -39,7 +39,6 @@ test("periodic, in quiet hours", () => {
   let quietHours = new QuietHours(quietStart, quietEnd);
 
   let periodic = new scheduler.PeriodicScheduler(
-    new scheduler.Scheduler(),
     quietHours,
     PeriodicDurationHours,
     PeriodicDurationMins,
@@ -53,27 +52,26 @@ test("periodic, in quiet hours", () => {
 });
 
 test("random", () => {
-  let testDate = new Date(2025, 1, 1, 14, 0, 0);
+  let testDate : Date = new Date(2025, 1, 1, 14, 0, 0);
   let quietStart = new TimeOfDay(15);
   let quietEnd = new TimeOfDay(17);
   let quietHours = new QuietHours(quietStart, quietEnd);
 
   let random = new scheduler.RandomScheduler(
-    new scheduler.Scheduler(),
     quietHours,
     RandomMinMinutes,
     RandomMaxMinutes,
   );
 
-  let prevFire: scheduler.NextFireDate | undefined;
   for (let i = 0; i < 10; i++) {
-    let nextFire : scheduler.NextFireDate= random.getNextFireDate(testDate);
-    console.log(`nextFire: ${nextFire.date} ${nextFire.postQuiet}`);
+    let prevFire: scheduler.NextFireDate = { date: testDate, postQuiet: false };
+    let nextFire : scheduler.NextFireDate = random.getNextFireDate(testDate);
     if (prevFire) {
-      console.log(`i=${i}: prevFire: ${prevFire.date} ${prevFire.postQuiet}`);
+      console.log(`i=${i}: prevFire: ${prevFire.date}/${prevFire.postQuiet}  nextFire: ${nextFire.date}/${nextFire.postQuiet}`);
       expect(nextFire.date.getTime() - prevFire.date.getTime() !== 0).toBe(true);
+    } else {
+      console.log(`nextFire: ${nextFire.date} ${nextFire.postQuiet} nextFire: none`);
     }
-    prevFire = nextFire;
 
     let expectedNextFireMin = new Date(2025, 1, 1, 14, RandomMinMinutes, 0);
     let expectedNextFireMax = new Date(2025, 1, 1, 14, RandomMaxMinutes, 0);
@@ -83,5 +81,7 @@ test("random", () => {
     expect(
       expectedNextFireMax.getTime() - nextFire.date.getTime(),
     ).toBeGreaterThanOrEqual(0);
+
+    prevFire = nextFire;
   }
 });
