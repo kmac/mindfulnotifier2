@@ -5,6 +5,7 @@ import {
   Surface,
   SegmentedButtons,
   IconButton,
+  useTheme,
 } from "react-native-paper";
 import { getRandomReminder } from "@/lib/reminders";
 import { useState, useEffect } from "react";
@@ -17,6 +18,7 @@ import {
 import { Controller } from "@/services/notificationController";
 
 export default function Index() {
+  const theme = useTheme();
   const dispatch = useAppDispatch();
   const preferences = useAppSelector((state) => state.preferences);
   const reminders = useAppSelector((state) => state.reminders.reminders);
@@ -71,10 +73,12 @@ export default function Index() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Main Reminder Display */}
       <View style={styles.reminderContainer}>
-        <Text style={styles.reminderText}>{currentReminder}</Text>
+        <Text style={[styles.reminderText, { color: theme.colors.onBackground }]}>
+          {currentReminder}
+        </Text>
         <Button mode="contained" onPress={handleGetNewReminder}>
           Refresh
         </Button>
@@ -134,7 +138,6 @@ const styles = StyleSheet.create({
   reminderText: {
     fontSize: 24,
     fontWeight: "600",
-    color: "#333",
     textAlign: "center",
     lineHeight: 36,
   },

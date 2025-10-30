@@ -1,10 +1,13 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
+export type ColorScheme = 'light' | 'dark' | 'auto';
+
 export interface PreferencesState {
   isEnabled: boolean;
   notificationsGranted: boolean;
   soundEnabled: boolean;
   vibrationEnabled: boolean;
+  colorScheme: ColorScheme;
 }
 
 const initialState: PreferencesState = {
@@ -12,6 +15,7 @@ const initialState: PreferencesState = {
   notificationsGranted: false,
   soundEnabled: true,
   vibrationEnabled: true,
+  colorScheme: 'auto',
 };
 
 const preferencesSlice = createSlice({
@@ -30,6 +34,9 @@ const preferencesSlice = createSlice({
     setVibrationEnabled: (state, action: PayloadAction<boolean>) => {
       state.vibrationEnabled = action.payload;
     },
+    setColorScheme: (state, action: PayloadAction<ColorScheme>) => {
+      state.colorScheme = action.payload;
+    },
     resetPreferences: () => initialState,
   },
 });
@@ -39,6 +46,7 @@ export const {
   setNotificationsGranted,
   setSoundEnabled,
   setVibrationEnabled,
+  setColorScheme,
   resetPreferences,
 } = preferencesSlice.actions;
 

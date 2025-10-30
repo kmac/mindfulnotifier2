@@ -5,19 +5,21 @@ import {
   MD3LightTheme,
   MD3DarkTheme,
   IconButton,
+  useTheme,
 } from "react-native-paper";
 import { useColorScheme } from "react-native";
-import { DrawerToggleButton } from "@react-navigation/drawer";
 import { useEffect, useState } from "react";
-import { Provider } from "react-redux";
+import { Provider, useSelector } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
+import { useNavigation } from "@react-navigation/native";
+import { DrawerNavigationProp } from "@react-navigation/drawer";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Drawer } from "expo-router/drawer";
 
 import { Controller } from "@/services/notificationController";
 import * as Notifications from "expo-notifications";
-import { store, persistor } from "@/store/store";
+import { store, persistor, RootState } from "@/store/store";
 
 // Configure how notifications are handled when the app is in the foreground
 Notifications.setNotificationHandler({
@@ -30,11 +32,32 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export default function Layout() {
-  const colorScheme = useColorScheme();
-  const theme = colorScheme === "dark" ? MD3DarkTheme : MD3LightTheme;
+function AppContent() {
+  const systemColorScheme = useColorScheme();
+  const userColorScheme = useSelector(
+    (state: RootState) => state.preferences.colorScheme
+  );
+
+  // Determine which theme to use based on user preference
+  const effectiveColorScheme =
+    userColorScheme === "auto" ? systemColorScheme : userColorScheme;
+  const theme = effectiveColorScheme === "dark" ? MD3DarkTheme : MD3LightTheme;
+
   const router = useRouter();
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Custom drawer toggle button that respects theme
+  const ThemedDrawerToggle = () => {
+    const theme = useTheme();
+    const navigation = useNavigation<DrawerNavigationProp<any>>();
+    return (
+      <IconButton
+        icon="menu"
+        iconColor={theme.colors.onSurface}
+        onPress={() => navigation.toggleDrawer()}
+      />
+    );
+  };
 
   // Initialize the controller and notification system on app startup
   useEffect(() => {
@@ -93,13 +116,20 @@ export default function Layout() {
   );
 
   return (
-    <Provider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
-        <GestureHandlerRootView style={{ flex: 1 }}>
-          <PaperProvider theme={theme}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <PaperProvider theme={theme}>
             <Drawer
               screenOptions={{
                 drawerPosition: "left",
+                headerStyle: {
+                  backgroundColor: theme.colors.surface,
+                },
+                headerTintColor: theme.colors.onSurface,
+                drawerStyle: {
+                  backgroundColor: theme.colors.surface,
+                },
+                drawerActiveTintColor: theme.colors.primary,
+                drawerInactiveTintColor: theme.colors.onSurfaceVariant,
               }}
             >
               <Drawer.Screen
@@ -108,7 +138,7 @@ export default function Layout() {
                   drawerLabel: "Mindful Notifier",
                   title: "Mindful Notifier",
                   headerTitle: "Mindful Notifier",
-                  headerLeft: () => <DrawerToggleButton />,
+                  headerLeft: () => <ThemedDrawerToggle />,
                 }}
               />
               <Drawer.Screen
@@ -159,6 +189,14 @@ export default function Layout() {
             </Drawer>
           </PaperProvider>
         </GestureHandlerRootView>
+  );
+}
+
+export default function Layout() {
+  return (
+    <Provider store={store}>
+      <PersistGate loading={null} persistor={persistor}>
+        <AppContent />
       </PersistGate>
     </Provider>
   );
