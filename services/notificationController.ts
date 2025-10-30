@@ -160,13 +160,17 @@ export class Controller {
           this.scheduler = new PeriodicScheduler(
             quietHours,
             schedule.periodicConfig.durationHours,
-            schedule.periodicConfig.durationMinutes
+            schedule.periodicConfig.durationMinutes,
+            () => this.triggerNotification(),
+            () => this.initialScheduleComplete()
           );
         } else {
           this.scheduler = new RandomScheduler(
             quietHours,
             schedule.randomConfig.minMinutes,
-            schedule.randomConfig.maxMinutes
+            schedule.randomConfig.maxMinutes,
+            () => this.triggerNotification(),
+            () => this.initialScheduleComplete()
           );
         }
 

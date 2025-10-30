@@ -1,4 +1,3 @@
-import { Controller } from "@/services/notificationController";
 import { Duration, addDuration, subtractDuration } from "./timedate";
 import { QuietHours } from "./quietHours";
 import { oneShotAt } from "@/services/timerService";
@@ -17,19 +16,11 @@ function getRandomInt(max: number) {
   return Math.floor(Math.random() * max);
 }
 
-async function scheduleCallback() {
-  console.log(`[${Date.now()}] scheduleCallback`);
-  let controller: Controller = /*await*/ Controller.getInstance();
-  // await scheduler.checkInitialized();
-
-  // change here is to just re-initialize the scheduler every time and just schedule next
-  controller.triggerNotification();
-}
-
 abstract class DelegatedScheduler {
   readonly scheduleType: ScheduleType;
-  readonly controller: Controller;
   readonly quietHours: QuietHours;
+  readonly onTrigger: () => void | Promise<void>;
+  readonly onInitialScheduleComplete: () => void | Promise<void>;
 
   scheduled: boolean = false;
   _nextDate?: NextFireDate;
@@ -45,10 +36,13 @@ abstract class DelegatedScheduler {
   constructor(
     scheduleType: ScheduleType,
     quietHours: QuietHours,
+    onTrigger: () => void | Promise<void>,
+    onInitialScheduleComplete: () => void | Promise<void>,
   ) {
     this.scheduleType = scheduleType;
     this.quietHours = quietHours;
-    this.controller = Controller.getInstance();
+    this.onTrigger = onTrigger;
+    this.onInitialScheduleComplete = onInitialScheduleComplete;
   }
 
   async cancel() {
@@ -114,7 +108,10 @@ abstract class DelegatedScheduler {
     // }
     //
 
-    oneShotAt(this._nextDate.date, scheduleCallback);
+    oneShotAt(this._nextDate.date, async () => {
+      console.log(`[${Date.now()}] scheduleCallback`);
+      await this.onTrigger();
+    });
 
     // TimerService timerService = await getAlarmManagerTimerService();
     // timerService.oneShotAt(_nextDate!, scheduleAlarmID, scheduleCallback);
@@ -128,7 +125,7 @@ abstract class DelegatedScheduler {
   }
 
   initialScheduleComplete() {
-    this.controller.initialScheduleComplete();
+    this.onInitialScheduleComplete();
   }
 }
 
@@ -140,8 +137,10 @@ export class PeriodicScheduler extends DelegatedScheduler {
     quietHours: QuietHours,
     durationHours: number,
     durationMinutes: number,
+    onTrigger: () => void | Promise<void>,
+    onInitialScheduleComplete: () => void | Promise<void>,
   ) {
-    super(ScheduleType.periodic, quietHours);
+    super(ScheduleType.periodic, quietHours, onTrigger, onInitialScheduleComplete);
     this.durationHours = durationHours;
     this.durationMinutes = durationMinutes;
   }
@@ -212,14 +211,16 @@ export class RandomScheduler extends DelegatedScheduler {
     quietHours: QuietHours,
     minMinutes: number,
     maxMinutes: number,
+    onTrigger: () => void | Promise<void>,
+    onInitialScheduleComplete: () => void | Promise<void>,
   ) {
-    super(ScheduleType.random, quietHours);
+    super(ScheduleType.random, quietHours, onTrigger, onInitialScheduleComplete);
     this.minMinutes = minMinutes;
     this.maxMinutes = maxMinutes;
   }
 
   initialScheduleComplete() {
-    this.controller.initialScheduleComplete();
+    this.onInitialScheduleComplete();
     this.scheduled = true;
   }
 

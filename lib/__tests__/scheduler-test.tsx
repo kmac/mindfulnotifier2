@@ -23,6 +23,8 @@ test("periodic", () => {
     quietHours,
     PeriodicDurationHours,
     PeriodicDurationMins,
+    () => {}, // onTrigger callback
+    () => {}, // onInitialScheduleComplete callback
   );
 
   let nextFire : scheduler.NextFireDate = periodic.getNextFireDate(testDate);
@@ -42,6 +44,8 @@ test("periodic, in quiet hours", () => {
     quietHours,
     PeriodicDurationHours,
     PeriodicDurationMins,
+    () => {}, // onTrigger callback
+    () => {}, // onInitialScheduleComplete callback
   );
 
   let nextFire : scheduler.NextFireDate= periodic.getNextFireDate(testDate);
@@ -61,6 +65,8 @@ test("random", () => {
     quietHours,
     RandomMinMinutes,
     RandomMaxMinutes,
+    () => {}, // onTrigger callback
+    () => {}, // onInitialScheduleComplete callback
   );
 
   for (let i = 0; i < 10; i++) {
