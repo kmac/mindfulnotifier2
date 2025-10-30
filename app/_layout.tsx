@@ -3,14 +3,83 @@ import { Image, Text, View, StyleSheet } from 'react-native';
 import { PaperProvider, MD3LightTheme, MD3DarkTheme, IconButton } from 'react-native-paper';
 import { useColorScheme } from 'react-native';
 import { DrawerToggleButton } from '@react-navigation/drawer';
+import { useEffect, useState } from 'react';
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Drawer } from 'expo-router/drawer';
+
+import { Controller } from '@/components/controller';
+import * as Notifications from 'expo-notifications';
+
+// Configure how notifications are handled when the app is in the foreground
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 export default function Layout() {
   const colorScheme = useColorScheme();
   const theme = colorScheme === 'dark' ? MD3DarkTheme : MD3LightTheme;
   const router = useRouter();
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Initialize the controller and notification system on app startup
+  useEffect(() => {
+    let isMounted = true;
+
+    async function initialize() {
+      try {
+        console.log('[App] Initializing app...');
+
+        // Request notification permissions
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status !== 'granted') {
+          console.warn('[App] Notification permissions not granted');
+          // Continue anyway - user can enable later
+        }
+
+        // Get the controller instance
+        const controller = Controller.getInstance();
+
+        // Initialize the controller (sets up alarm service)
+        await controller.initialize();
+
+        // Enable the controller (starts scheduling)
+        await controller.enable();
+
+        if (isMounted) {
+          setIsInitialized(true);
+          console.log('[App] App initialized successfully');
+        }
+      } catch (error) {
+        console.error('[App] Failed to initialize app:', error);
+      }
+    }
+
+    initialize();
+
+    // Listen for notifications received while the app is in the foreground
+    const notificationListener = Notifications.addNotificationReceivedListener(notification => {
+      console.log('[App] Notification received in foreground:', notification);
+    });
+
+    // Listen for notification interactions (when user taps on notification)
+    const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log('[App] Notification response received:', response);
+    });
+
+    // Cleanup on unmount
+    return () => {
+      isMounted = false;
+      notificationListener.remove();
+      responseListener.remove();
+    };
+  }, []);
 
   const BackButton = () => (
     <IconButton

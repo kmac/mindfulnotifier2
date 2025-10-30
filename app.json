@@ -22,7 +22,15 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "POST_NOTIFICATIONS",
+        "SCHEDULE_EXACT_ALARM",
+        "USE_EXACT_ALARM",
+        "WAKE_LOCK"
+      ],
+      "package": "com.mindfulnotifier.app"
     },
     "web": {
       "bundler": "metro",
@@ -30,7 +38,28 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#ffffff",
+          "sounds": [
+            "./assets/notification.wav"
+          ],
+          "androidMode": "default",
+          "androidCollapsedTitle": "Mindful Notifier"
+        }
+      ],
+      [
+        "expo-task-manager",
+        {
+          "android": {
+            "enableBackgroundTasks": true
+          }
+        }
+      ],
+      "expo-background-task"
     ],
     "experiments": {
       "typedRoutes": true

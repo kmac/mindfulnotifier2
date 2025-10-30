@@ -1,5 +1,15 @@
+import { getRandomReminder } from './reminders';
+import { scheduleNotificationAt } from './timerservice';
+import { QuietHours } from './quiethours';
+import { RandomScheduler, PeriodicScheduler, ScheduleType } from './scheduler';
+import { getAlarmService } from './alarmservice';
+import type { AlarmService } from './alarmservice';
+import { TimeOfDay } from './timedate';
+
 export class Controller {
   private static instance: Controller;
+  private alarmService?: AlarmService;
+  private scheduler?: RandomScheduler | PeriodicScheduler;
 
   private constructor() {
     // Private constructor to prevent direct instantiation
@@ -25,20 +35,138 @@ export class Controller {
 
   running: boolean = false;
 
-  enable(restart: boolean = false) {
+  /**
+   * Initialize the controller with alarm service
+   */
+  async initialize() {
+    console.info("Controller initialize");
+    try {
+      this.alarmService = getAlarmService();
+      await this.alarmService.initialize();
+      console.info("Controller initialized successfully");
+    } catch (error) {
+      console.error("Failed to initialize controller:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Enable the controller and start scheduling
+   */
+  async enable(restart: boolean = false) {
     console.info(`Controller enable, restart=${restart}`);
-    this.running = true;
+
+    try {
+      if (this.alarmService) {
+        await this.alarmService.enable();
+      }
+
+      this.running = true;
+
+      // Schedule the first notification
+      await this.scheduleNextNotification();
+
+      console.info("Controller enabled successfully");
+    } catch (error) {
+      console.error("Failed to enable controller:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Disable the controller and stop scheduling
+   */
+  async disable() {
+    console.info("Controller disable");
+
+    try {
+      if (this.alarmService) {
+        await this.alarmService.disable();
+      }
+
+      this.running = false;
+
+      console.info("Controller disabled successfully");
+    } catch (error) {
+      console.error("Failed to disable controller:", error);
+      throw error;
+    }
   }
 
   shutdown() {
     console.info("Controller shutdown");
+
+    if (this.alarmService) {
+      this.alarmService.shutdown();
+    }
+
+    this.running = false;
   }
 
   initialScheduleComplete() {
     console.info("Controller initialScheduleComplete");
   }
 
-  triggerNotification() {
+  /**
+   * Trigger a notification
+   * This is called by the scheduler when it's time to show a notification
+   */
+  async triggerNotification() {
     console.info("Controller triggerNotification");
+
+    try {
+      // Schedule the next notification
+      await this.scheduleNextNotification();
+    } catch (error) {
+      console.error("Failed to trigger notification:", error);
+    }
+  }
+
+  /**
+   * Schedule the next notification
+   * This is the main method that creates and schedules notifications
+   */
+  async scheduleNextNotification() {
+    console.info("Controller scheduleNextNotification");
+
+    try {
+      // Get a random reminder
+      const reminderText = getRandomReminder();
+
+      // Create a scheduler if we don't have one
+      // TODO: These should be configurable via app settings
+      if (!this.scheduler) {
+        const quietHours = new QuietHours(
+          new TimeOfDay(21, 0), // Start: 9 PM
+          new TimeOfDay(9, 0)   // End: 9 AM
+        );
+
+        // Use RandomScheduler with 30-60 minute intervals
+        // TODO: Make this configurable
+        this.scheduler = new RandomScheduler(quietHours, 30, 60);
+      }
+
+      // Get the next fire date from the scheduler
+      const nextFireDate = this.scheduler.getNextFireDate();
+
+      console.info(`Scheduling notification for ${nextFireDate.date}`);
+
+      // Schedule the notification
+      await scheduleNotificationAt(
+        'mindful-reminder',
+        nextFireDate.date,
+        'Mindful Reminder',
+        reminderText,
+        () => {
+          // This callback is only used on web
+          this.triggerNotification();
+        }
+      );
+
+      console.info("Notification scheduled successfully");
+    } catch (error) {
+      console.error("Failed to schedule next notification:", error);
+      throw error;
+    }
   }
 }
