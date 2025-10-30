@@ -1,10 +1,18 @@
 import { defaultJsonReminderMap, JsonReminder } from "@/constants/Reminders";
 
-export function getRandomReminder(): string {
-  let defaultReminders: JsonReminder[] = Array.from(
-    defaultJsonReminderMap,
-  ).filter((reminder) => reminder.enabled === true);
+export function getRandomReminder(reminders?: JsonReminder[]): string {
+  // Use provided reminders or fall back to default
+  const reminderList = reminders || defaultJsonReminderMap;
 
-  let index = Math.floor(Math.random() * defaultReminders.length);
-  return defaultReminders[index].text;
+  let enabledReminders: JsonReminder[] = reminderList.filter(
+    (reminder) => reminder.enabled === true
+  );
+
+  // If no reminders are enabled, fall back to all reminders
+  if (enabledReminders.length === 0) {
+    enabledReminders = reminderList;
+  }
+
+  let index = Math.floor(Math.random() * enabledReminders.length);
+  return enabledReminders[index].text;
 }

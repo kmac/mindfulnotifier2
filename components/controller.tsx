@@ -5,6 +5,7 @@ import { RandomScheduler, PeriodicScheduler, ScheduleType } from './scheduler';
 import { getAlarmService } from './alarmservice';
 import type { AlarmService } from './alarmservice';
 import { TimeOfDay } from './timedate';
+import { store } from '@/store/store';
 
 export class Controller {
   private static instance: Controller;
@@ -103,6 +104,15 @@ export class Controller {
     this.running = false;
   }
 
+  /**
+   * Reset the scheduler
+   * Call this when schedule settings change to force recreation with new settings
+   */
+  resetScheduler() {
+    console.info("Controller resetScheduler");
+    this.scheduler = undefined;
+  }
+
   initialScheduleComplete() {
     console.info("Controller initialScheduleComplete");
   }
@@ -130,20 +140,37 @@ export class Controller {
     console.info("Controller scheduleNextNotification");
 
     try {
-      // Get a random reminder
-      const reminderText = getRandomReminder();
+      // Get Redux state
+      const state = store.getState();
+      const { schedule, reminders } = state;
 
-      // Create a scheduler if we don't have one
-      // TODO: These should be configurable via app settings
+      // Get a random reminder from Redux state
+      const reminderText = getRandomReminder(reminders.reminders);
+
+      // Create a scheduler if we don't have one, or recreate if settings changed
       if (!this.scheduler) {
         const quietHours = new QuietHours(
-          new TimeOfDay(21, 0), // Start: 9 PM
-          new TimeOfDay(9, 0)   // End: 9 AM
+          new TimeOfDay(schedule.quietHours.startHour, schedule.quietHours.startMinute),
+          new TimeOfDay(schedule.quietHours.endHour, schedule.quietHours.endMinute),
+          schedule.quietHours.notifyQuietHours
         );
 
-        // Use RandomScheduler with 30-60 minute intervals
-        // TODO: Make this configurable
-        this.scheduler = new RandomScheduler(quietHours, 30, 60);
+        // Create scheduler based on Redux schedule type
+        if (schedule.scheduleType === 'periodic') {
+          this.scheduler = new PeriodicScheduler(
+            quietHours,
+            schedule.periodicConfig.durationHours,
+            schedule.periodicConfig.durationMinutes
+          );
+        } else {
+          this.scheduler = new RandomScheduler(
+            quietHours,
+            schedule.randomConfig.minMinutes,
+            schedule.randomConfig.maxMinutes
+          );
+        }
+
+        console.info(`Created ${schedule.scheduleType} scheduler with Redux configuration`);
       }
 
       // Get the next fire date from the scheduler

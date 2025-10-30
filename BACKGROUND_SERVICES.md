@@ -4,7 +4,7 @@ This document describes the background service infrastructure for the Mindful No
 
 ## Migration to expo-background-task
 
-**⚠️ Important**: This app has been migrated from the deprecated `expo-background-fetch` to the modern `expo-background-task` API (Expo SDK 53+). The new API uses WorkManager on Android and provides better reliability and battery efficiency.
+**⚠️ Important**: This app uses `expo-background-task` API (Expo SDK 53+). The new API uses WorkManager on Android and provides better reliability and battery efficiency.
 
 ## Overview
 

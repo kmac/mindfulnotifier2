@@ -4,12 +4,15 @@ import { PaperProvider, MD3LightTheme, MD3DarkTheme, IconButton } from 'react-na
 import { useColorScheme } from 'react-native';
 import { DrawerToggleButton } from '@react-navigation/drawer';
 import { useEffect, useState } from 'react';
+import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Drawer } from 'expo-router/drawer';
 
 import { Controller } from '@/components/controller';
 import * as Notifications from 'expo-notifications';
+import { store, persistor } from '@/store/store';
 
 // Configure how notifications are handled when the app is in the foreground
 Notifications.setNotificationHandler({
@@ -89,70 +92,74 @@ export default function Layout() {
   );
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <PaperProvider theme={theme}>
-        <Drawer
-          screenOptions={{
-            drawerPosition: 'left',
-          }}
-        >
-          <Drawer.Screen
-            name="index"
-            options={{
-              drawerLabel: 'Mindful Notifier',
-              title: 'Mindful Notifier',
-              headerTitle: 'Mindful Notifier',
-              headerLeft: () => <DrawerToggleButton />,
-            }}
-          />
-          <Drawer.Screen
-            name="schedule"
-            options={{
-              drawerLabel: 'Schedule',
-              title: 'Schedule',
-              headerTitle: 'Mindful Notifier - Schedule',
-              headerLeft: () => <BackButton />,
-            }}
-          />
-          <Drawer.Screen
-            name="reminders"
-            options={{
-              drawerLabel: 'Reminders',
-              title: 'Reminders',
-              headerTitle: 'Configure Reminders',
-              headerLeft: () => <BackButton />,
-            }}
-          />
-          <Drawer.Screen
-            name="sound"
-            options={{
-              drawerLabel: 'Sound',
-              title: 'Sound',
-              headerTitle: 'Sound Settings',
-              headerLeft: () => <BackButton />,
-            }}
-          />
-          <Drawer.Screen
-            name="preferences"
-            options={{
-              drawerLabel: 'Preferences',
-              title: 'Preferences',
-              headerTitle: 'App Preferences',
-              headerLeft: () => <BackButton />,
-            }}
-          />
-          <Drawer.Screen
-            name="about"
-            options={{
-              drawerLabel: 'About',
-              title: 'About',
-              headerTitle: 'About Mindful Notifier',
-              headerLeft: () => <BackButton />,
-            }}
-          />
-        </Drawer>
-      </PaperProvider>
-    </GestureHandlerRootView>
+    <Provider store={store}>
+      <PersistGate loading={null} persistor={persistor}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <PaperProvider theme={theme}>
+            <Drawer
+              screenOptions={{
+                drawerPosition: 'left',
+              }}
+            >
+              <Drawer.Screen
+                name="index"
+                options={{
+                  drawerLabel: 'Mindful Notifier',
+                  title: 'Mindful Notifier',
+                  headerTitle: 'Mindful Notifier',
+                  headerLeft: () => <DrawerToggleButton />,
+                }}
+              />
+              <Drawer.Screen
+                name="schedule"
+                options={{
+                  drawerLabel: 'Schedule',
+                  title: 'Schedule',
+                  headerTitle: 'Mindful Notifier - Schedule',
+                  headerLeft: () => <BackButton />,
+                }}
+              />
+              <Drawer.Screen
+                name="reminders"
+                options={{
+                  drawerLabel: 'Reminders',
+                  title: 'Reminders',
+                  headerTitle: 'Configure Reminders',
+                  headerLeft: () => <BackButton />,
+                }}
+              />
+              <Drawer.Screen
+                name="sound"
+                options={{
+                  drawerLabel: 'Sound',
+                  title: 'Sound',
+                  headerTitle: 'Sound Settings',
+                  headerLeft: () => <BackButton />,
+                }}
+              />
+              <Drawer.Screen
+                name="preferences"
+                options={{
+                  drawerLabel: 'Preferences',
+                  title: 'Preferences',
+                  headerTitle: 'App Preferences',
+                  headerLeft: () => <BackButton />,
+                }}
+              />
+              <Drawer.Screen
+                name="about"
+                options={{
+                  drawerLabel: 'About',
+                  title: 'About',
+                  headerTitle: 'About Mindful Notifier',
+                  headerLeft: () => <BackButton />,
+                }}
+              />
+            </Drawer>
+          </PaperProvider>
+        </GestureHandlerRootView>
+      </PersistGate>
+    </Provider>
   );
 }
 
