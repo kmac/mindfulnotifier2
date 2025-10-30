@@ -1,18 +1,23 @@
 import { Stack, useRouter } from "expo-router";
-import { Image, Text, View, StyleSheet } from 'react-native';
-import { PaperProvider, MD3LightTheme, MD3DarkTheme, IconButton } from 'react-native-paper';
-import { useColorScheme } from 'react-native';
-import { DrawerToggleButton } from '@react-navigation/drawer';
-import { useEffect, useState } from 'react';
-import { Provider } from 'react-redux';
-import { PersistGate } from 'redux-persist/integration/react';
+import { Image, Text, View, StyleSheet } from "react-native";
+import {
+  PaperProvider,
+  MD3LightTheme,
+  MD3DarkTheme,
+  IconButton,
+} from "react-native-paper";
+import { useColorScheme } from "react-native";
+import { DrawerToggleButton } from "@react-navigation/drawer";
+import { useEffect, useState } from "react";
+import { Provider } from "react-redux";
+import { PersistGate } from "redux-persist/integration/react";
 
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Drawer } from 'expo-router/drawer';
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { Drawer } from "expo-router/drawer";
 
-import { Controller } from '@/components/controller';
-import * as Notifications from 'expo-notifications';
-import { store, persistor } from '@/store/store';
+import { Controller } from "@/services/notificationController";
+import * as Notifications from "expo-notifications";
+import { store, persistor } from "@/store/store";
 
 // Configure how notifications are handled when the app is in the foreground
 Notifications.setNotificationHandler({
@@ -27,7 +32,7 @@ Notifications.setNotificationHandler({
 
 export default function Layout() {
   const colorScheme = useColorScheme();
-  const theme = colorScheme === 'dark' ? MD3DarkTheme : MD3LightTheme;
+  const theme = colorScheme === "dark" ? MD3DarkTheme : MD3LightTheme;
   const router = useRouter();
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -37,44 +42,43 @@ export default function Layout() {
 
     async function initialize() {
       try {
-        console.log('[App] Initializing app...');
+        console.log("[App] Initializing app...");
 
         // Request notification permissions
         const { status } = await Notifications.requestPermissionsAsync();
-        if (status !== 'granted') {
-          console.warn('[App] Notification permissions not granted');
+        if (status !== "granted") {
+          console.warn("[App] Notification permissions not granted");
           // Continue anyway - user can enable later
         }
 
-        // Get the controller instance
         const controller = Controller.getInstance();
 
-        // Initialize the controller (sets up alarm service)
-        await controller.initialize();
-
-        // Enable the controller (starts scheduling)
-        await controller.enable();
+        await controller.initialize(); // sets up alarm service
+        await controller.enable(); // starts scheduling
 
         if (isMounted) {
           setIsInitialized(true);
-          console.log('[App] App initialized successfully');
+          console.log("[App] App initialized successfully");
         }
       } catch (error) {
-        console.error('[App] Failed to initialize app:', error);
+        console.error("[App] Failed to initialize app:", error);
       }
     }
 
     initialize();
 
     // Listen for notifications received while the app is in the foreground
-    const notificationListener = Notifications.addNotificationReceivedListener(notification => {
-      console.log('[App] Notification received in foreground:', notification);
-    });
+    const notificationListener = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        console.log("[App] Notification received in foreground:", notification);
+      },
+    );
 
     // Listen for notification interactions (when user taps on notification)
-    const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log('[App] Notification response received:', response);
-    });
+    const responseListener =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        console.log("[App] Notification response received:", response);
+      });
 
     // Cleanup on unmount
     return () => {
@@ -85,10 +89,7 @@ export default function Layout() {
   }, []);
 
   const BackButton = () => (
-    <IconButton
-      icon="arrow-left"
-      onPress={() => router.push('/')}
-    />
+    <IconButton icon="arrow-left" onPress={() => router.push("/")} />
   );
 
   return (
@@ -98,60 +99,60 @@ export default function Layout() {
           <PaperProvider theme={theme}>
             <Drawer
               screenOptions={{
-                drawerPosition: 'left',
+                drawerPosition: "left",
               }}
             >
               <Drawer.Screen
                 name="index"
                 options={{
-                  drawerLabel: 'Mindful Notifier',
-                  title: 'Mindful Notifier',
-                  headerTitle: 'Mindful Notifier',
+                  drawerLabel: "Mindful Notifier",
+                  title: "Mindful Notifier",
+                  headerTitle: "Mindful Notifier",
                   headerLeft: () => <DrawerToggleButton />,
                 }}
               />
               <Drawer.Screen
                 name="schedule"
                 options={{
-                  drawerLabel: 'Schedule',
-                  title: 'Schedule',
-                  headerTitle: 'Mindful Notifier - Schedule',
+                  drawerLabel: "Schedule",
+                  title: "Schedule",
+                  headerTitle: "Manage Schedule",
                   headerLeft: () => <BackButton />,
                 }}
               />
               <Drawer.Screen
                 name="reminders"
                 options={{
-                  drawerLabel: 'Reminders',
-                  title: 'Reminders',
-                  headerTitle: 'Configure Reminders',
+                  drawerLabel: "Reminders",
+                  title: "Reminders",
+                  headerTitle: "Configure Reminders",
                   headerLeft: () => <BackButton />,
                 }}
               />
               <Drawer.Screen
                 name="sound"
                 options={{
-                  drawerLabel: 'Sound',
-                  title: 'Sound',
-                  headerTitle: 'Sound Settings',
+                  drawerLabel: "Sound",
+                  title: "Sound",
+                  headerTitle: "Configure Sound",
                   headerLeft: () => <BackButton />,
                 }}
               />
               <Drawer.Screen
                 name="preferences"
                 options={{
-                  drawerLabel: 'Preferences',
-                  title: 'Preferences',
-                  headerTitle: 'App Preferences',
+                  drawerLabel: "Preferences",
+                  title: "Preferences",
+                  headerTitle: "App Preferences",
                   headerLeft: () => <BackButton />,
                 }}
               />
               <Drawer.Screen
                 name="about"
                 options={{
-                  drawerLabel: 'About',
-                  title: 'About',
-                  headerTitle: 'About Mindful Notifier',
+                  drawerLabel: "About",
+                  title: "About",
+                  headerTitle: "About Mindful Notifier",
                   headerLeft: () => <BackButton />,
                 }}
               />
@@ -162,39 +163,3 @@ export default function Layout() {
     </Provider>
   );
 }
-
-
-// export default function RootLayout() {
-//   return (
-//     <Stack style={styles.container}
-//       screenOptions={{
-//         headerStyle: {
-//           backgroundColor: "#0087ff",
-//         },
-//         headerTintColor: "#fff",
-//         headerTitleStyle: {
-//           fontWeight: "bold",
-//         },
-//       }}
-//     >
-//       <Stack.Screen
-//         name="index"
-//         options={{ title: "Mindful Notifier", headerShown: true }}
-//       />
-//     </Stack>
-//   );
-// }
-//
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//   },
-//   // image: {
-//   //   width: 50,
-//   //   height: 50,
-//   // },
-// });
-//
-

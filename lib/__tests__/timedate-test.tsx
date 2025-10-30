@@ -1,4 +1,4 @@
-import { Duration, addDuration, subtractDuration } from "../timedate";
+import { Duration, addDuration, subtractDuration } from "@/lib/timedate";
 
 test("very basic", () => {
   let duration: Duration = { hours: 3, minutes: 0, seconds: 0 };

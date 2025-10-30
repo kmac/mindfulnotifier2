@@ -6,7 +6,7 @@ import {
   convertTimeOfDayToToday,
   convertTimeOfDayToTomorrow,
   convertTimeOfDayToYesterday,
-} from "@/components/timedate";
+} from "./timedate";
 
 export class QuietHours {
   readonly startTime: TimeOfDay;

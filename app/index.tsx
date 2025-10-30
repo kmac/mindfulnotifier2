@@ -1,6 +1,6 @@
 import { View, Pressable } from "react-native";
 import { Button, Text  } from "react-native-paper";
-import { getRandomReminder } from "@/components/reminders";
+import { getRandomReminder } from "@/lib/reminders";
 import { useState } from "react";
 
 export default function Index() {

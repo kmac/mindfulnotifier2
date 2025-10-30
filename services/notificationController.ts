@@ -1,10 +1,10 @@
-import { getRandomReminder } from './reminders';
-import { scheduleNotificationAt } from './timerservice';
-import { QuietHours } from './quiethours';
-import { RandomScheduler, PeriodicScheduler, ScheduleType } from './scheduler';
-import { getAlarmService } from './alarmservice';
-import type { AlarmService } from './alarmservice';
-import { TimeOfDay } from './timedate';
+import { getRandomReminder } from '@/lib/reminders';
+import { scheduleNotificationAt } from './timerService';
+import { QuietHours } from '@/lib/quietHours';
+import { RandomScheduler, PeriodicScheduler, ScheduleType } from '@/lib/scheduler';
+import { getAlarmService } from './alarmService';
+import type { AlarmService } from './alarmService';
+import { TimeOfDay } from '@/lib/timedate';
 import { store } from '@/store/store';
 
 export class Controller {

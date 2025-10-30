@@ -16,7 +16,7 @@ TaskManager.defineTask(NOTIFICATION_TASK_NAME, async () => {
     console.log('[BackgroundTask] Running notification scheduling task');
 
     // Import controller dynamically to avoid circular dependencies
-    const { Controller } = await import('./controller');
+    const { Controller } = await import('./notificationController');
 
     // Schedule the next notification
     const controller = Controller.getInstance();
@@ -38,7 +38,7 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
   try {
     console.log('[BackgroundTask] Running periodic background check');
 
-    const { Controller } = await import('./controller');
+    const { Controller } = await import('./notificationController');
 
     // Check if we need to schedule a notification
     const scheduled = await Notifications.getAllScheduledNotificationsAsync();

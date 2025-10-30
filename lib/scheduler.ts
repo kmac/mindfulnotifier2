@@ -1,7 +1,7 @@
-import { Controller } from "@/components/controller";
-import { Duration, addDuration, subtractDuration } from "@/components/timedate";
-import { QuietHours } from "@/components/quiethours";
-import { oneShotAt } from "@/components/timerservice";
+import { Controller } from "@/services/notificationController";
+import { Duration, addDuration, subtractDuration } from "./timedate";
+import { QuietHours } from "./quietHours";
+import { oneShotAt } from "@/services/timerService";
 
 export type NextFireDate = {
   date: Date;

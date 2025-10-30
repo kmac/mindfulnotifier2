@@ -3,10 +3,10 @@ import {
   TimeOfDay,
   addDuration,
   subtractDuration,
-} from "../timedate";
-import { Controller } from "../controller";
-import { QuietHours } from "../quiethours";
-import * as scheduler from "../scheduler";
+} from "@/lib/timedate";
+import { Controller } from "@/services/notificationController";
+import { QuietHours } from "@/lib/quietHours";
+import * as scheduler from "@/lib/scheduler";
 
 const PeriodicDurationHours: number = 0;
 const PeriodicDurationMins: number = 5;
