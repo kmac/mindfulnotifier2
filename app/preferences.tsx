@@ -1,5 +1,6 @@
 import { ScrollView, StyleSheet, View } from "react-native";
 import {
+  Button,
   Surface,
   Text,
   SegmentedButtons,
@@ -13,7 +14,10 @@ import {
   setSoundEnabled,
   setVibrationEnabled,
   ColorScheme,
+  setNotificationsGranted,
 } from "@/store/slices/preferencesSlice";
+import * as Notifications from "expo-notifications";
+import { isPermissionsGranted, requestPermissions } from "@/lib/notifications";
 
 export default function Preferences() {
   const dispatch = useAppDispatch();
@@ -30,6 +34,21 @@ export default function Preferences() {
   const handleToggleVibration = () => {
     dispatch(setVibrationEnabled(!preferences.vibrationEnabled));
   };
+
+  async function handleNotificationPermission() {
+    const granted = await isPermissionsGranted();
+    if (granted) {
+      if (!preferences.notificationsGranted) {
+        dispatch(setNotificationsGranted(true));
+      }
+    } else {
+      if (await requestPermissions()) {
+        if (!preferences.notificationsGranted) {
+          dispatch(setNotificationsGranted(true));
+        }
+      }
+    }
+  }
 
   return (
     <ScrollView style={styles.scrollView}>
@@ -148,11 +167,18 @@ export default function Preferences() {
               />
             )}
           />
+          {preferences.notificationsGranted || (
+            <Button onPress={handleNotificationPermission}>
+              Request Notification Permissions
+            </Button>
+          )}
 
           <List.Item
             title="Service Status"
             description={
-              preferences.isEnabled ? "Service is running" : "Service is stopped"
+              preferences.isEnabled
+                ? "Service is running"
+                : "Service is stopped"
             }
             left={(props) => (
               <List.Icon

@@ -102,11 +102,33 @@ Platform-specific alarm service abstraction:
   - Persists across app restarts and device reboots
   - Uses modern WorkManager APIs on Android
 
-### 4. TimerService (timerservice.tsx)
+### 4. Notifications Library (notifications.ts)
 
-**Location**: `components/timerservice.tsx`
+**Location**: `lib/notifications.ts`
 
-Handles platform-specific timer scheduling:
+Provides a unified API for handling notifications across platforms:
+
+#### Key Features
+- **Web Support**: Uses browser Notification API
+- **Android Support**: Uses Expo Notifications with FCM integration
+- **Remote Notifications**: Full Google Cloud Messaging (FCM) support
+- **Local Notifications**: Immediate notification triggering
+
+**Key Functions**:
+- `initializeNotifications()`: Setup and request notification permissions
+- `showLocalNotification()`: Trigger an immediate notification (works on web and Android)
+- `registerForPushNotifications()`: Get Expo push token for remote notifications via FCM
+- `getDevicePushToken()`: Get native FCM token from device
+- `addNotificationReceivedListener()`: Listen for foreground notifications
+- `addNotificationResponseListener()`: Listen for notification interactions
+- `cancelNotification()`: Cancel a specific notification
+- `cancelAllNotifications()`: Cancel all notifications
+
+### 5. TimerService (timerservice.tsx)
+
+**Location**: `services/timerservice.tsx`
+
+Handles platform-specific timer scheduling for future notifications:
 
 #### Web (WebTimerService)
 - Uses `setTimeout()` for scheduling
@@ -123,9 +145,9 @@ Handles platform-specific timer scheduling:
 - `cancelScheduledNotification()`: Cancel a specific notification
 - `cancelAllScheduled()`: Cancel all notifications
 
-### 5. BackgroundTaskService (backgroundTaskService.tsx)
+### 6. BackgroundTaskService (backgroundTaskService.tsx)
 
-**Location**: `components/backgroundTaskService.tsx`
+**Location**: `services/backgroundTaskService.tsx`
 
 Handles Android background task registration and notification scheduling:
 
@@ -156,9 +178,9 @@ Handles Android background task registration and notification scheduling:
 - `cancelAllNotifications()`: Cancels all scheduled notifications
 - `getScheduledNotifications()`: Returns all scheduled notifications
 
-### 6. Scheduler (scheduler.tsx)
+### 7. Scheduler (scheduler.tsx)
 
-**Location**: `components/scheduler.tsx`
+**Location**: `lib/scheduler.tsx`
 
 Calculates when the next notification should fire:
 
@@ -174,9 +196,9 @@ Calculates when the next notification should fire:
 
 Both schedulers respect quiet hours and reschedule notifications that would occur during quiet periods.
 
-### 7. QuietHours (quiethours.tsx)
+### 8. QuietHours (quiethours.tsx)
 
-**Location**: `components/quiethours.tsx`
+**Location**: `lib/quiethours.tsx`
 
 Manages quiet hours functionality:
 - Default: 9 PM to 9 AM

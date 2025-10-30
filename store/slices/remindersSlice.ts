@@ -3,10 +3,12 @@ import { defaultJsonReminderMap, JsonReminder } from '@/constants/Reminders';
 
 export interface RemindersState {
   reminders: JsonReminder[];
+  lastNotificationText: string | null;
 }
 
 const initialState: RemindersState = {
   reminders: defaultJsonReminderMap,
+  lastNotificationText: null,
 };
 
 const remindersSlice = createSlice({
@@ -34,6 +36,9 @@ const remindersSlice = createSlice({
     setReminders: (state, action: PayloadAction<JsonReminder[]>) => {
       state.reminders = action.payload;
     },
+    setLastNotificationText: (state, action: PayloadAction<string>) => {
+      state.lastNotificationText = action.payload;
+    },
     resetReminders: () => initialState,
   },
 });
@@ -44,6 +49,7 @@ export const {
   deleteReminder,
   toggleReminderEnabled,
   setReminders,
+  setLastNotificationText,
   resetReminders,
 } = remindersSlice.actions;
 

@@ -18,24 +18,20 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Drawer } from "expo-router/drawer";
 
 import { Controller } from "@/services/notificationController";
-import * as Notifications from "expo-notifications";
+import {
+  initializeNotifications,
+  addNotificationReceivedListener,
+  addNotificationResponseListener,
+} from "@/lib/notifications";
 import { store, persistor, RootState } from "@/store/store";
-
-// Configure how notifications are handled when the app is in the foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
 
 function AppContent() {
   const systemColorScheme = useColorScheme();
   const userColorScheme = useSelector(
     (state: RootState) => state.preferences.colorScheme
+  );
+  const isEnabled = useSelector(
+    (state: RootState) => state.preferences.isEnabled
   );
 
   // Determine which theme to use based on user preference
@@ -67,17 +63,22 @@ function AppContent() {
       try {
         console.log("[App] Initializing app...");
 
-        // Request notification permissions
-        const { status } = await Notifications.requestPermissionsAsync();
-        if (status !== "granted") {
-          console.warn("[App] Notification permissions not granted");
-          // Continue anyway - user can enable later
+        // // Initialize notifications and request permissions
+        // const permissionsGranted = await initializeNotifications();
+        // if (!permissionsGranted) {
+        //   console.warn("[App] Notification permissions not granted");
+        //   // Continue anyway - user can enable later
+        // }
+
+        if (isEnabled) {
+          const controller = Controller.getInstance();
+
+          await controller.initialize(); // sets up alarm service
+          await controller.enable(); // starts scheduling
+          console.log("[App] Controller enabled");
+        } else {
+          console.log("[App] Controller not enabled (isEnabled=false)");
         }
-
-        const controller = Controller.getInstance();
-
-        await controller.initialize(); // sets up alarm service
-        await controller.enable(); // starts scheduling
 
         if (isMounted) {
           setIsInitialized(true);
@@ -91,17 +92,16 @@ function AppContent() {
     initialize();
 
     // Listen for notifications received while the app is in the foreground
-    const notificationListener = Notifications.addNotificationReceivedListener(
+    const notificationListener = addNotificationReceivedListener(
       (notification) => {
         console.log("[App] Notification received in foreground:", notification);
       },
     );
 
     // Listen for notification interactions (when user taps on notification)
-    const responseListener =
-      Notifications.addNotificationResponseReceivedListener((response) => {
-        console.log("[App] Notification response received:", response);
-      });
+    const responseListener = addNotificationResponseListener((response) => {
+      console.log("[App] Notification response received:", response);
+    });
 
     // Cleanup on unmount
     return () => {

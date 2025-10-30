@@ -1,11 +1,13 @@
 import { getRandomReminder } from '@/lib/reminders';
 import { scheduleNotificationAt } from './timerService';
+import { showLocalNotification } from '@/lib/notifications';
 import { QuietHours } from '@/lib/quietHours';
 import { RandomScheduler, PeriodicScheduler, ScheduleType } from '@/lib/scheduler';
 import { getAlarmService } from './alarmService';
 import type { AlarmService } from './alarmService';
 import { TimeOfDay } from '@/lib/timedate';
 import { store } from '@/store/store';
+import { setLastNotificationText } from '@/store/slices/remindersSlice';
 
 export class Controller {
   private static instance: Controller;
@@ -124,10 +126,27 @@ export class Controller {
   async triggerNotification() {
     console.info("Controller triggerNotification");
 
-    // TODO trigger a notification
-
-
     try {
+      // Get Redux state
+      const state = store.getState();
+      const { reminders } = state;
+
+      // Get a random reminder
+      const reminderText = getRandomReminder(reminders.reminders);
+
+      // Store the reminder text in Redux
+      store.dispatch(setLastNotificationText(reminderText));
+
+      // Show the notification
+      await showLocalNotification({
+        title: 'Mindful Reminder',
+        body: reminderText,
+        data: { timestamp: Date.now() },
+        sound: false,
+      });
+
+      console.info("Notification triggered successfully");
+
       // Schedule the next notification
       await this.scheduleNextNotification();
     } catch (error) {
@@ -187,9 +206,9 @@ export class Controller {
 
       // Schedule the notification
       await scheduleNotificationAt(
-        'mindful-reminder',
+        'mindfulnotifier',
         nextFireDate.date,
-        'Mindful Reminder',
+        'Mindful Notifier',
         reminderText,
         () => {
           // This callback is only used on web

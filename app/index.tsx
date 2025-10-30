@@ -1,6 +1,5 @@
 import { View, StyleSheet } from "react-native";
 import {
-  Button,
   Text,
   Surface,
   SegmentedButtons,
@@ -8,7 +7,7 @@ import {
   useTheme,
 } from "react-native-paper";
 import { getRandomReminder } from "@/lib/reminders";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import {
   setEnabled,
@@ -22,21 +21,10 @@ export default function Index() {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const preferences = useAppSelector((state) => state.preferences);
+  const lastNotificationText = useAppSelector((state) => state.reminders.lastNotificationText);
   const reminders = useAppSelector((state) => state.reminders.reminders);
 
-  const [currentReminder, setCurrentReminder] = useState(
-    getRandomReminder(reminders)
-  );
   const [isInitializing, setIsInitializing] = useState(false);
-
-  // Update reminder when reminders list changes
-  useEffect(() => {
-    setCurrentReminder(getRandomReminder(reminders));
-  }, [reminders]);
-
-  const handleGetNewReminder = () => {
-    setCurrentReminder(getRandomReminder(reminders));
-  };
 
   const handleSetEnabled = async (value: string) => {
     const newEnabledState = value === "enabled";
@@ -79,14 +67,9 @@ export default function Index() {
       {/* Main Reminder Display */}
       <View style={styles.reminderContainer}>
         <Text style={[styles.reminderText, { color: theme.colors.onBackground }]}>
-          {currentReminder}
+          {lastNotificationText || getRandomReminder(reminders)}
         </Text>
-        <Button mode="contained" onPress={handleGetNewReminder}>
-          Refresh
-        </Button>
       </View>
-
-      <NotificationsDemo />
 
       {/* Control Panel at Bottom */}
       <Surface style={styles.controlPanel}>
