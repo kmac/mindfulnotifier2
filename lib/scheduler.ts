@@ -1,6 +1,5 @@
 import { Duration, addDuration, subtractDuration } from "./timedate";
 import { QuietHours } from "./quietHours";
-import { oneShotAt } from "@/services/timerService";
 
 export type NextFireDate = {
   date: Date;
@@ -77,51 +76,6 @@ abstract class DelegatedScheduler {
       // scheduler.sendInfoMessage("Next reminder at ${formatHHMMSS(_nextDate!)}");
     }
     return { date: nextFire, postQuiet: postQuiet } as NextFireDate;
-  }
-
-  async scheduleNext(restart: boolean = false) {
-    console.debug(`Scheduling next notification, type=${this.scheduleType}`);
-
-    // if (restart) {
-    //   // use nextAlarm if possible; otherwise it gets left null
-    //   nextAlarmStr :String = this.scheduler.ds!.nextAlarm;
-    //   if (this.nextAlarmStr != '') {
-    //     nextAlarm : Date= DateTime.parse(scheduler.ds!.nextAlarm);
-    //     if (this.nextAlarm.isAfter(Date.now().add(Duration(seconds: 10)))) {
-    //       console.info("Re-scheduling based on nextAlarm $nextAlarmStr");
-    //       _nextDate = nextAlarm;
-    //     }
-    //   }
-    // }
-
-    this._nextDate ??= this.getNextFireDate();
-
-    // if (rescheduleAfterQuietHours && quietHours.isInQuietHours(_nextDate!)) {
-    //   _nextDate = getNextFireTime(
-    //       fromTime: quietHours.getNextQuietEnd(), adjustFromQuiet: true);
-    //   console.info("Scheduling next reminder, past quiet hours: $_nextDate");
-    //   scheduler.sendInfoMessage(
-    //       "${constants.reminderMessageQuietHours}, next reminder at ${formatHHMMSS(_nextDate!)}");
-    // } else {
-    //   console.info("Scheduling next reminder at $_nextDate");
-    //   scheduler.sendInfoMessage("Next reminder at ${formatHHMMSS(_nextDate!)}");
-    // }
-    //
-
-    oneShotAt(this._nextDate.date, async () => {
-      console.log(`[${Date.now()}] scheduleCallback`);
-      await this.onTrigger();
-    });
-
-    // TimerService timerService = await getAlarmManagerTimerService();
-    // timerService.oneShotAt(_nextDate!, scheduleAlarmID, scheduleCallback);
-    // scheduler.updateDS(
-    //     ScheduleDataStoreBase.nextAlarmKey, _nextDate!.toIso8601String(),
-    //     sendUpdate: true);
-    //
-    // if (!scheduled) {
-    //   initialScheduleComplete();
-    // }
   }
 
   initialScheduleComplete() {

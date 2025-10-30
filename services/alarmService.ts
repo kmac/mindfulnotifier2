@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import {
   registerBackgroundTasks,
   unregisterBackgroundTasks,
-  getBackgroundFetchStatus,
+  getBackgroundTaskStatus,
 } from './backgroundTaskService';
 
 export function getAlarmService() : AlarmService {
@@ -97,7 +97,7 @@ export class AndroidAlarmService extends AlarmService {
       await registerBackgroundTasks();
 
       // Check background fetch status
-      const status = await getBackgroundFetchStatus();
+      const status = await getBackgroundTaskStatus();
       console.log(`[AndroidAlarmService] Background fetch status: ${status}`);
 
       if (status === 'Denied' || status === 'Restricted') {
@@ -153,9 +153,9 @@ export class AndroidAlarmService extends AlarmService {
 
   async getStatus(): Promise<string> {
     try {
-      const fetchStatus = await getBackgroundFetchStatus();
+      const fetchStatus = await getBackgroundTaskStatus();
       const runningStatus = this.running ? 'Running' : 'Stopped';
-      return `${runningStatus} (Background Fetch: ${fetchStatus})`;
+      return `${runningStatus} (Background Task: ${fetchStatus})`;
     } catch (error) {
       return this.running ? 'Running (status unknown)' : 'Stopped';
     }

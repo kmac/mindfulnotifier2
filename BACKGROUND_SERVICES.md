@@ -119,8 +119,7 @@ Handles platform-specific timer scheduling:
 - No callback execution (notifications are native)
 
 **Key Functions**:
-- `scheduleNotificationAt()`: Modern API for scheduling notifications
-- `oneShotAt()`: Legacy callback-based API (web only)
+- `scheduleNotificationAt()`: Primary API for scheduling notifications on both web and Android
 - `cancelScheduledNotification()`: Cancel a specific notification
 - `cancelAllScheduled()`: Cancel all notifications
 

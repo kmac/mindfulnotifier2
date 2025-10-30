@@ -100,27 +100,6 @@ const webTimerService = new WebTimerService();
 const androidTimerService = new AndroidTimerService();
 
 /**
- * Legacy callback-based API for web compatibility
- * @deprecated Use scheduleNotificationAt for Android
- */
-export function oneShotAt(date: Date, callback: Function): void {
-  console.log(`oneShotAt: ${date}, platform: ${Platform.OS}`);
-
-  if (Platform.OS === 'web') {
-    const id = `oneshot-${Date.now()}`;
-    webTimerService.scheduleAt(id, date, callback);
-  } else if (Platform.OS === 'android') {
-    console.warn('[TimerService] oneShotAt is not supported on Android. Use scheduleNotificationAt instead.');
-  } else if (Platform.OS === 'ios') {
-    console.error("ios is not supported");
-    throw new Error(`Platform is not supported: ${Platform.OS}`);
-  } else {
-    console.error(`Platform is not supported: ${Platform.OS}`);
-    throw new Error(`Platform is not supported: ${Platform.OS}`);
-  }
-}
-
-/**
  * Schedule a notification at a specific date/time
  * Works on both Android and Web
  */

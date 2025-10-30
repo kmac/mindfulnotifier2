@@ -109,7 +109,7 @@ export async function unregisterBackgroundTasks(): Promise<void> {
 /**
  * Get the status of background task
  */
-export async function getBackgroundFetchStatus(): Promise<string> {
+export async function getBackgroundTaskStatus(): Promise<string> {
   if (Platform.OS !== 'android') {
     return 'Not supported on this platform';
   }

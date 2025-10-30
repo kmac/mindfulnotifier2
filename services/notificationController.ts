@@ -124,6 +124,9 @@ export class Controller {
   async triggerNotification() {
     console.info("Controller triggerNotification");
 
+    // TODO trigger a notification
+
+
     try {
       // Schedule the next notification
       await this.scheduleNextNotification();

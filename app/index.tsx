@@ -16,6 +16,7 @@ import {
   setVibrationEnabled,
 } from "@/store/slices/preferencesSlice";
 import { Controller } from "@/services/notificationController";
+import NotificationsDemo from "@/components/notifications";
 
 export default function Index() {
   const theme = useTheme();
@@ -74,6 +75,7 @@ export default function Index() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+
       {/* Main Reminder Display */}
       <View style={styles.reminderContainer}>
         <Text style={[styles.reminderText, { color: theme.colors.onBackground }]}>
@@ -83,6 +85,8 @@ export default function Index() {
           Refresh
         </Button>
       </View>
+
+      <NotificationsDemo />
 
       {/* Control Panel at Bottom */}
       <Surface style={styles.controlPanel}>
