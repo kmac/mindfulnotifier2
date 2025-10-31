@@ -6,12 +6,13 @@ import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 import preferencesReducer from './slices/preferencesSlice';
 import scheduleReducer from './slices/scheduleSlice';
 import remindersReducer from './slices/remindersSlice';
+import soundReducer from './slices/soundSlice';
 
 // Persist configuration
 const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
-  whitelist: ['preferences', 'schedule', 'reminders'], // Only persist these reducers
+  whitelist: ['preferences', 'schedule', 'reminders', 'sound'], // Only persist these reducers
 };
 
 // Combine reducers
@@ -19,6 +20,7 @@ const rootReducer = combineReducers({
   preferences: preferencesReducer,
   schedule: scheduleReducer,
   reminders: remindersReducer,
+  sound: soundReducer,
 });
 
 // Create persisted reducer
