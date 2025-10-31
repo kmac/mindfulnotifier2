@@ -4,6 +4,7 @@ import {
   unregisterBackgroundTasks,
   getBackgroundTaskStatus,
 } from './backgroundTaskService';
+import { cancelAllScheduled } from './timerService';
 
 export function getAlarmService() : AlarmService {
   if (Platform.OS === 'web') {
@@ -72,11 +73,15 @@ export class WebAlarmService extends AlarmService {
   async disable(): Promise<void> {
     console.log('[WebAlarmService] Disabling');
     this.running = false;
+    // Cancel all pending timers
+    await cancelAllScheduled();
   }
 
   async shutdown(): Promise<void> {
     console.log('[WebAlarmService] Shutting down');
     this.running = false;
+    // Cancel all pending timers
+    await cancelAllScheduled();
   }
 
   async getStatus(): Promise<string> {
@@ -130,6 +135,9 @@ export class AndroidAlarmService extends AlarmService {
     console.log('[AndroidAlarmService] Disabling');
 
     try {
+      // Cancel all scheduled notifications
+      await cancelAllScheduled();
+
       // Unregister background tasks
       await unregisterBackgroundTasks();
       this.running = false;
