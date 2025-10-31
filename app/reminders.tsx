@@ -14,6 +14,8 @@ import {
   Divider,
   Chip,
   Menu,
+  useTheme,
+  Checkbox,
 } from "react-native-paper";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import {
@@ -21,13 +23,17 @@ import {
   updateReminder,
   deleteReminder,
   toggleReminderEnabled,
+  setReminders,
   resetReminders,
 } from "@/store/slices/remindersSlice";
 import { JsonReminder } from "@/constants/Reminders";
+import { exportReminders, importReminders, mergeReminders } from "@/utils/remindersImportExport";
+import { Alert } from '@/utils/alert';
 
 export default function Reminders() {
   const dispatch = useAppDispatch();
   const reminders = useAppSelector((state) => state.reminders.reminders);
+  const theme = useTheme();
 
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [addDialogVisible, setAddDialogVisible] = useState(false);
@@ -41,6 +47,11 @@ export default function Reminders() {
 
   const [filterMenuVisible, setFilterMenuVisible] = useState(false);
   const [selectedTagFilter, setSelectedTagFilter] = useState<string | null>(null);
+
+  const [moreMenuVisible, setMoreMenuVisible] = useState(false);
+  const [importDialogVisible, setImportDialogVisible] = useState(false);
+  const [importedReminders, setImportedReminders] = useState<JsonReminder[] | null>(null);
+  const [importMergeMode, setImportMergeMode] = useState(false);
 
   // Get unique tags from all reminders
   const uniqueTags = Array.from(new Set(reminders.map((r) => r.tag)));
@@ -149,6 +160,58 @@ export default function Reminders() {
     dispatch(toggleReminderEnabled(index));
   };
 
+  // Export reminders
+  const handleExport = async () => {
+    setMoreMenuVisible(false);
+    try {
+      await exportReminders(reminders);
+      Alert.alert("Success", "Reminders exported successfully!");
+    } catch (error) {
+      Alert.alert("Export Failed", error instanceof Error ? error.message : "An unknown error occurred");
+    }
+  };
+
+  // Import reminders
+  const handleImport = async () => {
+    setMoreMenuVisible(false);
+    try {
+      const imported = await importReminders();
+      setImportedReminders(imported);
+      setImportMergeMode(false); // Default to replace mode
+      setImportDialogVisible(true);
+    } catch (error) {
+      if (error instanceof Error && error.message !== "Import cancelled") {
+        Alert.alert("Import Failed", error.message);
+      }
+    }
+  };
+
+  // Confirm import
+  const handleImportConfirm = () => {
+    if (importedReminders) {
+      if (importMergeMode) {
+        // Merge imported reminders with existing ones
+        const merged = mergeReminders(reminders, importedReminders);
+        const addedCount = merged.length - reminders.length;
+        dispatch(setReminders(merged));
+        setImportDialogVisible(false);
+        setImportedReminders(null);
+        Alert.alert("Success", `Merged ${addedCount} new reminder(s) (${importedReminders.length - addedCount} duplicates skipped)`);
+      } else {
+        // Replace all reminders
+        dispatch(setReminders(importedReminders));
+        setImportDialogVisible(false);
+        setImportedReminders(null);
+        Alert.alert("Success", `Imported ${importedReminders.length} reminder(s)`);
+      }
+    }
+  };
+
+  const handleImportCancel = () => {
+    setImportDialogVisible(false);
+    setImportedReminders(null);
+  };
+
   return (
     <View style={styles.container}>
       <Surface style={styles.surface}>
@@ -161,12 +224,36 @@ export default function Reminders() {
               Configure the content and messages for your mindful reminders.
             </Text>
           </View>
-          <IconButton
-            icon="restore"
-            mode="contained-tonal"
-            onPress={handleResetPress}
-            size={24}
-          />
+          <View style={styles.headerButtons}>
+            <Menu
+              visible={moreMenuVisible}
+              onDismiss={() => setMoreMenuVisible(false)}
+              anchor={
+                <IconButton
+                  icon="dots-vertical"
+                  mode="contained-tonal"
+                  onPress={() => setMoreMenuVisible(true)}
+                  size={24}
+                />
+              }
+            >
+              <Menu.Item
+                onPress={handleImport}
+                title="Import"
+                leadingIcon="import"
+              />
+              <Menu.Item
+                onPress={handleExport}
+                title="Export"
+                leadingIcon="export"
+              />
+              <Menu.Item
+                onPress={handleResetPress}
+                title="Restore Defaults"
+                leadingIcon="restore"
+              />
+            </Menu>
+          </View>
         </View>
 
         <View style={styles.statsContainer}>
@@ -357,7 +444,10 @@ export default function Reminders() {
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={handleDeleteCancel}>Cancel</Button>
-            <Button onPress={handleDeleteConfirm} textColor="error">
+            <Button
+              onPress={handleDeleteConfirm}
+              textColor={theme.colors.error}
+            >
               Delete
             </Button>
           </Dialog.Actions>
@@ -376,8 +466,49 @@ export default function Reminders() {
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={handleResetCancel}>Cancel</Button>
-            <Button onPress={handleResetConfirm} textColor="error">
+            <Button onPress={handleResetConfirm} textColor={theme.colors.error}>
               Reset
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      {/* Import Confirmation Dialog */}
+      <Portal>
+        <Dialog visible={importDialogVisible} onDismiss={handleImportCancel}>
+          <Dialog.Title>Import Reminders</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">
+              You are about to import {importedReminders?.length || 0}{" "}
+              reminder(s).
+            </Text>
+            <View style={styles.importModeContainer}>
+              <Checkbox.Item
+                label="Merge with existing reminders"
+                status={importMergeMode ? "checked" : "unchecked"}
+                onPress={() => setImportMergeMode(!importMergeMode)}
+                mode="android"
+                position="leading"
+              />
+            </View>
+            <Text variant="bodyMedium" style={styles.importDescription}>
+              {importMergeMode
+                ? "Imported reminders will be added to your existing reminders. Duplicates will be skipped."
+                : "This will replace all your current reminders."}
+            </Text>
+            {!importMergeMode && (
+              <Text variant="bodyMedium" style={styles.importWarning}>
+                Are you sure you want to continue?
+              </Text>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={handleImportCancel}>Cancel</Button>
+            <Button
+              onPress={handleImportConfirm}
+              textColor={theme.colors.primary}
+            >
+              {importMergeMode ? "Merge" : "Import"}
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -403,6 +534,10 @@ const styles = StyleSheet.create({
   headerText: {
     flexDirection: "column",
     flex: 1,
+  },
+  headerButtons: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   title: {
     marginBottom: 8,
@@ -469,5 +604,17 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontStyle: "italic",
     opacity: 0.7,
+  },
+  importModeContainer: {
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  importDescription: {
+    opacity: 0.7,
+    marginTop: 8,
+  },
+  importWarning: {
+    marginTop: 12,
+    fontWeight: "bold",
   },
 });
