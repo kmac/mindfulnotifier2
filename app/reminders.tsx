@@ -13,6 +13,7 @@ import {
   Button,
   Divider,
   Chip,
+  Menu,
 } from "react-native-paper";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import {
@@ -38,8 +39,19 @@ export default function Reminders() {
   const [editTag, setEditTag] = useState("default");
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
 
-  const enabledCount = reminders.filter((r) => r.enabled).length;
-  const totalCount = reminders.length;
+  const [filterMenuVisible, setFilterMenuVisible] = useState(false);
+  const [selectedTagFilter, setSelectedTagFilter] = useState<string | null>(null);
+
+  // Get unique tags from all reminders
+  const uniqueTags = Array.from(new Set(reminders.map((r) => r.tag)));
+
+  // Filter reminders by selected tag
+  const filteredReminders = selectedTagFilter
+    ? reminders.filter((r) => r.tag === selectedTagFilter)
+    : reminders;
+
+  const enabledCount = filteredReminders.filter((r) => r.enabled).length;
+  const totalCount = filteredReminders.length;
 
   // Edit existing reminder
   const handleEditPress = (index: number) => {
@@ -141,11 +153,11 @@ export default function Reminders() {
     <View style={styles.container}>
       <Surface style={styles.surface}>
         <View style={styles.header}>
-          <View>
-            <Text variant="headlineMedium" style={styles.title}>
+          <View style={styles.headerText}>
+            <Text variant="headlineSmall" style={styles.title}>
               Reminder Contents
             </Text>
-            <Text variant="bodyLarge" style={styles.description}>
+            <Text variant="bodyMedium" style={styles.description}>
               Configure the content and messages for your mindful reminders.
             </Text>
           </View>
@@ -158,56 +170,101 @@ export default function Reminders() {
         </View>
 
         <View style={styles.statsContainer}>
-          <Chip icon="check-circle" mode="outlined">
+          <Chip icon="check-circle" mode="flat" compact>
             {enabledCount} enabled
           </Chip>
-          <Chip icon="format-list-bulleted" mode="outlined">
+          <Chip icon="format-list-bulleted" mode="flat" compact>
             {totalCount} total
           </Chip>
+        </View>
+
+        <View style={styles.filterContainer}>
+          <Text variant="bodyMedium" style={styles.filterLabel}>
+            Filter by tag:
+          </Text>
+          <Menu
+            visible={filterMenuVisible}
+            onDismiss={() => setFilterMenuVisible(false)}
+            anchor={
+              <Chip
+                mode="outlined"
+                icon="filter"
+                onPress={() => setFilterMenuVisible(true)}
+              >
+                {selectedTagFilter || "All tags"}
+              </Chip>
+            }
+          >
+            <Menu.Item
+              onPress={() => {
+                setSelectedTagFilter(null);
+                setFilterMenuVisible(false);
+              }}
+              title="All tags"
+              leadingIcon={selectedTagFilter === null ? "check" : undefined}
+            />
+            {uniqueTags.map((tag) => (
+              <Menu.Item
+                key={tag}
+                onPress={() => {
+                  setSelectedTagFilter(tag);
+                  setFilterMenuVisible(false);
+                }}
+                title={tag}
+                leadingIcon={selectedTagFilter === tag ? "check" : undefined}
+              />
+            ))}
+          </Menu>
         </View>
 
         <Divider style={styles.divider} />
 
         <ScrollView style={styles.scrollView}>
-          {reminders.map((reminder, index) => (
-            <List.Item
-              key={index}
-              title={reminder.text}
-              titleNumberOfLines={3}
-              description={`Tag: ${reminder.tag}`}
-              left={(props) => (
-                <View style={styles.leftContainer}>
-                  <Switch
-                    value={reminder.enabled}
-                    onValueChange={() => handleToggle(index)}
-                  />
-                </View>
-              )}
-              right={(props) => (
-                <View style={styles.rightContainer}>
-                  <IconButton
-                    icon="pencil"
-                    size={20}
-                    onPress={() => handleEditPress(index)}
-                  />
-                  <IconButton
-                    icon="delete"
-                    size={20}
-                    onPress={() => handleDeletePress(index)}
-                  />
-                </View>
-              )}
-              style={[
-                styles.listItem,
-                !reminder.enabled && styles.disabledItem,
-              ]}
-            />
-          ))}
+          {filteredReminders.map((reminder) => {
+            // Find the original index in the full reminders array
+            const originalIndex = reminders.indexOf(reminder);
+            return (
+              <List.Item
+                key={originalIndex}
+                title={reminder.text}
+                titleNumberOfLines={3}
+                description={`Tag: ${reminder.tag}`}
+                left={(props) => (
+                  <View style={styles.leftContainer}>
+                    <Switch
+                      value={reminder.enabled}
+                      onValueChange={() => handleToggle(originalIndex)}
+                    />
+                  </View>
+                )}
+                right={(props) => (
+                  <View style={styles.rightContainer}>
+                    <IconButton
+                      icon="pencil"
+                      size={20}
+                      onPress={() => handleEditPress(originalIndex)}
+                    />
+                    <IconButton
+                      icon="delete"
+                      size={20}
+                      onPress={() => handleDeletePress(originalIndex)}
+                    />
+                  </View>
+                )}
+                style={[
+                  styles.listItem,
+                  !reminder.enabled && styles.disabledItem,
+                ]}
+              />
+            );
+          })}
 
-          {reminders.length === 0 && (
+          {filteredReminders.length === 0 && (
             <View style={styles.emptyContainer}>
               <Text variant="bodyLarge" style={styles.emptyText}>
-                No reminders yet. Add your first reminder!
+                {selectedTagFilter
+                  ? `No reminders found with tag "${selectedTagFilter}"`
+                  : "No reminders yet. Add your first reminder!"}
               </Text>
             </View>
           )}
@@ -343,6 +400,10 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: 16,
   },
+  headerText: {
+    flexDirection: "column",
+    flex: 1,
+  },
   title: {
     marginBottom: 8,
   },
@@ -354,11 +415,21 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 8,
   },
+  filterContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 12,
+  },
+  filterLabel: {
+    opacity: 0.7,
+  },
   divider: {
     marginVertical: 16,
   },
   scrollView: {
     flex: 1,
+    // marginBottom: 50,
   },
   listItem: {
     paddingVertical: 8,
@@ -386,7 +457,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     margin: 16,
     right: 0,
-    bottom: 0,
+    bottom: 40,
   },
   textInput: {
     marginBottom: 12,
