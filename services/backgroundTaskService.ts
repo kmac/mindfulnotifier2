@@ -2,6 +2,7 @@ import * as TaskManager from 'expo-task-manager';
 import * as BackgroundTask from 'expo-background-task';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { getSelectedSoundUri, isSoundEnabled } from '@/lib/sound';
 
 // Task name constants
 export const NOTIFICATION_TASK_NAME = 'SCHEDULE_NOTIFICATION_TASK';
@@ -150,11 +151,17 @@ export async function scheduleNotification(
       triggerInput = { seconds: delaySeconds, type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL };
     }
 
+    // Get the selected sound from preferences
+    const soundEnabled = isSoundEnabled();
+    const soundUri = soundEnabled ? getSelectedSoundUri() : null;
+
+    console.log(`[BackgroundTask] Scheduling notification with sound: ${soundUri}, enabled: ${soundEnabled}`);
+
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
         title,
         body,
-        sound: 'default',
+        sound: soundUri || undefined,
         priority: Notifications.AndroidNotificationPriority.HIGH,
       },
       trigger: triggerInput,

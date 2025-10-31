@@ -142,7 +142,7 @@ export class Controller {
         title: 'Mindful Reminder',
         body: reminderText,
         data: { timestamp: Date.now() },
-        sound: false,
+        sound: true, // Sound will be controlled by preferences in showLocalNotification
       });
 
       console.info("Notification triggered successfully");

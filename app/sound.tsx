@@ -9,9 +9,10 @@ import {
 import { StyleSheet, View, ScrollView } from "react-native";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import { setSelectedSound, setCustomSound } from "@/store/slices/soundSlice";
-import { Audio } from "expo-av";
+import { useAudioPlayer } from "expo-audio";
 import { useState } from "react";
 import * as DocumentPicker from "expo-document-picker";
+import { playSound, stopSound } from "@/lib/sound";
 
 const AVAILABLE_SOUNDS = [
   { name: "bell_inside.mp3", label: "Bell Inside" },
@@ -27,7 +28,7 @@ export default function Sound() {
   const customSoundUri = useAppSelector((state) => state.sound.customSoundUri);
   const customSoundName = useAppSelector((state) => state.sound.customSoundName);
   const [playingSound, setPlayingSound] = useState<string | null>(null);
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const audioPlayer = useAudioPlayer();
 
   const handleSelectSound = (soundName: string) => {
     dispatch(setSelectedSound(soundName));
@@ -52,63 +53,16 @@ export default function Sound() {
     }
   };
 
-  const handlePlaySound = async (soundName: string) => {
-    try {
-      // Stop any currently playing sound
-      if (sound) {
-        await sound.unloadAsync();
-        setSound(null);
-      }
-
-      setPlayingSound(soundName);
-
-      // Load and play the sound
-      let soundSource;
-      if (soundName === "custom") {
-        if (!customSoundUri) {
-          console.error("No custom sound URI available");
-          setPlayingSound(null);
-          return;
-        }
-        soundSource = { uri: customSoundUri };
-      } else {
-        const soundMap: { [key: string]: any } = {
-          "bell_inside.mp3": require("@/assets/sounds/bell_inside.mp3"),
-          "bowl_struck.mp3": require("@/assets/sounds/bowl_struck.mp3"),
-          "ding_soft.mp3": require("@/assets/sounds/ding_soft.mp3"),
-          "tibetan_bell_ding_b.mp3": require("@/assets/sounds/tibetan_bell_ding_b.mp3"),
-          "zenbell_1.mp3": require("@/assets/sounds/zenbell_1.mp3"),
-        };
-        soundSource = soundMap[soundName];
-      }
-
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        soundSource,
-        { shouldPlay: true },
-      );
-
-      setSound(newSound);
-
-      // Clean up when sound finishes playing
-      newSound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
-          setPlayingSound(null);
-          newSound.unloadAsync();
-          setSound(null);
-        }
-      });
-    } catch (error) {
-      console.error("Error playing sound:", error);
+  const handlePlaySound = (soundName: string) => {
+    setPlayingSound(soundName);
+    playSound(audioPlayer, soundName, customSoundUri, () => {
       setPlayingSound(null);
-    }
+    });
   };
 
-  const handleStopSound = async () => {
-    if (sound) {
-      setPlayingSound(null);
-      await sound.unloadAsync();
-      setSound(null);
-    }
+  const handleStopSound = () => {
+    stopSound(audioPlayer);
+    setPlayingSound(null);
   };
 
   return (

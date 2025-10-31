@@ -45,7 +45,12 @@
           "icon": "./assets/images/icon.png",
           "color": "#ffffff",
           "sounds": [
-            "./assets/notification.wav"
+            "./assets/notification.wav",
+            "./assets/sounds/bell_inside.mp3",
+            "./assets/sounds/bowl_struck.mp3",
+            "./assets/sounds/ding_soft.mp3",
+            "./assets/sounds/tibetan_bell_ding_b.mp3",
+            "./assets/sounds/zenbell_1.mp3"
           ],
           "androidMode": "default",
           "androidCollapsedTitle": "Mindful Notifier"

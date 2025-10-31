@@ -5,6 +5,7 @@ import {
   SegmentedButtons,
   IconButton,
   useTheme,
+  Button,
 } from "react-native-paper";
 import { getRandomReminder } from "@/lib/reminders";
 import { useState } from "react";
@@ -15,13 +16,16 @@ import {
   setVibrationEnabled,
 } from "@/store/slices/preferencesSlice";
 import { Controller } from "@/services/notificationController";
+import { scheduleNotificationAt } from "@/services/timerService";
 import NotificationsDemo from "@/components/notifications";
 
 export default function Index() {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const preferences = useAppSelector((state) => state.preferences);
-  const lastNotificationText = useAppSelector((state) => state.reminders.lastNotificationText);
+  const lastNotificationText = useAppSelector(
+    (state) => state.reminders.lastNotificationText,
+  );
   const reminders = useAppSelector((state) => state.reminders.reminders);
 
   const [isInitializing, setIsInitializing] = useState(false);
@@ -65,12 +69,41 @@ export default function Index() {
     dispatch(setVibrationEnabled(!preferences.vibrationEnabled));
   };
 
-  return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+  const handleTestNotification = async () => {
+    try {
+      // Get a random reminder
+      const reminderText = getRandomReminder(reminders);
 
+      // Schedule notification 5 seconds in the future
+      const testDate = new Date(Date.now() + 5000);
+
+      console.log(`[Test] Scheduling notification for ${testDate}`);
+
+      await scheduleNotificationAt(
+        "test-notification",
+        testDate,
+        "Test Notification",
+        reminderText,
+        () => {
+          Controller.getInstance().triggerNotification();
+          console.log("[Test] Test notification triggered!");
+        },
+      );
+      console.log("[Test] Test notification scheduled successfully");
+    } catch (error) {
+      console.error("[Test] Failed to schedule test notification:", error);
+    }
+  };
+
+  return (
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       {/* Main Reminder Display */}
       <View style={styles.reminderContainer}>
-        <Text style={[styles.reminderText, { color: theme.colors.onBackground }]}>
+        <Text
+          style={[styles.reminderText, { color: theme.colors.onBackground }]}
+        >
           {lastNotificationText || getRandomReminder(reminders)}
         </Text>
       </View>
@@ -115,6 +148,18 @@ export default function Index() {
             onPress={handleToggleVibration}
           />
         </View>
+        {false && __DEV__ && (
+          <View style={styles.testRow}>
+            <Button
+              mode="outlined"
+              onPress={handleTestNotification}
+              icon="bell-ring"
+              compact
+            >
+              Test Notification
+            </Button>
+          </View>
+        )}
       </Surface>
     </View>
   );
@@ -153,5 +198,9 @@ const styles = StyleSheet.create({
   segmentedButtons: {
     //flex:  0.3,
     minWidth: 180,
+  },
+  testRow: {
+    marginTop: 12,
+    alignItems: "center",
   },
 });
