@@ -53,6 +53,10 @@ export default function Index() {
     }
   };
 
+  const handleToggleEnabled = () => {
+    dispatch(setEnabled(!preferences.isEnabled));
+  };
+
   const handleToggleSound = () => {
     dispatch(setSoundEnabled(!preferences.soundEnabled));
   };
@@ -92,6 +96,12 @@ export default function Index() {
             ]}
             style={styles.segmentedButtons}
           />
+          {/*<IconButton
+            icon={preferences.isEnabled  ? "toggle-switch-variant" : "toggle-switch-variant-off"}
+            mode={preferences.isEnabled  ? "contained" : "outlined"}
+            size={30}
+            onPress={handleToggleEnabled}
+          />*/}
           <IconButton
             icon={preferences.soundEnabled ? "volume-high" : "volume-off"}
             mode={preferences.soundEnabled ? "contained" : "outlined"}
@@ -137,9 +147,11 @@ const styles = StyleSheet.create({
   controlRow: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 8,
   },
   segmentedButtons: {
-    flex: 1,
+    //flex:  0.3,
+    minWidth: 180,
   },
 });
