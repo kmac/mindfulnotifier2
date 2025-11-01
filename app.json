@@ -14,7 +14,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mindfulnotifier.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -45,7 +46,6 @@
           "icon": "./assets/images/icon.png",
           "color": "#ffffff",
           "sounds": [
-            "./assets/notification.wav",
             "./assets/sounds/bell_inside.mp3",
             "./assets/sounds/bowl_struck.mp3",
             "./assets/sounds/ding_soft.mp3",
@@ -67,7 +67,14 @@
       "expo-background-task"
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": true,
+      "reactCanary": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "605b0bba-69d9-4f70-8eca-b5c86d521255"
+      }
     }
   }
 }
