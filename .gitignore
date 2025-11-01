@@ -9,6 +9,9 @@ dist/
 web-build/
 expo-env.d.ts
 
+*.apk
+*.apb
+
 # Native
 .kotlin/
 *.orig.*
@@ -31,6 +34,7 @@ yarn-error.*
 *.pem
 
 # local env files
+.envrc
 .env*.local
 
 coverage/

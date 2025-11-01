@@ -17,7 +17,6 @@ import {
 } from "@/store/slices/preferencesSlice";
 import { Controller } from "@/services/notificationController";
 import { scheduleNotificationAt } from "@/services/timerService";
-import NotificationsDemo from "@/components/notifications";
 
 export default function Index() {
   const theme = useTheme();
@@ -32,6 +31,12 @@ export default function Index() {
 
   const handleSetEnabled = async (value: string) => {
     const newEnabledState = value === "enabled";
+
+    // Early return if state hasn't changed
+    if (newEnabledState === preferences.isEnabled) {
+      return;
+    }
+
     setIsInitializing(true);
 
     try {
@@ -57,9 +62,9 @@ export default function Index() {
     }
   };
 
-  const handleToggleEnabled = () => {
-    dispatch(setEnabled(!preferences.isEnabled));
-  };
+  // const handleToggleEnabled = () => {
+  //   dispatch(setEnabled(!preferences.isEnabled));
+  // };
 
   const handleToggleSound = () => {
     dispatch(setSoundEnabled(!preferences.soundEnabled));
