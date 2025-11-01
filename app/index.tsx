@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   },
   segmentedButtons: {
     //flex:  0.3,
-    minWidth: 180,
+    minWidth: 210,
   },
   testRow: {
     marginTop: 12,

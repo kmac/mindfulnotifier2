@@ -8,6 +8,8 @@ export interface PreferencesState {
   soundEnabled: boolean;
   vibrationEnabled: boolean;
   colorScheme: ColorScheme;
+  debugInfoEnabled: boolean;
+  debugInfo: string[];
 }
 
 const initialState: PreferencesState = {
@@ -16,6 +18,8 @@ const initialState: PreferencesState = {
   soundEnabled: true,
   vibrationEnabled: true,
   colorScheme: 'auto',
+  debugInfoEnabled: false,
+  debugInfo: [],
 };
 
 const preferencesSlice = createSlice({
@@ -37,6 +41,15 @@ const preferencesSlice = createSlice({
     setColorScheme: (state, action: PayloadAction<ColorScheme>) => {
       state.colorScheme = action.payload;
     },
+    setDebugInfoEnabled: (state, action: PayloadAction<boolean>) => {
+      state.debugInfoEnabled = action.payload;
+    },
+    addDebugInfo: (state, action: PayloadAction<string>) => {
+      state.debugInfo.push(action.payload);
+    },
+    clearDebugInfo: (state) => {
+      state.debugInfo = [];
+    },
     resetPreferences: () => initialState,
   },
 });
@@ -47,6 +60,9 @@ export const {
   setSoundEnabled,
   setVibrationEnabled,
   setColorScheme,
+  setDebugInfoEnabled,
+  addDebugInfo,
+  clearDebugInfo,
   resetPreferences,
 } = preferencesSlice.actions;
 

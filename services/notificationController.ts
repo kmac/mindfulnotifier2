@@ -107,6 +107,24 @@ export class Controller {
   }
 
   /**
+   * Get the next scheduled notification time
+   * Returns null if no scheduler exists or service is not running
+   */
+  getNextNotificationTime(): Date | null {
+    if (!this.running || !this.scheduler) {
+      return null;
+    }
+
+    try {
+      const nextFireDate = this.scheduler.getNextFireDate();
+      return nextFireDate.date;
+    } catch (error) {
+      console.error("Failed to get next notification time:", error);
+      return null;
+    }
+  }
+
+  /**
    * Reset the scheduler
    * Call this when schedule settings change to force recreation with new settings
    */

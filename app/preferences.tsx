@@ -15,6 +15,8 @@ import {
   setVibrationEnabled,
   ColorScheme,
   setNotificationsGranted,
+  setDebugInfoEnabled,
+  clearDebugInfo,
 } from "@/store/slices/preferencesSlice";
 import * as Notifications from "expo-notifications";
 import { isPermissionsGranted, requestPermissions } from "@/lib/notifications";
@@ -33,6 +35,15 @@ export default function Preferences() {
 
   const handleToggleVibration = () => {
     dispatch(setVibrationEnabled(!preferences.vibrationEnabled));
+  };
+
+  const handleToggleDebugInfo = () => {
+    const newValue = !preferences.debugInfoEnabled;
+    dispatch(setDebugInfoEnabled(newValue));
+    // Clear debug info when disabling
+    if (!newValue) {
+      dispatch(clearDebugInfo());
+    }
   };
 
   async function handleNotificationPermission() {
@@ -184,6 +195,25 @@ export default function Preferences() {
               <List.Icon
                 {...props}
                 icon={preferences.isEnabled ? "check-circle" : "close-circle"}
+              />
+            )}
+          />
+
+          {/* To add debug messages anywhere in your app, use:
+              import { addDebugInfo } from "@/store/slices/preferencesSlice";
+              dispatch(addDebugInfo("Your debug message here")); */}
+          <List.Item
+            title="Debug Info"
+            description={
+              preferences.debugInfoEnabled
+                ? "Debug information is visible"
+                : "Debug information is hidden"
+            }
+            left={(props) => <List.Icon {...props} icon="bug" />}
+            right={() => (
+              <Switch
+                value={preferences.debugInfoEnabled}
+                onValueChange={handleToggleDebugInfo}
               />
             )}
           />
