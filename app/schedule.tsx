@@ -7,6 +7,7 @@ import {
   Switch,
   Divider,
   HelperText,
+  IconButton,
 } from "react-native-paper";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import {
@@ -165,6 +166,52 @@ export default function Schedule() {
     );
   };
 
+  // Format numeric value with leading zero
+  const formatTwoDigits = (val: string) => {
+    const num = parseInt(val, 10);
+    return !isNaN(num) ? num.toString().padStart(2, "0") : val;
+  };
+
+  // Helper component for numeric input with increment/decrement buttons
+  const NumericInputWithButtons = ({
+    label,
+    value,
+    onChangeText,
+    onIncrement,
+    onDecrement,
+  }: {
+    label: string;
+    value: string;
+    onChangeText: (text: string) => void;
+    onIncrement: () => void;
+    onDecrement: () => void;
+  }) => (
+    <View style={styles.numericInputContainer}>
+      <TextInput
+        label={label}
+        value={value}
+        onChangeText={onChangeText}
+        keyboardType="numeric"
+        mode="outlined"
+        style={styles.numericInput}
+      />
+      <View style={styles.buttonGroup}>
+        <IconButton
+          icon="plus"
+          size={16}
+          onPress={onIncrement}
+          style={styles.adjustButton}
+        />
+        <IconButton
+          icon="minus"
+          size={16}
+          onPress={onDecrement}
+          style={styles.adjustButton}
+        />
+      </View>
+    </View>
+  );
+
   return (
     <ScrollView style={styles.scrollView}>
       <Surface style={styles.container}>
@@ -210,21 +257,31 @@ export default function Schedule() {
               Notifications will be sent at regular intervals.
             </Text>
             <View style={styles.row}>
-              <TextInput
+              <NumericInputWithButtons
                 label="Hours"
-                value={periodicHours}
+                value={formatTwoDigits(periodicHours)}
                 onChangeText={handlePeriodicHoursChange}
-                keyboardType="numeric"
-                mode="outlined"
-                style={styles.timeInput}
+                onIncrement={() => {
+                  const num = parseInt(periodicHours, 10) || 0;
+                  if (num < 24) handlePeriodicHoursChange((num + 1).toString());
+                }}
+                onDecrement={() => {
+                  const num = parseInt(periodicHours, 10) || 0;
+                  if (num > 0) handlePeriodicHoursChange((num - 1).toString());
+                }}
               />
-              <TextInput
+              <NumericInputWithButtons
                 label="Minutes"
-                value={periodicMinutes}
+                value={formatTwoDigits(periodicMinutes)}
                 onChangeText={handlePeriodicMinutesChange}
-                keyboardType="numeric"
-                mode="outlined"
-                style={styles.timeInput}
+                onIncrement={() => {
+                  const num = parseInt(periodicMinutes, 10) || 0;
+                  if (num < 59) handlePeriodicMinutesChange((num + 1).toString());
+                }}
+                onDecrement={() => {
+                  const num = parseInt(periodicMinutes, 10) || 0;
+                  if (num > 0) handlePeriodicMinutesChange((num - 1).toString());
+                }}
               />
             </View>
             <HelperText type="info">
@@ -244,21 +301,31 @@ export default function Schedule() {
               Notifications will be sent at random intervals within a range.
             </Text>
             <View style={styles.row}>
-              <TextInput
+              <NumericInputWithButtons
                 label="Min Minutes"
-                value={randomMin}
+                value={formatTwoDigits(randomMin)}
                 onChangeText={handleRandomMinChange}
-                keyboardType="numeric"
-                mode="outlined"
-                style={styles.timeInput}
+                onIncrement={() => {
+                  const num = parseInt(randomMin, 10) || 1;
+                  handleRandomMinChange((num + 1).toString());
+                }}
+                onDecrement={() => {
+                  const num = parseInt(randomMin, 10) || 1;
+                  if (num > 1) handleRandomMinChange((num - 1).toString());
+                }}
               />
-              <TextInput
+              <NumericInputWithButtons
                 label="Max Minutes"
-                value={randomMax}
+                value={formatTwoDigits(randomMax)}
                 onChangeText={handleRandomMaxChange}
-                keyboardType="numeric"
-                mode="outlined"
-                style={styles.timeInput}
+                onIncrement={() => {
+                  const num = parseInt(randomMax, 10) || 1;
+                  handleRandomMaxChange((num + 1).toString());
+                }}
+                onDecrement={() => {
+                  const num = parseInt(randomMax, 10) || 1;
+                  if (num > 1) handleRandomMaxChange((num - 1).toString());
+                }}
               />
             </View>
             <HelperText type="info">
@@ -284,21 +351,31 @@ export default function Schedule() {
               Start Time
             </Text>
             <View style={styles.row}>
-              <TextInput
+              <NumericInputWithButtons
                 label="Hour"
-                value={quietStartHour}
+                value={formatTwoDigits(quietStartHour)}
                 onChangeText={handleQuietStartHourChange}
-                keyboardType="numeric"
-                mode="outlined"
-                style={styles.timeInput}
+                onIncrement={() => {
+                  const num = parseInt(quietStartHour, 10) || 0;
+                  if (num < 23) handleQuietStartHourChange((num + 1).toString());
+                }}
+                onDecrement={() => {
+                  const num = parseInt(quietStartHour, 10) || 0;
+                  if (num > 0) handleQuietStartHourChange((num - 1).toString());
+                }}
               />
-              <TextInput
+              <NumericInputWithButtons
                 label="Minute"
-                value={quietStartMinute}
+                value={formatTwoDigits(quietStartMinute)}
                 onChangeText={handleQuietStartMinuteChange}
-                keyboardType="numeric"
-                mode="outlined"
-                style={styles.timeInput}
+                onIncrement={() => {
+                  const num = parseInt(quietStartMinute, 10) || 0;
+                  if (num < 59) handleQuietStartMinuteChange((num + 1).toString());
+                }}
+                onDecrement={() => {
+                  const num = parseInt(quietStartMinute, 10) || 0;
+                  if (num > 0) handleQuietStartMinuteChange((num - 1).toString());
+                }}
               />
             </View>
           </View>
@@ -308,21 +385,31 @@ export default function Schedule() {
               End Time
             </Text>
             <View style={styles.row}>
-              <TextInput
+              <NumericInputWithButtons
                 label="Hour"
-                value={quietEndHour}
+                value={formatTwoDigits(quietEndHour)}
                 onChangeText={handleQuietEndHourChange}
-                keyboardType="numeric"
-                mode="outlined"
-                style={styles.timeInput}
+                onIncrement={() => {
+                  const num = parseInt(quietEndHour, 10) || 0;
+                  if (num < 23) handleQuietEndHourChange((num + 1).toString());
+                }}
+                onDecrement={() => {
+                  const num = parseInt(quietEndHour, 10) || 0;
+                  if (num > 0) handleQuietEndHourChange((num - 1).toString());
+                }}
               />
-              <TextInput
+              <NumericInputWithButtons
                 label="Minute"
-                value={quietEndMinute}
+                value={formatTwoDigits(quietEndMinute)}
                 onChangeText={handleQuietEndMinuteChange}
-                keyboardType="numeric"
-                mode="outlined"
-                style={styles.timeInput}
+                onIncrement={() => {
+                  const num = parseInt(quietEndMinute, 10) || 0;
+                  if (num < 59) handleQuietEndMinuteChange((num + 1).toString());
+                }}
+                onDecrement={() => {
+                  const num = parseInt(quietEndMinute, 10) || 0;
+                  if (num > 0) handleQuietEndMinuteChange((num - 1).toString());
+                }}
               />
             </View>
           </View>
@@ -394,6 +481,24 @@ const styles = StyleSheet.create({
   },
   timeInput: {
     flex: 1,
+  },
+  numericInputContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  numericInput: {
+    flex: 1,
+  },
+  buttonGroup: {
+    flexDirection: "column",
+    gap: 0,
+  },
+  adjustButton: {
+    margin: 0,
+    height: 28,
+    width: 28,
   },
   switchRow: {
     flexDirection: "row",
