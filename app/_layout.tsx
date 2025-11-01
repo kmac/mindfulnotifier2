@@ -11,11 +11,9 @@ import { useColorScheme } from "react-native";
 import { useEffect, useState } from "react";
 import { Provider, useSelector } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
-import { useNavigation } from "@react-navigation/native";
-import { DrawerNavigationProp } from "@react-navigation/drawer";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Drawer } from "expo-router/drawer";
+import CustomDrawer from "@/components/CustomDrawer";
 
 import { Controller } from "@/services/notificationController";
 import {
@@ -41,16 +39,16 @@ function AppContent() {
 
   const router = useRouter();
   const [isInitialized, setIsInitialized] = useState(false);
+  const [drawerVisible, setDrawerVisible] = useState(false);
 
   // Custom drawer toggle button that respects theme
   const ThemedDrawerToggle = () => {
     const theme = useTheme();
-    const navigation = useNavigation<DrawerNavigationProp<any>>();
     return (
       <IconButton
         icon="menu"
         iconColor={theme.colors.onSurface}
-        onPress={() => navigation.toggleDrawer()}
+        onPress={() => setDrawerVisible(true)}
       />
     );
   };
@@ -118,77 +116,64 @@ function AppContent() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <PaperProvider theme={theme}>
-            <Drawer
-              screenOptions={{
-                drawerPosition: "left",
-                headerStyle: {
-                  backgroundColor: theme.colors.surface,
-                },
-                headerTintColor: theme.colors.onSurface,
-                drawerStyle: {
-                  backgroundColor: theme.colors.surface,
-                },
-                drawerActiveTintColor: theme.colors.primary,
-                drawerInactiveTintColor: theme.colors.onSurfaceVariant,
-              }}
-            >
-              <Drawer.Screen
-                name="index"
-                options={{
-                  drawerLabel: "Mindful Notifier",
-                  title: "Mindful Notifier",
-                  headerTitle: "Mindful Notifier",
-                  headerLeft: () => <ThemedDrawerToggle />,
-                }}
-              />
-              <Drawer.Screen
-                name="schedule"
-                options={{
-                  drawerLabel: "Schedule",
-                  title: "Schedule",
-                  headerTitle: "Manage Schedule",
-                  headerLeft: () => <BackButton />,
-                }}
-              />
-              <Drawer.Screen
-                name="reminders"
-                options={{
-                  drawerLabel: "Reminders",
-                  title: "Reminders",
-                  headerTitle: "Configure Reminders",
-                  headerLeft: () => <BackButton />,
-                }}
-              />
-              <Drawer.Screen
-                name="sound"
-                options={{
-                  drawerLabel: "Sound",
-                  title: "Sound",
-                  headerTitle: "Configure Sound",
-                  headerLeft: () => <BackButton />,
-                }}
-              />
-              <Drawer.Screen
-                name="preferences"
-                options={{
-                  drawerLabel: "Preferences",
-                  title: "Preferences",
-                  headerTitle: "App Preferences",
-                  headerLeft: () => <BackButton />,
-                }}
-              />
-              <Drawer.Screen
-                name="about"
-                options={{
-                  drawerLabel: "About",
-                  title: "About",
-                  headerTitle: "About Mindful Notifier",
-                  headerLeft: () => <BackButton />,
-                }}
-              />
-            </Drawer>
-          </PaperProvider>
-        </GestureHandlerRootView>
+        <CustomDrawer
+          visible={drawerVisible}
+          onClose={() => setDrawerVisible(false)}
+        />
+        <Stack
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: theme.colors.surface,
+            },
+            headerTintColor: theme.colors.onSurface,
+            headerShadowVisible: false,
+          }}
+        >
+          <Stack.Screen
+            name="index"
+            options={{
+              title: "Mindful Notifier",
+              headerLeft: () => <ThemedDrawerToggle />,
+            }}
+          />
+          <Stack.Screen
+            name="schedule"
+            options={{
+              title: "Manage Schedule",
+              headerLeft: () => <BackButton />,
+            }}
+          />
+          <Stack.Screen
+            name="reminders"
+            options={{
+              title: "Configure Reminders",
+              headerLeft: () => <BackButton />,
+            }}
+          />
+          <Stack.Screen
+            name="sound"
+            options={{
+              title: "Configure Sound",
+              headerLeft: () => <BackButton />,
+            }}
+          />
+          <Stack.Screen
+            name="preferences"
+            options={{
+              title: "App Preferences",
+              headerLeft: () => <BackButton />,
+            }}
+          />
+          <Stack.Screen
+            name="about"
+            options={{
+              title: "About Mindful Notifier",
+              headerLeft: () => <BackButton />,
+            }}
+          />
+        </Stack>
+      </PaperProvider>
+    </GestureHandlerRootView>
   );
 }
 
