@@ -1,13 +1,18 @@
-import { getRandomReminder } from '@/lib/reminders';
-import { scheduleNotificationAt } from './timerService';
-import { showLocalNotification } from '@/lib/notifications';
-import { QuietHours } from '@/lib/quietHours';
-import { RandomScheduler, PeriodicScheduler, ScheduleType } from '@/lib/scheduler';
-import { getAlarmService } from './alarmService';
-import type { AlarmService } from './alarmService';
-import { TimeOfDay } from '@/lib/timedate';
-import { store } from '@/store/store';
-import { setLastNotificationText } from '@/store/slices/remindersSlice';
+import { getRandomReminder } from "@/lib/reminders";
+import { scheduleNotificationAt } from "./timerService";
+import { showLocalNotification } from "@/lib/notifications";
+import { QuietHours } from "@/lib/quietHours";
+import {
+  RandomScheduler,
+  PeriodicScheduler,
+  ScheduleType,
+} from "@/lib/scheduler";
+import { getAlarmService } from "./alarmService";
+import type { AlarmService } from "./alarmService";
+import { TimeOfDay } from "@/lib/timedate";
+import { store } from "@/store/store";
+import { setLastNotificationText } from "@/store/slices/remindersSlice";
+import { addDebugInfo } from "@/store/slices/preferencesSlice";
 
 export class Controller {
   private static instance: Controller;
@@ -22,7 +27,7 @@ export class Controller {
     if (Controller.instance) {
       return Controller.instance;
     }
-    Controller.instance= new Controller()
+    Controller.instance = new Controller();
     return Controller.instance;
     // throw new Error("getInstance: no scheduler exists");
   }
@@ -116,21 +121,12 @@ export class Controller {
     }
 
     try {
-      const nextFireDate = this.scheduler.getNextFireDate();
-      return nextFireDate.date;
+      const nextFireDate = this.scheduler.queryNext();
+      return nextFireDate?.date;
     } catch (error) {
       console.error("Failed to get next notification time:", error);
       return null;
     }
-  }
-
-  /**
-   * Reset the scheduler
-   * Call this when schedule settings change to force recreation with new settings
-   */
-  resetScheduler() {
-    console.info("Controller resetScheduler");
-    this.scheduler = undefined;
   }
 
   initialScheduleComplete() {
@@ -149,23 +145,19 @@ export class Controller {
       const state = store.getState();
       const { reminders } = state;
 
-      // Get a random reminder
       const reminderText = getRandomReminder(reminders.reminders);
 
-      // Store the reminder text in Redux
-      store.dispatch(setLastNotificationText(reminderText));
-
-      // Show the notification
       await showLocalNotification({
-        title: 'Mindful Reminder',
+        title: "Mindful Reminder",
         body: reminderText,
         data: { timestamp: Date.now() },
         sound: true, // Sound will be controlled by preferences in showLocalNotification
       });
 
+      store.dispatch(setLastNotificationText(reminderText));
+
       console.info("Notification triggered successfully");
 
-      // Schedule the next notification
       await this.scheduleNextNotification();
     } catch (error) {
       console.error("Failed to trigger notification:", error);
@@ -190,19 +182,25 @@ export class Controller {
       // Create a scheduler if we don't have one, or recreate if settings changed
       if (!this.scheduler) {
         const quietHours = new QuietHours(
-          new TimeOfDay(schedule.quietHours.startHour, schedule.quietHours.startMinute),
-          new TimeOfDay(schedule.quietHours.endHour, schedule.quietHours.endMinute),
-          schedule.quietHours.notifyQuietHours
+          new TimeOfDay(
+            schedule.quietHours.startHour,
+            schedule.quietHours.startMinute,
+          ),
+          new TimeOfDay(
+            schedule.quietHours.endHour,
+            schedule.quietHours.endMinute,
+          ),
+          schedule.quietHours.notifyQuietHours,
         );
 
         // Create scheduler based on Redux schedule type
-        if (schedule.scheduleType === 'periodic') {
+        if (schedule.scheduleType === "periodic") {
           this.scheduler = new PeriodicScheduler(
             quietHours,
             schedule.periodicConfig.durationHours,
             schedule.periodicConfig.durationMinutes,
             () => this.triggerNotification(),
-            () => this.initialScheduleComplete()
+            () => this.initialScheduleComplete(),
           );
         } else {
           this.scheduler = new RandomScheduler(
@@ -210,33 +208,39 @@ export class Controller {
             schedule.randomConfig.minMinutes,
             schedule.randomConfig.maxMinutes,
             () => this.triggerNotification(),
-            () => this.initialScheduleComplete()
+            () => this.initialScheduleComplete(),
           );
         }
 
-        console.info(`Created ${schedule.scheduleType} scheduler with Redux configuration`);
+        console.info(
+          `Created ${schedule.scheduleType} scheduler with Redux configuration`,
+        );
       }
 
       // Get the next fire date from the scheduler
       const nextFireDate = this.scheduler.getNextFireDate();
 
-      console.info(`Scheduling notification for ${nextFireDate.date}`);
+      const logtext = `Scheduling notification for ${nextFireDate.date}`;
+      console.info(logtext);
+      store.dispatch(addDebugInfo(logtext));
 
       // Schedule the notification
       await scheduleNotificationAt(
-        'mindfulnotifier',
+        "mindfulnotifier",
         nextFireDate.date,
-        'Mindful Notifier',
+        "Mindful Notifier",
         reminderText,
         () => {
           // This callback is only used on web
           this.triggerNotification();
-        }
+        },
       );
 
       console.info("Notification scheduled successfully");
     } catch (error) {
       console.error("Failed to schedule next notification:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      store.dispatch(addDebugInfo(`Failed to schedule next notification: ${errorMessage}`));
       throw error;
     }
   }

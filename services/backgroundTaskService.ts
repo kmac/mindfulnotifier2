@@ -3,6 +3,7 @@ import * as BackgroundTask from 'expo-background-task';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { getSelectedSoundUri, isSoundEnabled } from '@/lib/sound';
+import { debugLog } from "@/utils/util";
 
 // Task name constants
 export const NOTIFICATION_TASK_NAME = 'SCHEDULE_NOTIFICATION_TASK';
@@ -23,7 +24,7 @@ TaskManager.defineTask(NOTIFICATION_TASK_NAME, async () => {
     const controller = Controller.getInstance();
     await controller.scheduleNextNotification();
 
-    console.log('[BackgroundTask] Successfully scheduled next notification');
+    debugLog('[BackgroundTask] Successfully scheduled next notification');
     return BackgroundTask.BackgroundTaskResult.Success;
   } catch (error) {
     console.error('[BackgroundTask] Error in background task:', error);
@@ -68,7 +69,6 @@ export async function registerBackgroundTasks(): Promise<void> {
     console.log('[BackgroundTask] Background tasks only supported on Android');
     return;
   }
-
   try {
     // Check if tasks are already registered
     const isTaskRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_CHECK_TASK);
@@ -98,7 +98,6 @@ export async function unregisterBackgroundTasks(): Promise<void> {
   if (Platform.OS !== 'android') {
     return;
   }
-
   try {
     await BackgroundTask.unregisterTaskAsync(BACKGROUND_CHECK_TASK);
     console.log('[BackgroundTask] Background tasks unregistered');

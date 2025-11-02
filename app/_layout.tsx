@@ -93,6 +93,8 @@ function AppContent() {
     const notificationListener = addNotificationReceivedListener(
       (notification) => {
         console.log("[App] Notification received in foreground:", notification);
+
+        // TODO play sound
       },
     );
 

@@ -8,7 +8,7 @@ import {
   Button,
 } from "react-native-paper";
 import { getRandomReminder } from "@/lib/reminders";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import {
   setEnabled,
@@ -28,6 +28,12 @@ export default function Index() {
   const reminders = useAppSelector((state) => state.reminders.reminders);
 
   const [isInitializing, setIsInitializing] = useState(false);
+
+  // Memoize the fallback reminder so it doesn't change on every render
+  const fallbackReminder = useMemo(
+    () => getRandomReminder(reminders),
+    [reminders]
+  );
 
   const handleSetEnabled = async (value: string) => {
     const newEnabledState = value === "enabled";
@@ -109,7 +115,7 @@ export default function Index() {
         <Text
           style={[styles.reminderText, { color: theme.colors.onBackground }]}
         >
-          {lastNotificationText || getRandomReminder(reminders)}
+          {lastNotificationText || fallbackReminder}
         </Text>
       </View>
 
@@ -153,7 +159,7 @@ export default function Index() {
             onPress={handleToggleVibration}
           />
         </View>
-        {false && __DEV__ && (
+        {(true || __DEV__) && (
           <View style={styles.testRow}>
             <Button
               mode="outlined"

@@ -8,6 +8,7 @@ import {
   isSoundEnabled,
   playSelectedSound,
 } from "./sound";
+import { debugLog } from "@/utils/util";
 
 // Re-export the type
 export type { NotificationConfig };
@@ -19,7 +20,7 @@ export type { NotificationConfig };
 // Configure how notifications are handled when the app is in foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    //shouldShowAlert: true,
     shouldShowBanner: true,
     shouldShowList: true,
     shouldPlaySound: true,
@@ -163,11 +164,14 @@ async function showWebNotification(
 async function showAndroidNotification(
   config: NotificationConfig,
 ): Promise<string> {
+  // Clear any existing notifications for this app
+  await Notifications.dismissAllNotificationsAsync();
+
   // Get the selected sound from preferences
   const soundEnabled = isSoundEnabled();
   const soundUri = soundEnabled ? getSelectedSoundUri() : null;
 
-  console.log(
+  debugLog(
     `[Notifications] Showing notification with sound: ${soundUri}, enabled: ${soundEnabled}`,
   );
 
@@ -178,6 +182,7 @@ async function showAndroidNotification(
       data: config.data || {},
       sound: soundUri || config.sound || undefined,
       badge: config.badge,
+      sticky: true,
     },
     trigger: null, // null means show immediately
   });
@@ -218,6 +223,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
   if (finalStatus !== "granted") {
     console.warn("[Notifications] Push notification permission not granted");
+    debugLog("[Notifications] Push notification permission not granted");
     return null;
   }
 
@@ -229,6 +235,9 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
     if (!projectId) {
       console.warn(
+        "[Notifications] No project ID found for push notifications",
+      );
+      debugLog(
         "[Notifications] No project ID found for push notifications",
       );
       return null;

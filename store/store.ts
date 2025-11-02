@@ -13,6 +13,24 @@ const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
   whitelist: ['preferences', 'schedule', 'reminders', 'sound'], // Only persist these reducers
+  transforms: [
+    // Exclude debugInfo from persistence to avoid serialization issues
+    {
+      in: (state: any) => {
+        if (state?.preferences) {
+          return {
+            ...state,
+            preferences: {
+              ...state.preferences,
+              debugInfo: [], // Don't persist debug info
+            },
+          };
+        }
+        return state;
+      },
+      out: (state: any) => state,
+    },
+  ],
 };
 
 // Combine reducers

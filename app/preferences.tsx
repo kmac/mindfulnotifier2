@@ -199,9 +199,6 @@ export default function Preferences() {
             )}
           />
 
-          {/* To add debug messages anywhere in your app, use:
-              import { addDebugInfo } from "@/store/slices/preferencesSlice";
-              dispatch(addDebugInfo("Your debug message here")); */}
           <List.Item
             title="Debug Info"
             description={

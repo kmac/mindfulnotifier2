@@ -1,10 +1,12 @@
-import { Surface, Text, Divider, List } from "react-native-paper";
+import { Surface, Text, Divider, List, Button } from "react-native-paper";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { useAppSelector } from "@/store/store";
+import { useAppSelector, useAppDispatch } from "@/store/store";
+import { clearDebugInfo } from "@/store/slices/preferencesSlice";
 import { Controller } from "@/services/notificationController";
 import { useState, useEffect } from "react";
 
 export default function About() {
+  const dispatch = useAppDispatch();
   const preferences = useAppSelector((state) => state.preferences);
   const [nextNotificationTime, setNextNotificationTime] = useState<Date | null>(null);
 
@@ -51,6 +53,10 @@ export default function About() {
     });
 
     return `${timeStr} (${timeUntil})`;
+  };
+
+  const handleClearDebugInfo = () => {
+    dispatch(clearDebugInfo());
   };
 
   return (
@@ -102,17 +108,26 @@ export default function About() {
           <View>
             <Divider style={styles.divider} />
             <View style={styles.debugSection}>
-              <Text variant="titleMedium" style={styles.debugTitle}>
-                Debug Information
-              </Text>
-              {preferences.debugInfo.length > 0 ? (
+              <View style={styles.debugHeader}>
+                <Text variant="titleMedium" style={styles.debugTitle}>
+                  Debug Information
+                </Text>
+                <Button
+                  mode="outlined"
+                  onPress={handleClearDebugInfo}
+                  compact
+                >
+                  Clear
+                </Button>
+              </View>
+              {Array.isArray(preferences.debugInfo) && preferences.debugInfo.length > 0 ? (
                 preferences.debugInfo.map((info, index) => (
                   <Text
-                    key={index}
+                    key={`debug-${index}`}
                     variant="bodySmall"
                     style={styles.debugText}
                   >
-                    {info}
+                    {String(info)}
                   </Text>
                 ))
               ) : (
@@ -159,8 +174,13 @@ const styles = StyleSheet.create({
   debugSection: {
     marginTop: 8,
   },
-  debugTitle: {
+  debugHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
+  },
+  debugTitle: {
     fontWeight: "600",
   },
   debugText: {
