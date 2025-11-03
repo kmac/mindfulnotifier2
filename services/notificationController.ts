@@ -183,7 +183,13 @@ export class Controller {
 
       this.running = true;
 
-      // Schedule the first notification
+      // If restarting, clear the scheduler to pick up new settings
+      if (restart) {
+        console.info("Restarting: clearing existing scheduler");
+        this.scheduler = undefined;
+      }
+
+      // Schedule notifications (single for web, multiple for Android)
       await this.scheduleNextNotification();
 
       console.info("Controller enabled successfully");
@@ -200,9 +206,15 @@ export class Controller {
     console.info("Controller disable");
 
     try {
+      // Cancel all scheduled notifications/timers
+      await this.cancelAllScheduled();
+
       if (this.alarmService) {
         await this.alarmService.disable();
       }
+
+      // Clear the scheduler so settings changes are picked up on next enable
+      this.scheduler = undefined;
 
       this.running = false;
 
@@ -221,6 +233,35 @@ export class Controller {
     }
 
     this.running = false;
+  }
+
+  /**
+   * Reschedule notifications (useful when settings change)
+   * Clears existing scheduler and schedules fresh notifications
+   */
+  async reschedule() {
+    console.info("Controller reschedule");
+
+    if (!this.running) {
+      console.warn("Cannot reschedule: controller is not running");
+      return;
+    }
+
+    try {
+      // Clear existing scheduler to pick up new settings
+      this.scheduler = undefined;
+
+      // Cancel all existing scheduled notifications
+      await this.cancelAllScheduled();
+
+      // Schedule new notifications with updated settings
+      await this.scheduleNextNotification();
+
+      console.info("Rescheduled successfully");
+    } catch (error) {
+      console.error("Failed to reschedule:", error);
+      throw error;
+    }
   }
 
   /**
@@ -334,6 +375,11 @@ export class Controller {
   async scheduleNextNotification() {
     console.info("Controller scheduleNextNotification");
 
+    if (Platform.OS === "android") {
+      // On Android, schedule multiple notifications ahead of time
+      return this.scheduleMultipleNotifications();
+    }
+
     try {
       // Get Redux state
       const state = store.getState();
@@ -406,6 +452,117 @@ export class Controller {
         error instanceof Error ? error.message : String(error);
       store.dispatch(
         addDebugInfo(`Failed to schedule next notification: ${errorMessage}`),
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Schedule multiple notifications ahead of time (Android only)
+   * This ensures notifications continue even when the app is backgrounded/killed
+   * The scheduler respects quiet hours automatically
+   */
+  async scheduleMultipleNotifications(count: number = 20) {
+    console.info(debugLog(`Controller scheduleMultipleNotifications (count=${count})`));
+
+    try {
+      // Get Redux state
+      const state = store.getState();
+      const { schedule, reminders } = state;
+
+      // Create a scheduler if we don't have one
+      if (!this.scheduler) {
+        const quietHours = new QuietHours(
+          new TimeOfDay(
+            schedule.quietHours.startHour,
+            schedule.quietHours.startMinute,
+          ),
+          new TimeOfDay(
+            schedule.quietHours.endHour,
+            schedule.quietHours.endMinute,
+          ),
+          schedule.quietHours.notifyQuietHours,
+        );
+
+        // Create scheduler based on Redux schedule type
+        if (schedule.scheduleType === "periodic") {
+          this.scheduler = new PeriodicScheduler(
+            quietHours,
+            schedule.periodicConfig.durationHours,
+            schedule.periodicConfig.durationMinutes,
+            () => this.triggerNotification(),
+            () => this.initialScheduleComplete(),
+          );
+        } else {
+          this.scheduler = new RandomScheduler(
+            quietHours,
+            schedule.randomConfig.minMinutes,
+            schedule.randomConfig.maxMinutes,
+            () => this.triggerNotification(),
+            () => this.initialScheduleComplete(),
+          );
+        }
+
+        console.info(
+          `Created ${schedule.scheduleType} scheduler with Redux configuration`,
+        );
+      }
+
+      // Cancel any existing scheduled notifications first
+      await this.androidNotificationService.cancelAll();
+
+      // Schedule multiple notifications
+      let fromTime: Date | undefined = undefined;
+      const MIN_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes minimum for Android robustness
+
+      for (let i = 0; i < count; i++) {
+        // Get the next fire date from the scheduler
+        // The scheduler automatically handles quiet hours
+        const nextFireDate = this.scheduler.getNextFireDate(fromTime);
+
+        // Ensure minimum 15-minute interval for Android robustness
+        if (fromTime) {
+          const interval = nextFireDate.date.getTime() - fromTime.getTime();
+          if (interval < MIN_INTERVAL_MS) {
+            console.log(
+              debugLog(
+                `Adjusting notification interval from ${interval / 1000 / 60}min to 15min minimum`,
+              ),
+            );
+            nextFireDate.date = new Date(fromTime.getTime() + MIN_INTERVAL_MS);
+          }
+        }
+
+        // Get a random reminder for this notification
+        const reminderText = getRandomReminder(reminders.reminders);
+
+        console.log(
+          debugLog(
+            `Scheduling notification ${i + 1}/${count} for ${nextFireDate.date}${nextFireDate.postQuiet ? " (after quiet hours)" : ""}`,
+          ),
+        );
+
+        // Schedule the notification
+        await this.androidNotificationService.scheduleAt(
+          `mindfulnotifier-${i}`,
+          nextFireDate.date,
+          "Mindful Notifier",
+          reminderText,
+        );
+
+        // Use this scheduled time as the base for the next one
+        fromTime = nextFireDate.date;
+      }
+
+      console.info(`Successfully scheduled ${count} notifications`);
+    } catch (error) {
+      console.error("Failed to schedule multiple notifications:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      store.dispatch(
+        addDebugInfo(
+          `Failed to schedule multiple notifications: ${errorMessage}`,
+        ),
       );
       throw error;
     }

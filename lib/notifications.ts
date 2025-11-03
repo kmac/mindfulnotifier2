@@ -20,11 +20,10 @@ export type { NotificationConfig };
 // Configure how notifications are handled when the app is in foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    //shouldShowAlert: true,
     shouldShowBanner: true,
     shouldShowList: true,
     shouldPlaySound: true,
-    shouldSetBadge: false,
+    shouldSetBadge: true,
   }),
 });
 
@@ -38,7 +37,6 @@ export async function isPermissionsGranted(): Promise<boolean> {
 }
 
 export async function requestPermissions() {
-  // Request permissions
   console.log("[Notifications] Requesting notification permissions");
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
@@ -47,14 +45,12 @@ export async function requestPermissions() {
     const { status } = await Notifications.requestPermissionsAsync();
     finalStatus = status;
   }
-
   if (finalStatus !== "granted") {
     console.warn(
       `[Notifications] Permission not granted: status=${finalStatus}`,
     );
     return false;
   }
-
   console.log("[Notifications] Permissions granted");
   return true;
 }
@@ -68,18 +64,16 @@ export async function initializeNotifications(): Promise<boolean> {
   console.log("[Notifications] Initializing notifications");
 
   if (Platform.OS === "android") {
-    // Set up notification channel for Android
     await Notifications.setNotificationChannelAsync("default", {
       name: "Mindful Reminders",
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#4A90E2",
-      sound: "default", // Use sound specified in notification content
+      lightColor: "#4A902",
+      sound: null, // Allow per-notification sound configuration
       enableVibrate: true,
       showBadge: false,
     });
   }
-
   return await requestPermissions();
 }
 
@@ -95,7 +89,6 @@ export async function showLocalNotification(
   console.log(
     `[Notifications] Showing local notification: ${config.title}, ${config.body}`,
   );
-
   if (Platform.OS === "web") {
     return showWebNotification(config);
   } else if (Platform.OS === "android") {
@@ -182,7 +175,7 @@ async function showAndroidNotification(
       title: config.title,
       body: config.body,
       data: config.data || {},
-      sound: soundUri || config.sound || undefined,
+      sound: soundUri || undefined,
       badge: config.badge,
       sticky: true,
     },

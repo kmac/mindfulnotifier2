@@ -36,24 +36,41 @@ export const BACKGROUND_CHECK_TASK = "BACKGROUND_CHECK_TASK";
 /**
  * Periodic background check task (runs every 15 minutes minimum on Android)
  * This ensures notifications are scheduled even if the app is killed
+ * Maintains a buffer of at least 10 upcoming notifications
  */
 TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
   try {
     console.log(debugLog("[BackgroundTask] Running periodic background check"));
 
-    // Check if we need to schedule a notification
+    // Check if we need to schedule notifications
     const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    const MIN_NOTIFICATION_BUFFER = 10; // Maintain at least 10 upcoming notifications
 
-    if (scheduled.length === 0) {
+    console.log(
+      debugLog(
+        `[BackgroundTask] Found ${scheduled.length} scheduled notifications`,
+      ),
+    );
+
+    if (scheduled.length < MIN_NOTIFICATION_BUFFER) {
       console.log(
-        debugLog("[BackgroundTask] No notifications scheduled, creating one"),
+        debugLog(
+          `[BackgroundTask] Notification buffer low (${scheduled.length}/${MIN_NOTIFICATION_BUFFER}), scheduling more`,
+        ),
       );
       const controller = Controller.getInstance();
+
+      // Schedule 20 notifications to replenish the buffer
+      // This will cancel existing ones and create a fresh batch
       await controller.scheduleNextNotification();
+
+      console.log(
+        debugLog("[BackgroundTask] Notifications replenished successfully"),
+      );
     } else {
       console.log(
         debugLog(
-          `[BackgroundTask] ${scheduled.length} notifications already scheduled`,
+          `[BackgroundTask] Notification buffer healthy (${scheduled.length} notifications)`,
         ),
       );
     }

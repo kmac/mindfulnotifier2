@@ -18,10 +18,25 @@ import {
   ScheduleType,
 } from "@/store/slices/scheduleSlice";
 import { useState } from "react";
+import { Controller } from "@/services/notificationController";
 
 export default function Schedule() {
   const dispatch = useAppDispatch();
   const scheduleState = useAppSelector((state) => state.schedule);
+  const isEnabled = useAppSelector((state) => state.preferences.isEnabled);
+
+  // Helper function to reschedule notifications if service is enabled
+  const rescheduleIfEnabled = async () => {
+    if (isEnabled) {
+      try {
+        const controller = Controller.getInstance();
+        await controller.reschedule();
+        console.log("[Schedule] Rescheduled notifications with new settings");
+      } catch (error) {
+        console.error("[Schedule] Failed to reschedule:", error);
+      }
+    }
+  };
 
   // Local state for text inputs (to handle temporary invalid states)
   const [periodicHours, setPeriodicHours] = useState(
@@ -51,6 +66,7 @@ export default function Schedule() {
 
   const handleScheduleTypeChange = (value: string) => {
     dispatch(setScheduleType(value as ScheduleType));
+    rescheduleIfEnabled();
   };
 
   const handlePeriodicHoursChange = (text: string) => {
@@ -63,6 +79,7 @@ export default function Schedule() {
           durationMinutes: scheduleState.periodicConfig.durationMinutes,
         })
       );
+      rescheduleIfEnabled();
     }
   };
 
@@ -76,6 +93,7 @@ export default function Schedule() {
           durationMinutes: num,
         })
       );
+      rescheduleIfEnabled();
     }
   };
 
@@ -89,6 +107,7 @@ export default function Schedule() {
           maxMinutes: scheduleState.randomConfig.maxMinutes,
         })
       );
+      rescheduleIfEnabled();
     }
   };
 
@@ -102,6 +121,7 @@ export default function Schedule() {
           maxMinutes: num,
         })
       );
+      rescheduleIfEnabled();
     }
   };
 
@@ -115,6 +135,7 @@ export default function Schedule() {
           startHour: num,
         })
       );
+      rescheduleIfEnabled();
     }
   };
 
@@ -128,6 +149,7 @@ export default function Schedule() {
           startMinute: num,
         })
       );
+      rescheduleIfEnabled();
     }
   };
 
@@ -141,6 +163,7 @@ export default function Schedule() {
           endHour: num,
         })
       );
+      rescheduleIfEnabled();
     }
   };
 
@@ -154,6 +177,7 @@ export default function Schedule() {
           endMinute: num,
         })
       );
+      rescheduleIfEnabled();
     }
   };
 
@@ -164,6 +188,7 @@ export default function Schedule() {
         notifyQuietHours: value,
       })
     );
+    rescheduleIfEnabled();
   };
 
   // Format numeric value with leading zero
