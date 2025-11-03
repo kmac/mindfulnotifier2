@@ -45,8 +45,8 @@ const preferencesSlice = createSlice({
       state.debugInfoEnabled = action.payload;
     },
     addDebugInfo: (state, action: PayloadAction<string>) => {
-      // Keep only the last 50 debug messages to prevent unbounded growth
-      const MAX_DEBUG_INFO = 50;
+      // Keep only the last N debug messages to prevent unbounded growth
+      const MAX_DEBUG_INFO = 100;
       state.debugInfo.push(action.payload);
       if (state.debugInfo.length > MAX_DEBUG_INFO) {
         state.debugInfo = state.debugInfo.slice(-MAX_DEBUG_INFO);

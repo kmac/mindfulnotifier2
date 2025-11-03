@@ -19,6 +19,11 @@ import {
 } from "@/store/slices/scheduleSlice";
 import { useState } from "react";
 import { Controller } from "@/services/notificationController";
+import {
+  getMinIntervalMinutes,
+  isValidPeriodicInterval,
+  isValidRandomInterval,
+} from "@/constants/scheduleConstants";
 
 export default function Schedule() {
   const dispatch = useAppDispatch();
@@ -100,7 +105,8 @@ export default function Schedule() {
   const handleRandomMinChange = (text: string) => {
     setRandomMin(text);
     const num = parseInt(text, 10);
-    if (!isNaN(num) && num >= 1) {
+    const minAllowed = getMinIntervalMinutes();
+    if (!isNaN(num) && num >= minAllowed) {
       dispatch(
         setRandomConfig({
           minMinutes: num,
@@ -114,7 +120,8 @@ export default function Schedule() {
   const handleRandomMaxChange = (text: string) => {
     setRandomMax(text);
     const num = parseInt(text, 10);
-    if (!isNaN(num) && num >= 1) {
+    const minAllowed = getMinIntervalMinutes();
+    if (!isNaN(num) && num >= minAllowed) {
       dispatch(
         setRandomConfig({
           minMinutes: scheduleState.randomConfig.minMinutes,
@@ -309,6 +316,15 @@ export default function Schedule() {
                 }}
               />
             </View>
+            {!isValidPeriodicInterval(
+              scheduleState.periodicConfig.durationHours,
+              scheduleState.periodicConfig.durationMinutes
+            ) && (
+              <HelperText type="error" visible={true}>
+                Minimum interval is {getMinIntervalMinutes()} minutes on this
+                platform
+              </HelperText>
+            )}
             <HelperText type="info">
               Every {scheduleState.periodicConfig.durationHours}h{" "}
               {scheduleState.periodicConfig.durationMinutes}m
@@ -336,7 +352,9 @@ export default function Schedule() {
                 }}
                 onDecrement={() => {
                   const num = parseInt(randomMin, 10) || 1;
-                  if (num > 1) handleRandomMinChange((num - 1).toString());
+                  const minAllowed = getMinIntervalMinutes();
+                  if (num > minAllowed)
+                    handleRandomMinChange((num - 1).toString());
                 }}
               />
               <NumericInputWithButtons
@@ -349,10 +367,21 @@ export default function Schedule() {
                 }}
                 onDecrement={() => {
                   const num = parseInt(randomMax, 10) || 1;
-                  if (num > 1) handleRandomMaxChange((num - 1).toString());
+                  const minAllowed = getMinIntervalMinutes();
+                  if (num > minAllowed)
+                    handleRandomMaxChange((num - 1).toString());
                 }}
               />
             </View>
+            {!isValidRandomInterval(
+              scheduleState.randomConfig.minMinutes,
+              scheduleState.randomConfig.maxMinutes
+            ) && (
+              <HelperText type="error" visible={true}>
+                Minimum interval is {getMinIntervalMinutes()} minutes on this
+                platform
+              </HelperText>
+            )}
             <HelperText type="info">
               Between {scheduleState.randomConfig.minMinutes} and{" "}
               {scheduleState.randomConfig.maxMinutes} minutes

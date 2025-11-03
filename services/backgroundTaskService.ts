@@ -190,8 +190,10 @@ export async function scheduleNotification(
   trigger: Date | number,
 ): Promise<string> {
   try {
+    let triggerLog: string;
     let triggerInput: Notifications.NotificationTriggerInput;
     if (typeof trigger === "number") {
+      triggerLog = `${trigger} seconds`;
       triggerInput = {
         seconds: trigger,
         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
@@ -202,6 +204,7 @@ export async function scheduleNotification(
         1,
         Math.floor((trigger.getTime() - Date.now()) / 1000),
       );
+      triggerLog = `${trigger}`;
       triggerInput = {
         seconds: delaySeconds,
         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
@@ -212,16 +215,38 @@ export async function scheduleNotification(
     const soundEnabled = isSoundEnabled();
     const soundUri = soundEnabled ? getSelectedSoundUri() : null;
 
-    console.log(debugLog(
-      `[BackgroundTask] Scheduling notification with sound: ${soundUri}, enabled: ${soundEnabled}`,
-    ));
+    if (soundEnabled) {
+      console.log(
+        debugLog(
+          `[BackgroundTask] Scheduling notification with sound: ${soundUri}, trigger: ${triggerLog}`,
+        ),
+      );
+    } else {
+      console.log(
+        debugLog(
+          `[BackgroundTask] Scheduling notification no sound, trigger: ${triggerLog}`,
+        ),
+      );
+    }
 
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
-        title,
-        body,
+        title: title,
+        body: body,
         sound: soundUri || undefined,
+        vibrate: [0, 250, 250, 250],
         priority: Notifications.AndroidNotificationPriority.HIGH,
+
+        /**
+         * The name of the image or storyboard to use when your app launches because of the notification.
+         */
+        // launchImageName?: string;
+
+        // If set to `true`, the notification cannot be dismissed by swipe. This setting defaults
+        // to `false` if not provided or is invalid. Corresponds directly do Android's `isOngoing` behavior.
+        sticky: false,
+
+        autoDismiss: false,
       },
       trigger: triggerInput,
     });

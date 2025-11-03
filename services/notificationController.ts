@@ -91,12 +91,6 @@ class AndroidNotificationService {
     // Schedule notification
     const notificationId = await scheduleNotification(title, body, date);
     this.scheduledNotifications.set(id, notificationId);
-
-    console.log(
-      debugLog(
-        `[AndroidNotificationService] Scheduled notification ${id} for ${date}`,
-      ),
-    );
   }
 
   async cancel(id: string): Promise<void> {
@@ -429,9 +423,8 @@ export class Controller {
       // Get the next fire date from the scheduler
       const nextFireDate = this.scheduler.getNextFireDate();
 
-      console.info(
-        debugLog(`Scheduling notification for ${nextFireDate.date}`),
-      );
+      console.info(`Scheduling notification for ${nextFireDate.date}`);
+      // console.info(debugLog(`Scheduling notification for ${nextFireDate.date}`));
 
       // Schedule the notification
       await this.scheduleNotificationAt(
@@ -513,25 +506,11 @@ export class Controller {
 
       // Schedule multiple notifications
       let fromTime: Date | undefined = undefined;
-      const MIN_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes minimum for Android robustness
 
       for (let i = 0; i < count; i++) {
         // Get the next fire date from the scheduler
         // The scheduler automatically handles quiet hours
         const nextFireDate = this.scheduler.getNextFireDate(fromTime);
-
-        // Ensure minimum 15-minute interval for Android robustness
-        if (fromTime) {
-          const interval = nextFireDate.date.getTime() - fromTime.getTime();
-          if (interval < MIN_INTERVAL_MS) {
-            console.log(
-              debugLog(
-                `Adjusting notification interval from ${interval / 1000 / 60}min to 15min minimum`,
-              ),
-            );
-            nextFireDate.date = new Date(fromTime.getTime() + MIN_INTERVAL_MS);
-          }
-        }
 
         // Get a random reminder for this notification
         const reminderText = getRandomReminder(reminders.reminders);
