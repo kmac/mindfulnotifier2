@@ -3,6 +3,7 @@ import {
   scheduleNotification,
   cancelAllNotifications,
 } from './backgroundTaskService';
+import { debugLog } from "@/utils/util";
 
 /**
  * Web-based timer service using setTimeout
@@ -75,7 +76,7 @@ class AndroidTimerService {
     const notificationId = await scheduleNotification(title, body, date);
     this.scheduledNotifications.set(id, notificationId);
 
-    console.log(`[AndroidTimerService] Scheduled notification ${id} for ${date}`);
+    console.log(debugLog(`[AndroidTimerService] Scheduled notification ${id} for ${date}`));
   }
 
   async cancel(id: string): Promise<void> {

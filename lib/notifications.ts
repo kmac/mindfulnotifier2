@@ -171,8 +171,10 @@ async function showAndroidNotification(
   const soundEnabled = isSoundEnabled();
   const soundUri = soundEnabled ? getSelectedSoundUri() : null;
 
-  debugLog(
-    `[Notifications] Showing notification with sound: ${soundUri}, enabled: ${soundEnabled}`,
+  console.log(
+    debugLog(
+      `[Notifications] Showing notification with sound: ${soundUri}, enabled: ${soundEnabled}`,
+    ),
   );
 
   const notificationId = await Notifications.scheduleNotificationAsync({
@@ -222,8 +224,9 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   if (finalStatus !== "granted") {
-    console.warn("[Notifications] Push notification permission not granted");
-    debugLog("[Notifications] Push notification permission not granted");
+    console.warn(
+      debugLog("[Notifications] Push notification permission not granted"),
+    );
     return null;
   }
 
@@ -235,10 +238,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
     if (!projectId) {
       console.warn(
-        "[Notifications] No project ID found for push notifications",
-      );
-      debugLog(
-        "[Notifications] No project ID found for push notifications",
+        debugLog("[Notifications] No project ID found for push notifications"),
       );
       return null;
     }

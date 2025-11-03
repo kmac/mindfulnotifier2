@@ -13,6 +13,7 @@ import { TimeOfDay } from "@/lib/timedate";
 import { store } from "@/store/store";
 import { setLastNotificationText } from "@/store/slices/remindersSlice";
 import { addDebugInfo } from "@/store/slices/preferencesSlice";
+import { debugLog } from "@/utils/util";
 
 export class Controller {
   private static instance: Controller;
@@ -156,11 +157,11 @@ export class Controller {
 
       store.dispatch(setLastNotificationText(reminderText));
 
-      console.info("Notification triggered successfully");
-
+      console.log(debugLog("Notification triggered successfully"));
       await this.scheduleNextNotification();
     } catch (error) {
       console.error("Failed to trigger notification:", error);
+      debugLog("Failed to trigger notification:", error);
     }
   }
 
@@ -220,9 +221,9 @@ export class Controller {
       // Get the next fire date from the scheduler
       const nextFireDate = this.scheduler.getNextFireDate();
 
-      const logtext = `Scheduling notification for ${nextFireDate.date}`;
-      console.info(logtext);
-      store.dispatch(addDebugInfo(logtext));
+      console.info(
+        debugLog(`Scheduling notification for ${nextFireDate.date}`),
+      );
 
       // Schedule the notification
       await scheduleNotificationAt(
@@ -239,8 +240,11 @@ export class Controller {
       console.info("Notification scheduled successfully");
     } catch (error) {
       console.error("Failed to schedule next notification:", error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      store.dispatch(addDebugInfo(`Failed to schedule next notification: ${errorMessage}`));
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      store.dispatch(
+        addDebugInfo(`Failed to schedule next notification: ${errorMessage}`),
+      );
       throw error;
     }
   }
