@@ -1,5 +1,9 @@
+import { Platform } from "react-native";
 import { getRandomReminder } from "@/lib/reminders";
-import { scheduleNotificationAt } from "./timerService";
+import {
+  scheduleNotification,
+  cancelAllNotifications,
+} from "./backgroundTaskService";
 import { showLocalNotification } from "@/lib/notifications";
 import { QuietHours } from "@/lib/quietHours";
 import {
@@ -15,13 +19,120 @@ import { setLastNotificationText } from "@/store/slices/remindersSlice";
 import { addDebugInfo } from "@/store/slices/preferencesSlice";
 import { debugLog } from "@/utils/util";
 
+/**
+ * Web-based notification service using setTimeout
+ * Keeps track of active timers for cleanup
+ */
+class WebNotificationService {
+  private timers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+
+  scheduleAt(id: string, date: Date, callback: Function): void {
+    const delayMS = date.getTime() - Date.now();
+
+    if (delayMS <= 0) {
+      throw new Error(`scheduleAt: date is not in the future: ${date}`);
+    }
+
+    // Clear any existing timer with this ID
+    this.cancel(id);
+
+    // Schedule new timer
+    const timer = setTimeout(() => {
+      this.timers.delete(id);
+      callback();
+    }, delayMS);
+
+    this.timers.set(id, timer);
+    console.log(
+      debugLog(`[WebNotificationService] Scheduled timer ${id} for ${date}`),
+    );
+  }
+
+  cancel(id: string): void {
+    const timer = this.timers.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      this.timers.delete(id);
+      console.log(debugLog(`[WebNotificationService] Cancelled timer ${id}`));
+    }
+  }
+
+  cancelAll(): void {
+    this.timers.forEach((timer, id) => {
+      clearTimeout(timer);
+      console.log(debugLog(`[WebNotificationService] Cancelled timer ${id}`));
+    });
+    this.timers.clear();
+  }
+}
+
+/**
+ * Android-based notification service using Expo Notifications
+ * Schedules actual notifications instead of callbacks
+ */
+class AndroidNotificationService {
+  private scheduledNotifications: Map<string, string> = new Map();
+
+  async scheduleAt(
+    id: string,
+    date: Date,
+    title: string,
+    body: string,
+  ): Promise<void> {
+    const delayMS = date.getTime() - Date.now();
+
+    if (delayMS <= 0) {
+      throw new Error(`scheduleAt: date is not in the future: ${date}`);
+    }
+
+    // Cancel any existing notification with this ID
+    await this.cancel(id);
+
+    // Schedule notification
+    const notificationId = await scheduleNotification(title, body, date);
+    this.scheduledNotifications.set(id, notificationId);
+
+    console.log(
+      debugLog(
+        `[AndroidNotificationService] Scheduled notification ${id} for ${date}`,
+      ),
+    );
+  }
+
+  async cancel(id: string): Promise<void> {
+    const notificationId = this.scheduledNotifications.get(id);
+    if (notificationId) {
+      // Note: We can't cancel individual notifications by our custom ID easily
+      // This is a limitation we'll need to work around
+      this.scheduledNotifications.delete(id);
+      console.log(
+        debugLog(
+          `[AndroidNotificationService] Removed tracking for notification ${id}`,
+        ),
+      );
+    }
+  }
+
+  async cancelAll(): Promise<void> {
+    await cancelAllNotifications();
+    this.scheduledNotifications.clear();
+    console.log(
+      debugLog(`[AndroidNotificationService] Cancelled all notifications`),
+    );
+  }
+}
+
 export class Controller {
   private static instance: Controller;
   private alarmService?: AlarmService;
   private scheduler?: RandomScheduler | PeriodicScheduler;
+  private webNotificationService: WebNotificationService;
+  private androidNotificationService: AndroidNotificationService;
 
   private constructor() {
     // Private constructor to prevent direct instantiation
+    this.webNotificationService = new WebNotificationService();
+    this.androidNotificationService = new AndroidNotificationService();
   }
 
   public static getInstance(): Controller {
@@ -135,6 +246,55 @@ export class Controller {
   }
 
   /**
+   * Schedule a notification at a specific date/time
+   * Works on both Android and Web
+   */
+  async scheduleNotificationAt(
+    id: string,
+    date: Date,
+    title: string,
+    body: string,
+    callback?: Function,
+  ): Promise<void> {
+    console.log(`scheduleNotificationAt: ${date}, platform: ${Platform.OS}`);
+
+    if (Platform.OS === "web") {
+      // On web, use setTimeout and call the callback
+      this.webNotificationService.scheduleAt(id, date, () => {
+        console.log(`Web notification triggered: ${title}`);
+        if (callback) callback();
+      });
+    } else if (Platform.OS === "android") {
+      // On Android, schedule a real notification
+      await this.androidNotificationService.scheduleAt(id, date, title, body);
+    } else {
+      throw new Error(`Platform is not supported: ${Platform.OS}`);
+    }
+  }
+
+  /**
+   * Cancel a scheduled notification by ID
+   */
+  async cancelScheduledNotification(id: string): Promise<void> {
+    if (Platform.OS === "web") {
+      this.webNotificationService.cancel(id);
+    } else if (Platform.OS === "android") {
+      await this.androidNotificationService.cancel(id);
+    }
+  }
+
+  /**
+   * Cancel all scheduled notifications/timers
+   */
+  async cancelAllScheduled(): Promise<void> {
+    if (Platform.OS === "web") {
+      this.webNotificationService.cancelAll();
+    } else if (Platform.OS === "android") {
+      await this.androidNotificationService.cancelAll();
+    }
+  }
+
+  /**
    * Trigger a notification
    * This is called by the scheduler when it's time to show a notification
    */
@@ -157,7 +317,9 @@ export class Controller {
 
       store.dispatch(setLastNotificationText(reminderText));
 
-      console.log(debugLog("Notification triggered successfully"));
+      console.log(
+        debugLog("Notification triggered successfully, scheduling next"),
+      );
       await this.scheduleNextNotification();
     } catch (error) {
       console.error("Failed to trigger notification:", error);
@@ -226,7 +388,7 @@ export class Controller {
       );
 
       // Schedule the notification
-      await scheduleNotificationAt(
+      await this.scheduleNotificationAt(
         "mindfulnotifier",
         nextFireDate.date,
         "Mindful Notifier",
@@ -248,4 +410,38 @@ export class Controller {
       throw error;
     }
   }
+}
+
+/**
+ * Schedule a notification at a specific date/time
+ * Works on both Android and Web
+ * Wrapper function that delegates to the Controller singleton
+ */
+export async function scheduleNotificationAt(
+  id: string,
+  date: Date,
+  title: string,
+  body: string,
+  callback?: Function,
+): Promise<void> {
+  const controller = Controller.getInstance();
+  return controller.scheduleNotificationAt(id, date, title, body, callback);
+}
+
+/**
+ * Cancel a scheduled notification by ID
+ * Wrapper function that delegates to the Controller singleton
+ */
+export async function cancelScheduledNotification(id: string): Promise<void> {
+  const controller = Controller.getInstance();
+  return controller.cancelScheduledNotification(id);
+}
+
+/**
+ * Cancel all scheduled notifications/timers
+ * Wrapper function that delegates to the Controller singleton
+ */
+export async function cancelAllScheduled(): Promise<void> {
+  const controller = Controller.getInstance();
+  return controller.cancelAllScheduled();
 }

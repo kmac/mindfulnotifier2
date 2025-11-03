@@ -4,7 +4,7 @@ import {
   unregisterBackgroundTasks,
   getBackgroundTaskStatus,
 } from './backgroundTaskService';
-import { cancelAllScheduled } from './timerService';
+import { cancelAllScheduled } from './notificationController';
 
 export function getAlarmService() : AlarmService {
   if (Platform.OS === 'web') {

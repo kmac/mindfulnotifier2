@@ -15,8 +15,7 @@ import {
   setSoundEnabled,
   setVibrationEnabled,
 } from "@/store/slices/preferencesSlice";
-import { Controller } from "@/services/notificationController";
-import { scheduleNotificationAt } from "@/services/timerService";
+import { Controller, scheduleNotificationAt } from "@/services/notificationController";
 
 export default function Index() {
   const theme = useTheme();
