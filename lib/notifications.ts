@@ -57,6 +57,7 @@ export async function requestPermissions() {
 
 /**
  * Available notification sounds for channel creation
+ * Android requires sounds to be in res/raw and referenced without extension
  */
 const NOTIFICATION_SOUNDS = [
   { id: 'bell_inside', name: 'Bell Inside', resource: 'bell_inside' },
@@ -444,6 +445,30 @@ export async function getNotificationChannels(): Promise<Notifications.Notificat
     return await Notifications.getNotificationChannelsAsync();
   }
   return [];
+}
+
+/**
+ * Debug function to log all notification channels and their settings
+ */
+export async function debugNotificationChannels(): Promise<void> {
+  if (Platform.OS !== "android") {
+    console.log("[Notifications] Channel debugging only available on Android");
+    return;
+  }
+
+  console.log(debugLog("[Notifications] === CHANNEL DEBUGGING ==="));
+  const channels = await Notifications.getNotificationChannelsAsync();
+  console.log(debugLog(`[Notifications] Total channels: ${channels.length}`));
+
+  for (const channel of channels) {
+    console.log(debugLog(`[Notifications] Channel: ${channel.id}`));
+    console.log(debugLog(`  - Name: ${channel.name}`));
+    console.log(debugLog(`  - Importance: ${channel.importance}`));
+    console.log(debugLog(`  - Sound: ${channel.sound}`));
+    console.log(debugLog(`  - Vibration: ${channel.vibrationPattern}`));
+    console.log(debugLog(`  - Light Color: ${channel.lightColor}`));
+  }
+  console.log(debugLog("[Notifications] === END CHANNEL DEBUG ==="));
 }
 
 /**

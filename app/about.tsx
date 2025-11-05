@@ -4,8 +4,11 @@ import { useAppSelector, useAppDispatch } from "@/store/store";
 import { clearDebugInfo } from "@/store/slices/preferencesSlice";
 import { Controller } from "@/services/notificationController";
 import { getBackgroundTaskStatus, getScheduledNotifications } from "@/services/backgroundTaskService";
+import { debugNotificationChannels, getNotificationChannelId } from "@/lib/notifications";
+import { getSelectedSoundUri } from "@/lib/sound";
 import { useState, useEffect } from "react";
 import { Platform } from "react-native";
+import { debugLog } from "@/utils/util";
 
 export default function About() {
   const dispatch = useAppDispatch();
@@ -110,6 +113,17 @@ export default function About() {
     dispatch(clearDebugInfo());
   };
 
+  const handleDebugChannels = async () => {
+    if (Platform.OS === "android") {
+      await debugNotificationChannels();
+
+      // Also log what channel would be used for current sound
+      const soundUri = getSelectedSoundUri();
+      const channelId = getNotificationChannelId(soundUri);
+      console.log(debugLog(`[Debug] Current sound: ${soundUri}, would use channel: ${channelId}`));
+    }
+  };
+
   return (
     <ScrollView style={styles.scrollView}>
       <Surface style={styles.container}>
@@ -212,13 +226,25 @@ export default function About() {
                 <Text variant="titleMedium" style={styles.debugTitle}>
                   Debug Information
                 </Text>
-                <Button
-                  mode="outlined"
-                  onPress={handleClearDebugInfo}
-                  compact
-                >
-                  Clear
-                </Button>
+                <View style={styles.debugButtons}>
+                  {Platform.OS === "android" && (
+                    <Button
+                      mode="outlined"
+                      onPress={handleDebugChannels}
+                      compact
+                      style={{ marginRight: 8 }}
+                    >
+                      Debug Channels
+                    </Button>
+                  )}
+                  <Button
+                    mode="outlined"
+                    onPress={handleClearDebugInfo}
+                    compact
+                  >
+                    Clear
+                  </Button>
+                </View>
               </View>
 
               {/* Background Task Run History */}
@@ -316,6 +342,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 12,
+  },
+  debugButtons: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   debugTitle: {
     fontWeight: "600",
