@@ -56,6 +56,90 @@ export async function requestPermissions() {
 }
 
 /**
+ * Available notification sounds for channel creation
+ */
+const NOTIFICATION_SOUNDS = [
+  { id: 'bell_inside', name: 'Bell Inside', resource: 'bell_inside' },
+  { id: 'bowl_struck', name: 'Bowl Struck', resource: 'bowl_struck' },
+  { id: 'ding_soft', name: 'Ding Soft', resource: 'ding_soft' },
+  { id: 'tibetan_bell_ding_b', name: 'Tibetan Bell', resource: 'tibetan_bell_ding_b' },
+  { id: 'zenbell_1', name: 'Zen Bell', resource: 'zenbell_1' },
+] as const;
+
+/**
+ * Get the notification channel ID for a given sound
+ * @param soundName The sound name (e.g., 'zenbell_1.mp3' or 'zenbell_1')
+ * @returns The channel ID to use for this sound
+ */
+export function getNotificationChannelId(soundName: string | null): string {
+  if (!soundName) {
+    return 'mindful_silent';
+  }
+
+  // Remove .mp3 extension if present
+  const cleanSoundName = soundName.replace('.mp3', '');
+
+  // Check if it's a known sound
+  const sound = NOTIFICATION_SOUNDS.find(s => s.id === cleanSoundName);
+  if (sound) {
+    return `mindful_${sound.id}`;
+  }
+
+  // For custom sounds, use a generic channel
+  return 'mindful_custom';
+}
+
+/**
+ * Create or update all notification channels for different sounds
+ * This should be called during app initialization and when sound preferences change
+ */
+async function createNotificationChannels(): Promise<void> {
+  if (Platform.OS !== "android") {
+    return;
+  }
+
+  console.log("[Notifications] Creating notification channels");
+
+  // Create a channel for each built-in sound
+  for (const sound of NOTIFICATION_SOUNDS) {
+    await Notifications.setNotificationChannelAsync(`mindful_${sound.id}`, {
+      name: `Mindful Reminders (${sound.name})`,
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#4A9022",
+      sound: sound.resource, // Set the specific sound for this channel
+      enableVibrate: true,
+      showBadge: false,
+    });
+    console.log(`[Notifications] Created channel: mindful_${sound.id} with sound: ${sound.resource}`);
+  }
+
+  // Create a silent channel (no sound)
+  await Notifications.setNotificationChannelAsync('mindful_silent', {
+    name: 'Mindful Reminders (Silent)',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: "#4A9022",
+    sound: null,
+    enableVibrate: true,
+    showBadge: false,
+  });
+  console.log("[Notifications] Created silent channel");
+
+  // Create a custom sound channel (will use default sound)
+  await Notifications.setNotificationChannelAsync('mindful_custom', {
+    name: 'Mindful Reminders (Custom)',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: "#4A9022",
+    sound: 'default',
+    enableVibrate: true,
+    showBadge: false,
+  });
+  console.log("[Notifications] Created custom sound channel");
+}
+
+/**
  * Initialize notifications and request permissions
  * Sets up notification channels for Android
  * @returns true if permissions granted, false otherwise
@@ -64,15 +148,7 @@ export async function initializeNotifications(): Promise<boolean> {
   console.log("[Notifications] Initializing notifications");
 
   if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("default", {
-      name: "Mindful Reminders",
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#4A902",
-      sound: null, // Allow per-notification sound configuration
-      enableVibrate: true,
-      showBadge: false,
-    });
+    await createNotificationChannels();
   }
   return await requestPermissions();
 }
@@ -164,9 +240,12 @@ async function showAndroidNotification(
   const soundEnabled = isSoundEnabled();
   const soundUri = soundEnabled ? getSelectedSoundUri() : null;
 
+  // Get the appropriate notification channel for this sound
+  const channelId = getNotificationChannelId(soundUri);
+
   console.log(
     debugLog(
-      `[Notifications] Showing notification with sound: ${soundUri}, enabled: ${soundEnabled}`,
+      `[Notifications] Showing notification with sound: ${soundUri}, channel: ${channelId}, enabled: ${soundEnabled}`,
     ),
   );
 
@@ -175,11 +254,15 @@ async function showAndroidNotification(
       title: config.title,
       body: config.body,
       data: config.data || {},
-      sound: soundUri || undefined,
       badge: config.badge,
       sticky: true,
+      // Note: sound is controlled by the channel, not per-notification
     },
-    trigger: null, // null means show immediately
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 1, // Show immediately (1 second delay)
+      channelId: channelId, // Specify the channel ID for Android
+    },
   });
 
   return notificationId;
@@ -333,4 +416,56 @@ export function addNotificationResponseListener(
  */
 export async function getLastNotificationResponse(): Promise<Notifications.NotificationResponse | null> {
   return await Notifications.getLastNotificationResponseAsync();
+}
+
+/**
+ * Recreate all notification channels
+ * Useful when you need to ensure channels are up to date
+ * Note: On Android, channel settings are immutable once created
+ * This will only affect newly created channels
+ */
+export async function recreateNotificationChannels(): Promise<void> {
+  if (Platform.OS === "android") {
+    console.log("[Notifications] Recreating notification channels");
+    await createNotificationChannels();
+  }
+}
+
+/**
+ * Get all notification channels (Android only)
+ * @returns Array of notification channels
+ */
+export async function getNotificationChannels(): Promise<Notifications.NotificationChannel[]> {
+  if (Platform.OS === "android") {
+    return await Notifications.getNotificationChannelsAsync();
+  }
+  return [];
+}
+
+/**
+ * Delete all notification channels and recreate them
+ * This is a destructive operation that will reset user preferences for channels
+ * Only use this when absolutely necessary (e.g., debugging)
+ */
+export async function resetNotificationChannels(): Promise<void> {
+  if (Platform.OS !== "android") {
+    return;
+  }
+
+  console.log("[Notifications] Resetting all notification channels");
+
+  // Get all channels
+  const channels = await Notifications.getNotificationChannelsAsync();
+
+  // Delete each channel
+  for (const channel of channels) {
+    if (channel.id.startsWith('mindful_')) {
+      console.log(`[Notifications] Deleting channel: ${channel.id}`);
+      await Notifications.deleteNotificationChannelAsync(channel.id);
+    }
+  }
+
+  // Recreate all channels
+  await createNotificationChannels();
+  console.log("[Notifications] All channels reset successfully");
 }

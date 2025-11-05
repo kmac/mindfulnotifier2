@@ -13,6 +13,7 @@ import { useAudioPlayer } from "expo-audio";
 import { useState } from "react";
 import * as DocumentPicker from "expo-document-picker";
 import { playSound, stopSound } from "@/lib/sound";
+import { Controller } from "@/services/notificationController";
 
 const AVAILABLE_SOUNDS = [
   { name: "bell_inside.mp3", label: "Bell Inside" },
@@ -27,11 +28,24 @@ export default function Sound() {
   const selectedSound = useAppSelector((state) => state.sound.selectedSound);
   const customSoundUri = useAppSelector((state) => state.sound.customSoundUri);
   const customSoundName = useAppSelector((state) => state.sound.customSoundName);
+  const isEnabled = useAppSelector((state) => state.preferences.isEnabled);
   const [playingSound, setPlayingSound] = useState<string | null>(null);
   const audioPlayer = useAudioPlayer();
 
-  const handleSelectSound = (soundName: string) => {
+  const handleSelectSound = async (soundName: string) => {
     dispatch(setSelectedSound(soundName));
+
+    // If the service is running, reschedule notifications with the new sound
+    // This ensures new notifications use the correct channel for the selected sound
+    if (isEnabled) {
+      try {
+        const controller = Controller.getInstance();
+        await controller.reschedule();
+        console.log(`[Sound] Rescheduled notifications for sound: ${soundName}`);
+      } catch (error) {
+        console.error("[Sound] Failed to reschedule notifications:", error);
+      }
+    }
   };
 
   const handlePickCustomSound = async () => {

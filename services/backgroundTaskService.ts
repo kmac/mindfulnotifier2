@@ -3,6 +3,7 @@ import * as BackgroundTask from "expo-background-task";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { getSelectedSoundUri, isSoundEnabled } from "@/lib/sound";
+import { getNotificationChannelId } from "@/lib/notifications";
 import { debugLog } from "@/utils/util";
 import { Controller } from "./notificationController";
 import { store } from "@/store/store";
@@ -220,16 +221,19 @@ export async function scheduleNotification(
     const soundEnabled = isSoundEnabled();
     const soundUri = soundEnabled ? getSelectedSoundUri() : null;
 
+    // Get the appropriate notification channel for this sound
+    const channelId = getNotificationChannelId(soundUri);
+
     if (soundEnabled) {
       console.log(
         debugLog(
-          `[BackgroundTask] Scheduling notification with sound: ${soundUri}, trigger: ${triggerLog}`,
+          `[BackgroundTask] Scheduling notification with sound: ${soundUri}, channel: ${channelId}, trigger: ${triggerLog}`,
         ),
       );
     } else {
       console.log(
         debugLog(
-          `[BackgroundTask] Scheduling notification no sound, trigger: ${triggerLog}`,
+          `[BackgroundTask] Scheduling notification no sound, channel: ${channelId}, trigger: ${triggerLog}`,
         ),
       );
     }
@@ -238,22 +242,17 @@ export async function scheduleNotification(
       content: {
         title: title,
         body: body,
-        sound: soundUri || undefined,
         vibrate: [0, 250, 250, 250],
         priority: Notifications.AndroidNotificationPriority.HIGH,
-
-        /**
-         * The name of the image or storyboard to use when your app launches because of the notification.
-         */
-        // launchImageName?: string;
-
-        // If set to `true`, the notification cannot be dismissed by swipe. This setting defaults
-        // to `false` if not provided or is invalid. Corresponds directly do Android's `isOngoing` behavior.
+        // Note: sound is controlled by the channel, not per-notification
+        // On Android 8.0+, channel settings take precedence
         sticky: false,
-
         autoDismiss: false,
       },
-      trigger: triggerInput,
+      trigger: {
+        ...triggerInput,
+        channelId: channelId, // Specify the channel ID for Android
+      },
     });
 
     console.log(
