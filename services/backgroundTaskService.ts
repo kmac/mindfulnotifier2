@@ -37,9 +37,9 @@ export const BACKGROUND_CHECK_TASK = "BACKGROUND_CHECK_TASK";
 // });
 
 /**
- * Periodic background check task (runs every 15 minutes minimum on Android)
+ * Periodic background check task
  * This ensures notifications are scheduled even if the app is killed
- * Maintains a buffer of at least 10 upcoming notifications
+ * Maintains a buffer of upcoming notifications
  */
 TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
   try {

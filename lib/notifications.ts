@@ -235,7 +235,7 @@ async function showAndroidNotification(
   config: NotificationConfig,
 ): Promise<string> {
   // Clear any existing notifications for this app
-  await Notifications.dismissAllNotificationsAsync();
+  //await Notifications.dismissAllNotificationsAsync();
 
   // Get the selected sound from preferences
   const soundEnabled = isSoundEnabled();
@@ -246,7 +246,7 @@ async function showAndroidNotification(
 
   console.log(
     debugLog(
-      `[Notifications] Showing notification with sound: ${soundUri}, channel: ${channelId}, enabled: ${soundEnabled}`,
+      `[Notifications] Raising notification with sound: ${soundUri}, channel: ${channelId}`,
     ),
   );
 
@@ -260,7 +260,7 @@ async function showAndroidNotification(
         tag: "mindful-notifier-active", // Android-specific: tag ensures notifications replace each other
       },
       badge: config.badge,
-      sticky: true,
+      sticky: false,
       // Note: sound is controlled by the channel, not per-notification
     },
     trigger: {

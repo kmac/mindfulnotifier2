@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   debugButtons: {
-    flexDirection: "row",
+    flexDirection: "column",
     alignItems: "center",
   },
   debugTitle: {

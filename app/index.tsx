@@ -35,10 +35,10 @@ export default function Index() {
   );
 
   const handleSetEnabled = async (value: string) => {
-    const newEnabledState = value === "enabled";
+    const newIsEnabledState = value === "enabled";
 
     // Early return if state hasn't changed
-    if (newEnabledState === preferences.isEnabled) {
+    if (newIsEnabledState === preferences.isEnabled) {
       return;
     }
 
@@ -47,7 +47,7 @@ export default function Index() {
     try {
       const controller = Controller.getInstance();
 
-      if (newEnabledState) {
+      if (newIsEnabledState) {
         // Enable the service
         await controller.initialize();
         await controller.enable();
@@ -59,17 +59,14 @@ export default function Index() {
       }
 
       // Update Redux state
-      dispatch(setEnabled(newEnabledState));
+      dispatch(setEnabled(newIsEnabledState));
+
     } catch (error) {
       console.error("Failed to toggle alarm service:", error);
     } finally {
       setIsInitializing(false);
     }
   };
-
-  // const handleToggleEnabled = () => {
-  //   dispatch(setEnabled(!preferences.isEnabled));
-  // };
 
   const handleToggleSound = () => {
     dispatch(setSoundEnabled(!preferences.soundEnabled));
@@ -139,12 +136,6 @@ export default function Index() {
             ]}
             style={styles.segmentedButtons}
           />
-          {/*<IconButton
-            icon={preferences.isEnabled  ? "toggle-switch-variant" : "toggle-switch-variant-off"}
-            mode={preferences.isEnabled  ? "contained" : "outlined"}
-            size={30}
-            onPress={handleToggleEnabled}
-          />*/}
           <IconButton
             icon={preferences.soundEnabled ? "volume-high" : "volume-off"}
             mode={preferences.soundEnabled ? "contained" : "outlined"}
