@@ -250,10 +250,14 @@ async function showAndroidNotification(
   );
 
   const notificationId = await Notifications.scheduleNotificationAsync({
+    identifier: "mindful-notifier-active", // Fixed identifier to replace previous notifications
     content: {
       title: config.title,
       body: config.body,
-      data: config.data || {},
+      data: {
+        ...(config.data || {}),
+        tag: "mindful-notifier-active", // Android-specific: tag ensures notifications replace each other
+      },
       badge: config.badge,
       sticky: true,
       // Note: sound is controlled by the channel, not per-notification
