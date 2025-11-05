@@ -22,6 +22,7 @@ import {
   addNotificationResponseListener,
 } from "@/lib/notifications";
 import { store, persistor, RootState } from "@/store/store";
+import { setLastNotificationText } from "@/store/slices/remindersSlice";
 
 function AppContent() {
   const systemColorScheme = useColorScheme();
@@ -93,14 +94,16 @@ function AppContent() {
     const notificationListener = addNotificationReceivedListener(
       (notification) => {
         console.log("[App] Notification received in foreground:", notification);
-
-        // TODO play sound
       },
     );
 
-    // Listen for notification interactions (when user taps on notification)
+    // Update the last notification text when user taps notification
     const responseListener = addNotificationResponseListener((response) => {
       console.log("[App] Notification response received:", response);
+      const reminderText = response.notification.request.content.body;
+      if (reminderText) {
+        store.dispatch(setLastNotificationText(reminderText));
+      }
     });
 
     // Cleanup on unmount
