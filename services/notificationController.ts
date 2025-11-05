@@ -367,20 +367,16 @@ export class Controller {
    * This is the main method that creates and schedules notifications
    */
   async scheduleNextNotification() {
-    console.info("Controller scheduleNextNotification");
 
     if (Platform.OS === "android") {
       // On Android, schedule multiple notifications ahead of time
       return this.scheduleMultipleNotifications();
     }
 
+    console.info("Controller scheduleNextNotification");
     try {
-      // Get Redux state
       const state = store.getState();
       const { schedule, reminders } = state;
-
-      // Get a random reminder from Redux state
-      const reminderText = getRandomReminder(reminders.reminders);
 
       // Create a scheduler if we don't have one, or recreate if settings changed
       if (!this.scheduler) {
@@ -424,21 +420,20 @@ export class Controller {
       const nextFireDate = this.scheduler.getNextFireDate();
 
       console.info(`Scheduling notification for ${nextFireDate.date}`);
-      // console.info(debugLog(`Scheduling notification for ${nextFireDate.date}`));
 
       // Schedule the notification
       await this.scheduleNotificationAt(
         "mindfulnotifier",
         nextFireDate.date,
         "Mindful Notifier",
-        reminderText,
+        getRandomReminder(reminders.reminders),
         () => {
           // This callback is only used on web
           this.triggerNotification();
         },
       );
-
       console.info("Notification scheduled successfully");
+
     } catch (error) {
       console.error("Failed to schedule next notification:", error);
       const errorMessage =
@@ -454,12 +449,13 @@ export class Controller {
    * Schedule multiple notifications ahead of time (Android only)
    * This ensures notifications continue even when the app is backgrounded/killed
    * The scheduler respects quiet hours automatically
+   * @param count Number of notifications to schedule
+   * @param fromTime Optional time to start scheduling from (uses last scheduled notification time to avoid canceling)
    */
-  async scheduleMultipleNotifications(count: number = 50) {
-    console.info(debugLog(`Controller scheduleMultipleNotifications (count=${count})`));
+  async scheduleMultipleNotifications(count: number = 40, fromTime?: Date) {
+    console.info(debugLog(`Controller scheduleMultipleNotifications (count=${count}, fromTime=${fromTime})`));
 
     try {
-      // Get Redux state
       const state = store.getState();
       const { schedule, reminders } = state;
 
@@ -501,16 +497,18 @@ export class Controller {
         );
       }
 
-      // Cancel any existing scheduled notifications first
-      await this.androidNotificationService.cancelAll();
+      // Only cancel existing notifications if we're not continuing from a specific time
+      if (!fromTime) {
+        await this.androidNotificationService.cancelAll();
+      }
 
       // Schedule multiple notifications
-      let fromTime: Date | undefined = undefined;
+      let scheduleFromTime: Date | undefined = fromTime;
 
       for (let i = 0; i < count; i++) {
         // Get the next fire date from the scheduler
         // The scheduler automatically handles quiet hours
-        const nextFireDate = this.scheduler.getNextFireDate(fromTime);
+        const nextFireDate = this.scheduler.getNextFireDate(scheduleFromTime);
 
         // Get a random reminder for this notification
         const reminderText = getRandomReminder(reminders.reminders);
@@ -530,7 +528,7 @@ export class Controller {
         );
 
         // Use this scheduled time as the base for the next one
-        fromTime = nextFireDate.date;
+        scheduleFromTime = nextFireDate.date;
       }
 
       console.info(`Successfully scheduled ${count} notifications`);

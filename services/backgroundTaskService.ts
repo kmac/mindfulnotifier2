@@ -46,7 +46,8 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
     console.log(debugLog("[BackgroundTask] Running periodic background check"));
 
     // Check if we need to schedule notifications
-    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    const scheduled: Notifications.NotificationRequest[] =
+      await Notifications.getAllScheduledNotificationsAsync();
     const MIN_NOTIFICATION_BUFFER = 10; // Maintain at least 10 upcoming notifications
 
     console.log(
@@ -63,9 +64,40 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
       );
       const controller = Controller.getInstance();
 
-      // Schedule 20 notifications to replenish the buffer
-      // This will cancel existing ones and create a fresh batch
-      await controller.scheduleNextNotification();
+      // Find the last scheduled notification time to continue from there
+      let lastScheduledTime: Date | undefined = undefined;
+      if (scheduled.length > 0) {
+        // Get the latest trigger time from all scheduled notifications
+        const triggerTimes = scheduled
+          .map((notif) => {
+            const trigger = notif.trigger;
+            if (trigger && "date" in trigger && trigger.date) {
+              return trigger.date;
+            }
+            return null;
+          })
+          .filter((date): date is number | Date => date !== null)
+          .map((date) => (typeof date === "number" ? date : date.getTime()));
+
+        if (triggerTimes.length > 0) {
+          const latestTime = Math.max(...triggerTimes);
+          lastScheduledTime = new Date(latestTime);
+          console.log(
+            debugLog(
+              `[BackgroundTask] Last scheduled notification at ${lastScheduledTime}`,
+            ),
+          );
+        }
+      }
+
+      // Schedule next notifications to replenish the buffer
+      // Starting from the last scheduled time to avoid gaps or duplicates
+      const notificationsToSchedule =
+        MIN_NOTIFICATION_BUFFER - scheduled.length;
+      await controller.scheduleMultipleNotifications(
+        notificationsToSchedule,
+        lastScheduledTime,
+      );
 
       console.log(
         debugLog("[BackgroundTask] Notifications replenished successfully"),
@@ -109,7 +141,7 @@ export async function registerBackgroundTasks(): Promise<void> {
 
       // Task will run periodically and persist across app restarts
       await BackgroundTask.registerTaskAsync(BACKGROUND_CHECK_TASK, {
-        minimumInterval: 15, // 15 minutes (minimum allowed by Android)
+        minimumInterval: 45, // 15 minutes is minimum allowed by Android
       });
 
       console.log(
