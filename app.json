@@ -64,7 +64,8 @@
           }
         }
       ],
-      "expo-background-task"
+      "expo-background-task",
+      "./plugins/withRawResourceKeep.js"
     ],
     "experiments": {
       "typedRoutes": true,
