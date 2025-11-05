@@ -10,6 +10,7 @@ export interface PreferencesState {
   colorScheme: ColorScheme;
   debugInfoEnabled: boolean;
   debugInfo: string[];
+  lastBufferReplenishTime: number | null; // timestamp
 }
 
 const initialState: PreferencesState = {
@@ -20,6 +21,7 @@ const initialState: PreferencesState = {
   colorScheme: 'auto',
   debugInfoEnabled: false,
   debugInfo: [],
+  lastBufferReplenishTime: null,
 };
 
 const preferencesSlice = createSlice({
@@ -55,6 +57,9 @@ const preferencesSlice = createSlice({
     clearDebugInfo: (state) => {
       state.debugInfo = [];
     },
+    setLastBufferReplenishTime: (state, action: PayloadAction<number>) => {
+      state.lastBufferReplenishTime = action.payload;
+    },
     resetPreferences: () => initialState,
   },
 });
@@ -68,6 +73,7 @@ export const {
   setDebugInfoEnabled,
   addDebugInfo,
   clearDebugInfo,
+  setLastBufferReplenishTime,
   resetPreferences,
 } = preferencesSlice.actions;
 

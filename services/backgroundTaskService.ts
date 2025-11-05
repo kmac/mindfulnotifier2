@@ -5,6 +5,8 @@ import { Platform } from "react-native";
 import { getSelectedSoundUri, isSoundEnabled } from "@/lib/sound";
 import { debugLog } from "@/utils/util";
 import { Controller } from "./notificationController";
+import { store } from "@/store/store";
+import { setLastBufferReplenishTime } from "@/store/slices/preferencesSlice";
 
 // Task name constants
 // export const NOTIFICATION_TASK_NAME = "SCHEDULE_NOTIFICATION_TASK";
@@ -67,6 +69,9 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
       console.log(
         debugLog("[BackgroundTask] Notifications replenished successfully"),
       );
+
+      // Update last buffer replenish time
+      store.dispatch(setLastBufferReplenishTime(Date.now()));
     } else {
       console.log(
         debugLog(

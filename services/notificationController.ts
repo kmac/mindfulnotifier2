@@ -16,7 +16,7 @@ import type { AlarmService } from "./alarmService";
 import { TimeOfDay } from "@/lib/timedate";
 import { store } from "@/store/store";
 import { setLastNotificationText } from "@/store/slices/remindersSlice";
-import { addDebugInfo } from "@/store/slices/preferencesSlice";
+import { addDebugInfo, setLastBufferReplenishTime } from "@/store/slices/preferencesSlice";
 import { debugLog } from "@/utils/util";
 
 /**
@@ -455,7 +455,7 @@ export class Controller {
    * This ensures notifications continue even when the app is backgrounded/killed
    * The scheduler respects quiet hours automatically
    */
-  async scheduleMultipleNotifications(count: number = 20) {
+  async scheduleMultipleNotifications(count: number = 50) {
     console.info(debugLog(`Controller scheduleMultipleNotifications (count=${count})`));
 
     try {
@@ -515,7 +515,7 @@ export class Controller {
         // Get a random reminder for this notification
         const reminderText = getRandomReminder(reminders.reminders);
 
-        console.log(
+        false && console.log(
           debugLog(
             `Scheduling notification ${i + 1}/${count} for ${nextFireDate.date}${nextFireDate.postQuiet ? " (after quiet hours)" : ""}`,
           ),
@@ -534,6 +534,9 @@ export class Controller {
       }
 
       console.info(`Successfully scheduled ${count} notifications`);
+
+      // Update last buffer replenish time
+      store.dispatch(setLastBufferReplenishTime(Date.now()));
     } catch (error) {
       console.error("Failed to schedule multiple notifications:", error);
       const errorMessage =

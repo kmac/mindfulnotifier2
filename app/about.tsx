@@ -3,26 +3,48 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import { clearDebugInfo } from "@/store/slices/preferencesSlice";
 import { Controller } from "@/services/notificationController";
+import { getBackgroundTaskStatus, getScheduledNotifications } from "@/services/backgroundTaskService";
 import { useState, useEffect } from "react";
+import { Platform } from "react-native";
 
 export default function About() {
   const dispatch = useAppDispatch();
   const preferences = useAppSelector((state) => state.preferences);
   const [nextNotificationTime, setNextNotificationTime] = useState<Date | null>(null);
+  const [scheduledCount, setScheduledCount] = useState<number>(0);
+  const [backgroundTaskStatus, setBackgroundTaskStatus] = useState<string>("");
 
   useEffect(() => {
-    // Update the next notification time
-    const updateNextTime = () => {
+    // Update the next notification time and monitoring data
+    const updateData = async () => {
       const controller = Controller.getInstance();
       const nextTime = controller.getNextNotificationTime();
       setNextNotificationTime(nextTime);
+
+      // Update scheduled notification count (Android only)
+      if (Platform.OS === "android") {
+        try {
+          const scheduled = await getScheduledNotifications();
+          setScheduledCount(scheduled.length);
+        } catch (error) {
+          console.error("Failed to get scheduled notifications:", error);
+        }
+
+        // Update background task status
+        try {
+          const status = await getBackgroundTaskStatus();
+          setBackgroundTaskStatus(status);
+        } catch (error) {
+          console.error("Failed to get background task status:", error);
+        }
+      }
     };
 
     // Update immediately
-    updateNextTime();
+    updateData();
 
     // Update every 10 seconds
-    const interval = setInterval(updateNextTime, 10000);
+    const interval = setInterval(updateData, 10000);
 
     return () => clearInterval(interval);
   }, []);
@@ -53,6 +75,35 @@ export default function About() {
     });
 
     return `${timeStr} (${timeUntil})`;
+  };
+
+  const formatLastReplenishTime = (timestamp: number | null): string => {
+    if (!timestamp) return "Never";
+
+    const now = Date.now();
+    const diffMs = now - timestamp;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    let timeAgo = "";
+    if (diffDays > 0) {
+      timeAgo = `${diffDays}d ${diffHours % 24}h ago`;
+    } else if (diffHours > 0) {
+      timeAgo = `${diffHours}h ${diffMins % 60}m ago`;
+    } else if (diffMins > 0) {
+      timeAgo = `${diffMins}m ago`;
+    } else {
+      timeAgo = "just now";
+    }
+
+    const date = new Date(timestamp);
+    const timeStr = date.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    return `${timeStr} (${timeAgo})`;
   };
 
   const handleClearDebugInfo = () => {
@@ -103,6 +154,47 @@ export default function About() {
             />
           )}
         </View>
+
+        {/* Monitoring Dashboard Section (Android only) */}
+        {Platform.OS === "android" && preferences.isEnabled && (
+          <>
+            <Divider style={styles.divider} />
+            <View style={styles.section}>
+              <Text variant="titleMedium" style={styles.sectionTitle}>
+                Monitoring Dashboard
+              </Text>
+
+              <List.Item
+                title="Scheduled Notifications"
+                description={`${scheduledCount} notifications in buffer`}
+                left={(props) => <List.Icon {...props} icon="calendar-clock" />}
+              />
+
+              <List.Item
+                title="Background Task Status"
+                description={backgroundTaskStatus || "Loading..."}
+                left={(props) => (
+                  <List.Icon
+                    {...props}
+                    icon={
+                      backgroundTaskStatus === "Available"
+                        ? "check-circle"
+                        : backgroundTaskStatus === "Restricted"
+                        ? "alert-circle"
+                        : "help-circle"
+                    }
+                  />
+                )}
+              />
+
+              <List.Item
+                title="Last Buffer Replenishment"
+                description={formatLastReplenishTime(preferences.lastBufferReplenishTime)}
+                left={(props) => <List.Icon {...props} icon="refresh" />}
+              />
+            </View>
+          </>
+        )}
 
         {preferences.debugInfoEnabled && (
           <View>
