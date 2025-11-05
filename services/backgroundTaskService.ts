@@ -7,7 +7,7 @@ import { getNotificationChannelId } from "@/lib/notifications";
 import { debugLog } from "@/utils/util";
 import { Controller } from "./notificationController";
 import { store } from "@/store/store";
-import { setLastBufferReplenishTime } from "@/store/slices/preferencesSlice";
+import { setLastBufferReplenishTime, addBackgroundTaskRun } from "@/store/slices/preferencesSlice";
 
 // Task name constants
 // export const NOTIFICATION_TASK_NAME = "SCHEDULE_NOTIFICATION_TASK";
@@ -43,7 +43,11 @@ export const BACKGROUND_CHECK_TASK = "BACKGROUND_CHECK_TASK";
  */
 TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
   try {
+    const runTimestamp = Date.now();
     console.log(debugLog("[BackgroundTask] Running periodic background check"));
+
+    // Track this background task run
+    store.dispatch(addBackgroundTaskRun(runTimestamp));
 
     // Check if we need to schedule notifications
     const scheduled: Notifications.NotificationRequest[] =

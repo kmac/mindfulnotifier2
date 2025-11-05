@@ -11,6 +11,7 @@ export interface PreferencesState {
   debugInfoEnabled: boolean;
   debugInfo: string[];
   lastBufferReplenishTime: number | null; // timestamp
+  backgroundTaskRunHistory: number[]; // Array of timestamps when background task ran
 }
 
 const initialState: PreferencesState = {
@@ -22,6 +23,7 @@ const initialState: PreferencesState = {
   debugInfoEnabled: false,
   debugInfo: [],
   lastBufferReplenishTime: null,
+  backgroundTaskRunHistory: [],
 };
 
 const preferencesSlice = createSlice({
@@ -60,6 +62,14 @@ const preferencesSlice = createSlice({
     setLastBufferReplenishTime: (state, action: PayloadAction<number>) => {
       state.lastBufferReplenishTime = action.payload;
     },
+    addBackgroundTaskRun: (state, action: PayloadAction<number>) => {
+      // Keep only the last 10 run timestamps
+      const MAX_HISTORY = 10;
+      state.backgroundTaskRunHistory.push(action.payload);
+      if (state.backgroundTaskRunHistory.length > MAX_HISTORY) {
+        state.backgroundTaskRunHistory = state.backgroundTaskRunHistory.slice(-MAX_HISTORY);
+      }
+    },
     resetPreferences: () => initialState,
   },
 });
@@ -74,6 +84,7 @@ export const {
   addDebugInfo,
   clearDebugInfo,
   setLastBufferReplenishTime,
+  addBackgroundTaskRun,
   resetPreferences,
 } = preferencesSlice.actions;
 

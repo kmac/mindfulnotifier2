@@ -192,6 +192,14 @@ export default function About() {
                 description={formatLastReplenishTime(preferences.lastBufferReplenishTime)}
                 left={(props) => <List.Icon {...props} icon="refresh" />}
               />
+
+              {preferences.backgroundTaskRunHistory.length > 0 && (
+                <List.Item
+                  title="Background Task Run History"
+                  description={`Last ${preferences.backgroundTaskRunHistory.length} runs`}
+                  left={(props) => <List.Icon {...props} icon="history" />}
+                />
+              )}
             </View>
           </>
         )}
@@ -212,16 +220,53 @@ export default function About() {
                   Clear
                 </Button>
               </View>
-              {Array.isArray(preferences.debugInfo) && preferences.debugInfo.length > 0 ? (
-                preferences.debugInfo.map((info, index) => (
-                  <Text
-                    key={`debug-${index}`}
-                    variant="bodySmall"
-                    style={styles.debugText}
-                  >
-                    {String(info)}
+
+              {/* Background Task Run History */}
+              {Platform.OS === "android" && preferences.backgroundTaskRunHistory.length > 0 && (
+                <View style={styles.debugSubsection}>
+                  <Text variant="titleSmall" style={styles.debugSubtitle}>
+                    Background Task Run History (Last {preferences.backgroundTaskRunHistory.length})
                   </Text>
-                ))
+                  {preferences.backgroundTaskRunHistory
+                    .slice()
+                    .reverse()
+                    .map((timestamp, index) => {
+                      const date = new Date(timestamp);
+                      const timeStr = date.toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                      });
+                      const dateStr = date.toLocaleDateString();
+                      return (
+                        <Text
+                          key={`run-${timestamp}-${index}`}
+                          variant="bodySmall"
+                          style={styles.debugText}
+                        >
+                          {index + 1}. {dateStr} {timeStr} ({formatLastReplenishTime(timestamp)})
+                        </Text>
+                      );
+                    })}
+                </View>
+              )}
+
+              {/* Debug Info Messages */}
+              {Array.isArray(preferences.debugInfo) && preferences.debugInfo.length > 0 ? (
+                <View style={styles.debugSubsection}>
+                  <Text variant="titleSmall" style={styles.debugSubtitle}>
+                    Debug Messages
+                  </Text>
+                  {preferences.debugInfo.map((info, index) => (
+                    <Text
+                      key={`debug-${index}`}
+                      variant="bodySmall"
+                      style={styles.debugText}
+                    >
+                      {String(info)}
+                    </Text>
+                  ))}
+                </View>
               ) : (
                 <Text variant="bodySmall" style={styles.debugText}>
                   No debug information available
@@ -274,6 +319,14 @@ const styles = StyleSheet.create({
   },
   debugTitle: {
     fontWeight: "600",
+  },
+  debugSubsection: {
+    marginBottom: 16,
+  },
+  debugSubtitle: {
+    fontWeight: "600",
+    marginBottom: 8,
+    opacity: 0.8,
   },
   debugText: {
     fontFamily: "monospace",
