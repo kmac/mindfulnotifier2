@@ -25,6 +25,49 @@ import {
   isValidRandomInterval,
 } from "@/constants/scheduleConstants";
 
+// Helper component for numeric input with increment/decrement buttons
+const NumericInputWithButtons = ({
+  label,
+  value,
+  onChangeText,
+  onBlur,
+  onIncrement,
+  onDecrement,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  onBlur?: () => void;
+  onIncrement: () => void;
+  onDecrement: () => void;
+}) => (
+  <View style={styles.numericInputContainer}>
+    <TextInput
+      label={label}
+      value={value}
+      onChangeText={onChangeText}
+      onBlur={onBlur}
+      keyboardType="numeric"
+      mode="outlined"
+      style={styles.numericInput}
+    />
+    <View style={styles.buttonGroup}>
+      <IconButton
+        icon="plus"
+        size={16}
+        onPress={onIncrement}
+        style={styles.adjustButton}
+      />
+      <IconButton
+        icon="minus"
+        size={16}
+        onPress={onDecrement}
+        style={styles.adjustButton}
+      />
+    </View>
+  </View>
+);
+
 export default function Schedule() {
   const dispatch = useAppDispatch();
   const scheduleState = useAppSelector((state) => state.schedule);
@@ -251,49 +294,6 @@ export default function Schedule() {
     const num = parseInt(val, 10);
     return !isNaN(num) ? num.toString().padStart(2, "0") : val;
   };
-
-  // Helper component for numeric input with increment/decrement buttons
-  const NumericInputWithButtons = ({
-    label,
-    value,
-    onChangeText,
-    onBlur,
-    onIncrement,
-    onDecrement,
-  }: {
-    label: string;
-    value: string;
-    onChangeText: (text: string) => void;
-    onBlur?: () => void;
-    onIncrement: () => void;
-    onDecrement: () => void;
-  }) => (
-    <View style={styles.numericInputContainer}>
-      <TextInput
-        label={label}
-        value={value}
-        onChangeText={onChangeText}
-        onBlur={onBlur}
-        keyboardType="numeric"
-        mode="outlined"
-        style={styles.numericInput}
-      />
-      <View style={styles.buttonGroup}>
-        <IconButton
-          icon="plus"
-          size={16}
-          onPress={onIncrement}
-          style={styles.adjustButton}
-        />
-        <IconButton
-          icon="minus"
-          size={16}
-          onPress={onDecrement}
-          style={styles.adjustButton}
-        />
-      </View>
-    </View>
-  );
 
   return (
     <ScrollView style={styles.scrollView}>
