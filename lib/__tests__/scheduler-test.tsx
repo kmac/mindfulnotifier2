@@ -1,10 +1,6 @@
 import {
-  Duration,
   TimeOfDay,
-  addDuration,
-  subtractDuration,
 } from "@/lib/timedate";
-import { Controller } from "@/services/notificationController";
 import { QuietHours } from "@/lib/quietHours";
 import * as scheduler from "@/lib/scheduler";
 
@@ -23,8 +19,6 @@ test("periodic", () => {
     quietHours,
     PeriodicDurationHours,
     PeriodicDurationMins,
-    () => {}, // onTrigger callback
-    () => {}, // onInitialScheduleComplete callback
   );
 
   let nextFire : scheduler.NextFireDate = periodic.getNextFireDate(testDate);
@@ -44,8 +38,6 @@ test("periodic, in quiet hours", () => {
     quietHours,
     PeriodicDurationHours,
     PeriodicDurationMins,
-    () => {}, // onTrigger callback
-    () => {}, // onInitialScheduleComplete callback
   );
 
   let nextFire : scheduler.NextFireDate= periodic.getNextFireDate(testDate);
@@ -65,8 +57,6 @@ test("random", () => {
     quietHours,
     RandomMinMinutes,
     RandomMaxMinutes,
-    () => {}, // onTrigger callback
-    () => {}, // onInitialScheduleComplete callback
   );
 
   for (let i = 0; i < 10; i++) {
@@ -106,8 +96,6 @@ test("periodic: full day schedule with quiet hours (9 PM - 9 AM)", () => {
     quietHours,
     0, // 0 hours
     30, // 30 minutes
-    () => {},
-    () => {},
   );
 
   let currentTime = startDate;
@@ -173,8 +161,6 @@ test("random: full day schedule with quiet hours (9 PM - 9 AM)", () => {
     quietHours,
     30, // min minutes
     60, // max minutes
-    () => {},
-    () => {},
   );
 
   let currentTime = startDate;
@@ -244,8 +230,6 @@ test("periodic: schedule across midnight quiet hours", () => {
     quietHours,
     1, // 1 hour
     0, // 0 minutes
-    () => {},
-    () => {},
   );
 
   let currentTime = startDate;
@@ -315,8 +299,6 @@ test("random: schedule 40 notifications simulating app buffer", () => {
     quietHours,
     30,
     60,
-    () => {},
-    () => {},
   );
 
   let currentTime = startDate;

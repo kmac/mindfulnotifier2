@@ -18,8 +18,6 @@ function getRandomInt(max: number) {
 abstract class DelegatedScheduler {
   readonly scheduleType: ScheduleType;
   readonly quietHours: QuietHours;
-  readonly onTrigger: () => void | Promise<void>;
-  readonly onInitialScheduleComplete: () => void | Promise<void>;
 
   scheduled: boolean = false;
   _nextDate?: NextFireDate;
@@ -35,13 +33,9 @@ abstract class DelegatedScheduler {
   constructor(
     scheduleType: ScheduleType,
     quietHours: QuietHours,
-    onTrigger: () => void | Promise<void>,
-    onInitialScheduleComplete: () => void | Promise<void>,
   ) {
     this.scheduleType = scheduleType;
     this.quietHours = quietHours;
-    this.onTrigger = onTrigger;
-    this.onInitialScheduleComplete = onInitialScheduleComplete;
   }
 
   async cancel() {
@@ -77,10 +71,6 @@ abstract class DelegatedScheduler {
     }
     return { date: nextFire, postQuiet: postQuiet } as NextFireDate;
   }
-
-  initialScheduleComplete() {
-    this.onInitialScheduleComplete();
-  }
 }
 
 export class PeriodicScheduler extends DelegatedScheduler {
@@ -91,10 +81,8 @@ export class PeriodicScheduler extends DelegatedScheduler {
     quietHours: QuietHours,
     durationHours: number,
     durationMinutes: number,
-    onTrigger: () => void | Promise<void>,
-    onInitialScheduleComplete: () => void | Promise<void>,
   ) {
-    super(ScheduleType.periodic, quietHours, onTrigger, onInitialScheduleComplete);
+    super(ScheduleType.periodic, quietHours);
     this.durationHours = durationHours;
     this.durationMinutes = durationMinutes;
   }
@@ -165,17 +153,10 @@ export class RandomScheduler extends DelegatedScheduler {
     quietHours: QuietHours,
     minMinutes: number,
     maxMinutes: number,
-    onTrigger: () => void | Promise<void>,
-    onInitialScheduleComplete: () => void | Promise<void>,
   ) {
-    super(ScheduleType.random, quietHours, onTrigger, onInitialScheduleComplete);
+    super(ScheduleType.random, quietHours);
     this.minMinutes = minMinutes;
     this.maxMinutes = maxMinutes;
-  }
-
-  initialScheduleComplete() {
-    this.onInitialScheduleComplete();
-    this.scheduled = true;
   }
 
   getNextFireDateImpl(fromTime: Date, adjustFromQuiet?: boolean): Date {

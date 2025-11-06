@@ -89,6 +89,7 @@ class AndroidNotificationService {
     await this.cancel(id);
 
     // Schedule notification
+    // ERROR here: the id is never used:
     const notificationId = await scheduleNotification(title, body, date);
     this.scheduledNotifications.set(id, notificationId);
   }
@@ -398,16 +399,12 @@ export class Controller {
             quietHours,
             schedule.periodicConfig.durationHours,
             schedule.periodicConfig.durationMinutes,
-            () => this.triggerNotification(),
-            () => this.initialScheduleComplete(),
           );
         } else {
           this.scheduler = new RandomScheduler(
             quietHours,
             schedule.randomConfig.minMinutes,
             schedule.randomConfig.maxMinutes,
-            () => this.triggerNotification(),
-            () => this.initialScheduleComplete(),
           );
         }
 
@@ -479,16 +476,12 @@ export class Controller {
             quietHours,
             schedule.periodicConfig.durationHours,
             schedule.periodicConfig.durationMinutes,
-            () => this.triggerNotification(),
-            () => this.initialScheduleComplete(),
           );
         } else {
           this.scheduler = new RandomScheduler(
             quietHours,
             schedule.randomConfig.minMinutes,
             schedule.randomConfig.maxMinutes,
-            () => this.triggerNotification(),
-            () => this.initialScheduleComplete(),
           );
         }
 

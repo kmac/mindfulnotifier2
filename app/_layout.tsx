@@ -1,5 +1,4 @@
 import { Stack, useRouter } from "expo-router";
-import { Image, Text, View, StyleSheet } from "react-native";
 import {
   PaperProvider,
   MD3LightTheme,

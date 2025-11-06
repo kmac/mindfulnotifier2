@@ -419,9 +419,9 @@ export function addNotificationResponseListener(
  * Useful for handling notification taps when app starts
  * @returns Last notification response or null
  */
-export async function getLastNotificationResponse(): Promise<Notifications.NotificationResponse | null> {
-  return await Notifications.getLastNotificationResponseAsync();
-}
+// export async function getLastNotificationResponse(): Promise<Notifications.NotificationResponse | null> {
+//   return await Notifications.getLastNotificationResponseAsync();
+// }
 
 /**
  * Recreate all notification channels
