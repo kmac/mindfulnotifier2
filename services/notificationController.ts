@@ -3,8 +3,8 @@ import { getRandomReminder } from "@/lib/reminders";
 import {
   scheduleNotification,
   cancelAllNotifications,
-} from "./backgroundTaskService";
-import { showLocalNotification } from "@/lib/notifications";
+  showLocalNotification,
+} from "@/lib/notifications";
 import { QuietHours } from "@/lib/quietHours";
 import {
   RandomScheduler,

@@ -359,24 +359,116 @@ export async function getDevicePushToken(): Promise<string | null> {
 }
 
 /**
+ * Schedule a single notification using Expo's notification scheduler
+ * This is the core function that actually schedules notifications
+ */
+export async function scheduleNotification(
+  title: string,
+  body: string,
+  trigger: Date | number,
+): Promise<string> {
+  try {
+    let triggerLog: string;
+    let triggerInput: Notifications.NotificationTriggerInput;
+    if (typeof trigger === "number") {
+      triggerLog = `${trigger} seconds`;
+      triggerInput = {
+        seconds: trigger,
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      };
+    } else {
+      // Convert Date to seconds from now
+      const delaySeconds = Math.max(
+        1,
+        Math.floor((trigger.getTime() - Date.now()) / 1000),
+      );
+      triggerLog = `${trigger}`;
+      triggerInput = {
+        seconds: delaySeconds,
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      };
+    }
+
+    // Get the selected sound from preferences
+    const soundEnabled = isSoundEnabled();
+    const soundUri = soundEnabled ? getSelectedSoundUri() : null;
+
+    // Get the appropriate notification channel for this sound
+    const channelId = getNotificationChannelId(soundUri);
+
+    if (soundEnabled) {
+      console.log(
+        debugLog(
+          `[Notifications] Scheduling notification with sound: ${soundUri}, channel: ${channelId}, trigger: ${triggerLog}`,
+        ),
+      );
+    } else {
+      console.log(
+        debugLog(
+          `[Notifications] Scheduling notification no sound, channel: ${channelId}, trigger: ${triggerLog}`,
+        ),
+      );
+    }
+
+    const notificationId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: title,
+        body: body,
+        vibrate: [0, 250, 250, 250],
+        priority: Notifications.AndroidNotificationPriority.HIGH,
+        // Note: sound is controlled by the channel, not per-notification
+        // On Android 8.0+, channel settings take precedence
+        sticky: false,
+        autoDismiss: false,
+        // Android-specific: tag ensures notifications replace each other in the notification tray
+        data: {
+          tag: "mindful-notifier-active",
+        },
+      },
+      trigger: {
+        ...triggerInput,
+        channelId: channelId, // Specify the channel ID for Android
+      },
+    });
+
+    console.log(
+      `[Notifications] Notification scheduled with ID: ${notificationId}`,
+    );
+    return notificationId;
+  } catch (error) {
+    console.error("[Notifications] Failed to schedule notification:", error);
+    debugLog("[Notifications] Failed to schedule notification:", error);
+    throw error;
+  }
+}
+
+/**
  * Cancel a scheduled notification by ID
  * @param notificationId Notification identifier
  */
 export async function cancelNotification(
   notificationId: string,
 ): Promise<void> {
-  if (Platform.OS === "android") {
+  try {
     await Notifications.cancelScheduledNotificationAsync(notificationId);
+    console.log(`[Notifications] Cancelled notification: ${notificationId}`);
+  } catch (error) {
+    console.error("[Notifications] Failed to cancel notification:", error);
   }
-  // Web notifications are not persistent, so no need to cancel
 }
 
 /**
  * Cancel all scheduled notifications
  */
 export async function cancelAllNotifications(): Promise<void> {
-  if (Platform.OS === "android") {
+  try {
     await Notifications.cancelAllScheduledNotificationsAsync();
+    console.log("[Notifications] Cancelled all notifications");
+  } catch (error) {
+    console.error(
+      "[Notifications] Failed to cancel all notifications:",
+      error,
+    );
   }
 }
 
@@ -387,10 +479,20 @@ export async function cancelAllNotifications(): Promise<void> {
 export async function getScheduledNotifications(): Promise<
   Notifications.NotificationRequest[]
 > {
-  if (Platform.OS === "android") {
-    return await Notifications.getAllScheduledNotificationsAsync();
+  try {
+    const notifications =
+      await Notifications.getAllScheduledNotificationsAsync();
+    console.log(
+      `[Notifications] Found ${notifications.length} scheduled notifications`,
+    );
+    return notifications;
+  } catch (error) {
+    console.error(
+      "[Notifications] Failed to get scheduled notifications:",
+      error,
+    );
+    return [];
   }
-  return [];
 }
 
 /**

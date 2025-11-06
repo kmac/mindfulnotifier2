@@ -56,9 +56,8 @@ This is an Expo react native TypeScript project using redux for storage, and tes
 This project is a new cross-platform (web/android/ios) application using the react-native expo framework.
 
 The app is called "Mindful Notifier" and its intent is to provide a background notification service which schedules
-reminder notifications (either peridocial or random) which remind the user to be mindful. There is an associated bell
-that is run when the reminder is triggered.  The notifications are by default local notifications, but I want to offer
-an option to use Google's cloud messaging.
+reminder notifications (either periodical or random) which remind the user to be mindful. There is an associated bell
+that is run when the reminder is triggered.  The notifications are local notifications.
 
 Note: the "ios" funcationaly is not yet a focus.  Ignore it for the most part; for now we are focussing on android and
 web functionality.
