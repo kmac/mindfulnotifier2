@@ -43,6 +43,7 @@
     "expo-document-picker": "~14.0.7",
     "expo-file-system": "~19.0.17",
     "expo-font": "^14.0.9",
+    "expo-intent-launcher": "~13.0.7",
     "expo-linking": "^8.0.8",
     "expo-notifications": "^0.32.12",
     "expo-router": "^6.0.14",

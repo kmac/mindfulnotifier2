@@ -130,7 +130,7 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
 });
 
 /**
- * Register background fetch tasks
+ * Register background tasks
  * This should be called when the app starts
  */
 export async function registerBackgroundTasks(): Promise<void> {
@@ -154,7 +154,8 @@ export async function registerBackgroundTasks(): Promise<void> {
 
       console.log(
         debugLog(
-          `[BackgroundTask] Background task ${BACKGROUND_CHECK_TASK} registered successfully (${BACKGROUND_TASK_INTERVAL_MINUTES}min)`,
+          `[BackgroundTask] Background task ${BACKGROUND_CHECK_TASK} ` +
+            `registered successfully (${BACKGROUND_TASK_INTERVAL_MINUTES}min)`,
         ),
       );
     } else {
@@ -225,4 +226,3 @@ export async function getBackgroundTaskStatus(): Promise<string> {
     return "Error";
   }
 }
-

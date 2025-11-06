@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View, Platform, Alert } from "react-native";
 import {
   Button,
   Surface,
@@ -20,6 +20,7 @@ import {
 } from "@/store/slices/preferencesSlice";
 import * as Notifications from "expo-notifications";
 import { isPermissionsGranted, requestPermissions } from "@/lib/notifications";
+import { openBatteryOptimizationSettings } from "@/lib/batteryOptimization";
 
 export default function Preferences() {
   const dispatch = useAppDispatch();
@@ -58,6 +59,26 @@ export default function Preferences() {
           dispatch(setNotificationsGranted(true));
         }
       }
+    }
+  }
+
+  async function handleBatteryOptimization() {
+    if (Platform.OS !== 'android') {
+      Alert.alert(
+        'Not Available',
+        'Battery optimization settings are only available on Android devices.'
+      );
+      return;
+    }
+
+    try {
+      await openBatteryOptimizationSettings();
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        'Failed to open battery optimization settings. Please check your device settings manually.'
+      );
+      console.error('Failed to open battery optimization settings:', error);
     }
   }
 
@@ -179,9 +200,22 @@ export default function Preferences() {
             )}
           />
           {preferences.notificationsGranted || (
-            <Button onPress={handleNotificationPermission}>
+            <Button mode="contained" onPress={handleNotificationPermission} style={styles.actionButton}>
               Request Notification Permissions
             </Button>
+          )}
+
+          {Platform.OS === 'android' && (
+            <>
+              <List.Item
+                title="Battery Optimization"
+                description="Disable battery optimization to ensure background notifications work reliably"
+                left={(props) => <List.Icon {...props} icon="battery-heart" />}
+              />
+              <Button mode="outlined" onPress={handleBatteryOptimization} style={styles.actionButton}>
+                Open Battery Settings
+              </Button>
+            </>
           )}
 
           <List.Item
@@ -257,5 +291,9 @@ const styles = StyleSheet.create({
   },
   segmentedButtons: {
     marginTop: 8,
+  },
+  actionButton: {
+    marginVertical: 8,
+    marginHorizontal: 16,
   },
 });

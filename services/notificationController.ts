@@ -4,6 +4,8 @@ import {
   scheduleNotification,
   cancelAllNotifications,
   showLocalNotification,
+  requestPermissions,
+  isPermissionsGranted,
 } from "@/lib/notifications";
 import { QuietHours } from "@/lib/quietHours";
 import {
@@ -16,7 +18,11 @@ import type { AlarmService } from "./alarmService";
 import { TimeOfDay } from "@/lib/timedate";
 import { store } from "@/store/store";
 import { setLastNotificationText } from "@/store/slices/remindersSlice";
-import { addDebugInfo, setLastBufferReplenishTime } from "@/store/slices/preferencesSlice";
+import {
+  addDebugInfo,
+  setLastBufferReplenishTime,
+  setNotificationsGranted,
+} from "@/store/slices/preferencesSlice";
 import { debugLog } from "@/utils/util";
 
 /**
@@ -71,11 +77,7 @@ class WebNotificationService {
  * Schedules actual notifications instead of callbacks
  */
 class AndroidNotificationService {
-  async scheduleAt(
-    date: Date,
-    title: string,
-    body: string,
-  ): Promise<string> {
+  async scheduleAt(date: Date, title: string, body: string): Promise<string> {
     const delayMS = date.getTime() - Date.now();
 
     if (delayMS <= 0) {
@@ -136,11 +138,28 @@ export class Controller {
     try {
       this.alarmService = getAlarmService();
       await this.alarmService.initialize();
-      console.info("Controller initialized successfully");
+
+      // Check and update permission status on initialization
+      const notifPermissions = await this.updatePermissionStatus();
+      console.info(
+        debugLog(
+          `Controller initialized successfully, has notification permissions: ${notifPermissions}`,
+        ),
+      );
     } catch (error) {
       console.error("Failed to initialize controller:", error);
+      debugLog("Failed to initialize controller:", error);
       throw error;
     }
+  }
+
+  /**
+   * Check notification permission status and update Redux store
+   */
+  async updatePermissionStatus(): Promise<boolean> {
+    const hasPermissions = await isPermissionsGranted();
+    store.dispatch(setNotificationsGranted(hasPermissions));
+    return hasPermissions;
   }
 
   /**
@@ -150,6 +169,29 @@ export class Controller {
     console.info(`Controller enable, restart=${restart}`);
 
     try {
+      // Check notification permissions before enabling
+      const hasPermissions = await isPermissionsGranted();
+
+      if (!hasPermissions) {
+        console.info("Notification permissions not granted, requesting...");
+        const granted = await requestPermissions();
+
+        if (!granted) {
+          // Update Redux state to reflect denied permissions
+          store.dispatch(setNotificationsGranted(false));
+          const error = new Error(
+            "Notification permissions are required to enable notifications",
+          );
+          console.error(error.message);
+          throw error;
+        }
+
+        console.info("Notification permissions granted");
+      }
+
+      // Update Redux state to reflect granted permissions
+      store.dispatch(setNotificationsGranted(true));
+
       if (this.alarmService) {
         await this.alarmService.enable();
       }
@@ -346,7 +388,6 @@ export class Controller {
    * This is the main method that creates and schedules notifications
    */
   async scheduleNextNotification() {
-
     if (Platform.OS === "android") {
       // On Android, schedule multiple notifications ahead of time
       return this.scheduleMultipleNotifications();
@@ -408,7 +449,6 @@ export class Controller {
         },
       );
       console.info("Notification scheduled successfully");
-
     } catch (error) {
       console.error("Failed to schedule next notification:", error);
       const errorMessage =
@@ -428,7 +468,11 @@ export class Controller {
    * @param fromTime Optional time to start scheduling from (uses last scheduled notification time to avoid canceling)
    */
   async scheduleMultipleNotifications(count: number = 40, fromTime?: Date) {
-    console.info(debugLog(`Controller scheduleMultipleNotifications (count=${count}, fromTime=${fromTime})`));
+    console.info(
+      debugLog(
+        `Controller scheduleMultipleNotifications (count=${count}, fromTime=${fromTime})`,
+      ),
+    );
 
     try {
       const state = store.getState();
@@ -484,11 +528,12 @@ export class Controller {
         // Get a random reminder for this notification
         const reminderText = getRandomReminder(reminders.reminders);
 
-        false && console.log(
-          debugLog(
-            `Scheduling notification ${i + 1}/${count} for ${nextFireDate.date}${nextFireDate.postQuiet ? " (after quiet hours)" : ""}`,
-          ),
-        );
+        false &&
+          console.log(
+            debugLog(
+              `Scheduling notification ${i + 1}/${count} for ${nextFireDate.date}${nextFireDate.postQuiet ? " (after quiet hours)" : ""}`,
+            ),
+          );
 
         // Schedule the notification
         await this.androidNotificationService.scheduleAt(
