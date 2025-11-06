@@ -7,7 +7,14 @@ import { getNotificationChannelId } from "@/lib/notifications";
 import { debugLog } from "@/utils/util";
 import { Controller } from "./notificationController";
 import { store } from "@/store/store";
-import { setLastBufferReplenishTime, addBackgroundTaskRun } from "@/store/slices/preferencesSlice";
+import {
+  setLastBufferReplenishTime,
+  addBackgroundTaskRun,
+} from "@/store/slices/preferencesSlice";
+import {
+  BACKGROUND_TASK_INTERVAL_MINUTES,
+  MIN_NOTIFICATION_BUFFER,
+} from "@/constants/scheduleConstants";
 
 // Task name constants
 // export const NOTIFICATION_TASK_NAME = "SCHEDULE_NOTIFICATION_TASK";
@@ -52,7 +59,6 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
     // Check if we need to schedule notifications
     const scheduled: Notifications.NotificationRequest[] =
       await Notifications.getAllScheduledNotificationsAsync();
-    const MIN_NOTIFICATION_BUFFER = 10; // Maintain at least 10 upcoming notifications
 
     console.log(
       debugLog(
@@ -145,12 +151,12 @@ export async function registerBackgroundTasks(): Promise<void> {
 
       // Task will run periodically and persist across app restarts
       await BackgroundTask.registerTaskAsync(BACKGROUND_CHECK_TASK, {
-        minimumInterval: 45, // 15 minutes is minimum allowed by Android
+        minimumInterval: BACKGROUND_TASK_INTERVAL_MINUTES,
       });
 
       console.log(
         debugLog(
-          `[BackgroundTask] Background task ${BACKGROUND_CHECK_TASK} registered successfully (15m)`,
+          `[BackgroundTask] Background task ${BACKGROUND_CHECK_TASK} registered successfully (${BACKGROUND_TASK_INTERVAL_MINUTES}min)`,
         ),
       );
     } else {
