@@ -57,14 +57,14 @@ export async function requestPermissions() {
 
 /**
  * Available notification sounds for channel creation
- * Android requires sounds to be in res/raw and referenced without extension
+ * Expo Notifications API expects the full filename with .mp3 extension
  */
 const NOTIFICATION_SOUNDS = [
-  { id: 'bell_inside', name: 'Bell Inside', resource: 'bell_inside' },
-  { id: 'bowl_struck', name: 'Bowl Struck', resource: 'bowl_struck' },
-  { id: 'ding_soft', name: 'Ding Soft', resource: 'ding_soft' },
-  { id: 'tibetan_bell_ding_b', name: 'Tibetan Bell', resource: 'tibetan_bell_ding_b' },
-  { id: 'zenbell_1', name: 'Zen Bell', resource: 'zenbell_1' },
+  { id: 'bell_inside', name: 'Bell Inside', resource: 'bell_inside.mp3' },
+  { id: 'bowl_struck', name: 'Bowl Struck', resource: 'bowl_struck.mp3' },
+  { id: 'ding_soft', name: 'Ding Soft', resource: 'ding_soft.mp3' },
+  { id: 'tibetan_bell_ding_b', name: 'Tibetan Bell', resource: 'tibetan_bell_ding_b.mp3' },
+  { id: 'zenbell_1', name: 'Zen Bell', resource: 'zenbell_1.mp3' },
 ] as const;
 
 /**
