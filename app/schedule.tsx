@@ -76,7 +76,10 @@ export default function Schedule() {
 
   const handlePeriodicHoursChange = (text: string) => {
     setPeriodicHours(text);
-    const num = parseInt(text, 10);
+  };
+
+  const handlePeriodicHoursBlur = () => {
+    const num = parseInt(periodicHours, 10);
     if (!isNaN(num) && num >= 0 && num <= 24) {
       dispatch(
         setPeriodicConfig({
@@ -85,12 +88,18 @@ export default function Schedule() {
         })
       );
       rescheduleIfEnabled();
+    } else {
+      // Reset to current redux value if invalid
+      setPeriodicHours(scheduleState.periodicConfig.durationHours.toString());
     }
   };
 
   const handlePeriodicMinutesChange = (text: string) => {
     setPeriodicMinutes(text);
-    const num = parseInt(text, 10);
+  };
+
+  const handlePeriodicMinutesBlur = () => {
+    const num = parseInt(periodicMinutes, 10);
     if (!isNaN(num) && num >= 0 && num < 60) {
       dispatch(
         setPeriodicConfig({
@@ -99,12 +108,18 @@ export default function Schedule() {
         })
       );
       rescheduleIfEnabled();
+    } else {
+      // Reset to current redux value if invalid
+      setPeriodicMinutes(scheduleState.periodicConfig.durationMinutes.toString());
     }
   };
 
   const handleRandomMinChange = (text: string) => {
     setRandomMin(text);
-    const num = parseInt(text, 10);
+  };
+
+  const handleRandomMinBlur = () => {
+    const num = parseInt(randomMin, 10);
     const minAllowed = getMinIntervalMinutes();
     if (!isNaN(num) && num >= minAllowed) {
       dispatch(
@@ -114,12 +129,18 @@ export default function Schedule() {
         })
       );
       rescheduleIfEnabled();
+    } else {
+      // Reset to current redux value if invalid
+      setRandomMin(scheduleState.randomConfig.minMinutes.toString());
     }
   };
 
   const handleRandomMaxChange = (text: string) => {
     setRandomMax(text);
-    const num = parseInt(text, 10);
+  };
+
+  const handleRandomMaxBlur = () => {
+    const num = parseInt(randomMax, 10);
     const minAllowed = getMinIntervalMinutes();
     if (!isNaN(num) && num >= minAllowed) {
       dispatch(
@@ -129,12 +150,18 @@ export default function Schedule() {
         })
       );
       rescheduleIfEnabled();
+    } else {
+      // Reset to current redux value if invalid
+      setRandomMax(scheduleState.randomConfig.maxMinutes.toString());
     }
   };
 
   const handleQuietStartHourChange = (text: string) => {
     setQuietStartHour(text);
-    const num = parseInt(text, 10);
+  };
+
+  const handleQuietStartHourBlur = () => {
+    const num = parseInt(quietStartHour, 10);
     if (!isNaN(num) && num >= 0 && num < 24) {
       dispatch(
         setQuietHours({
@@ -143,12 +170,18 @@ export default function Schedule() {
         })
       );
       rescheduleIfEnabled();
+    } else {
+      // Reset to current redux value if invalid
+      setQuietStartHour(scheduleState.quietHours.startHour.toString());
     }
   };
 
   const handleQuietStartMinuteChange = (text: string) => {
     setQuietStartMinute(text);
-    const num = parseInt(text, 10);
+  };
+
+  const handleQuietStartMinuteBlur = () => {
+    const num = parseInt(quietStartMinute, 10);
     if (!isNaN(num) && num >= 0 && num < 60) {
       dispatch(
         setQuietHours({
@@ -157,12 +190,18 @@ export default function Schedule() {
         })
       );
       rescheduleIfEnabled();
+    } else {
+      // Reset to current redux value if invalid
+      setQuietStartMinute(scheduleState.quietHours.startMinute.toString());
     }
   };
 
   const handleQuietEndHourChange = (text: string) => {
     setQuietEndHour(text);
-    const num = parseInt(text, 10);
+  };
+
+  const handleQuietEndHourBlur = () => {
+    const num = parseInt(quietEndHour, 10);
     if (!isNaN(num) && num >= 0 && num < 24) {
       dispatch(
         setQuietHours({
@@ -171,12 +210,18 @@ export default function Schedule() {
         })
       );
       rescheduleIfEnabled();
+    } else {
+      // Reset to current redux value if invalid
+      setQuietEndHour(scheduleState.quietHours.endHour.toString());
     }
   };
 
   const handleQuietEndMinuteChange = (text: string) => {
     setQuietEndMinute(text);
-    const num = parseInt(text, 10);
+  };
+
+  const handleQuietEndMinuteBlur = () => {
+    const num = parseInt(quietEndMinute, 10);
     if (!isNaN(num) && num >= 0 && num < 60) {
       dispatch(
         setQuietHours({
@@ -185,6 +230,9 @@ export default function Schedule() {
         })
       );
       rescheduleIfEnabled();
+    } else {
+      // Reset to current redux value if invalid
+      setQuietEndMinute(scheduleState.quietHours.endMinute.toString());
     }
   };
 
@@ -209,12 +257,14 @@ export default function Schedule() {
     label,
     value,
     onChangeText,
+    onBlur,
     onIncrement,
     onDecrement,
   }: {
     label: string;
     value: string;
     onChangeText: (text: string) => void;
+    onBlur?: () => void;
     onIncrement: () => void;
     onDecrement: () => void;
   }) => (
@@ -223,6 +273,7 @@ export default function Schedule() {
         label={label}
         value={value}
         onChangeText={onChangeText}
+        onBlur={onBlur}
         keyboardType="numeric"
         mode="outlined"
         style={styles.numericInput}
@@ -291,28 +342,70 @@ export default function Schedule() {
             <View style={styles.row}>
               <NumericInputWithButtons
                 label="Hours"
-                value={formatTwoDigits(periodicHours)}
+                value={periodicHours}
                 onChangeText={handlePeriodicHoursChange}
+                onBlur={handlePeriodicHoursBlur}
                 onIncrement={() => {
                   const num = parseInt(periodicHours, 10) || 0;
-                  if (num < 24) handlePeriodicHoursChange((num + 1).toString());
+                  if (num < 24) {
+                    const newVal = (num + 1).toString();
+                    setPeriodicHours(newVal);
+                    dispatch(
+                      setPeriodicConfig({
+                        durationHours: num + 1,
+                        durationMinutes: scheduleState.periodicConfig.durationMinutes,
+                      })
+                    );
+                    rescheduleIfEnabled();
+                  }
                 }}
                 onDecrement={() => {
                   const num = parseInt(periodicHours, 10) || 0;
-                  if (num > 0) handlePeriodicHoursChange((num - 1).toString());
+                  if (num > 0) {
+                    const newVal = (num - 1).toString();
+                    setPeriodicHours(newVal);
+                    dispatch(
+                      setPeriodicConfig({
+                        durationHours: num - 1,
+                        durationMinutes: scheduleState.periodicConfig.durationMinutes,
+                      })
+                    );
+                    rescheduleIfEnabled();
+                  }
                 }}
               />
               <NumericInputWithButtons
                 label="Minutes"
-                value={formatTwoDigits(periodicMinutes)}
+                value={periodicMinutes}
                 onChangeText={handlePeriodicMinutesChange}
+                onBlur={handlePeriodicMinutesBlur}
                 onIncrement={() => {
                   const num = parseInt(periodicMinutes, 10) || 0;
-                  if (num < 59) handlePeriodicMinutesChange((num + 1).toString());
+                  if (num < 59) {
+                    const newVal = (num + 1).toString();
+                    setPeriodicMinutes(newVal);
+                    dispatch(
+                      setPeriodicConfig({
+                        durationHours: scheduleState.periodicConfig.durationHours,
+                        durationMinutes: num + 1,
+                      })
+                    );
+                    rescheduleIfEnabled();
+                  }
                 }}
                 onDecrement={() => {
                   const num = parseInt(periodicMinutes, 10) || 0;
-                  if (num > 0) handlePeriodicMinutesChange((num - 1).toString());
+                  if (num > 0) {
+                    const newVal = (num - 1).toString();
+                    setPeriodicMinutes(newVal);
+                    dispatch(
+                      setPeriodicConfig({
+                        durationHours: scheduleState.periodicConfig.durationHours,
+                        durationMinutes: num - 1,
+                      })
+                    );
+                    rescheduleIfEnabled();
+                  }
                 }}
               />
             </View>
@@ -344,32 +437,68 @@ export default function Schedule() {
             <View style={styles.row}>
               <NumericInputWithButtons
                 label="Min Minutes"
-                value={formatTwoDigits(randomMin)}
+                value={randomMin}
                 onChangeText={handleRandomMinChange}
+                onBlur={handleRandomMinBlur}
                 onIncrement={() => {
                   const num = parseInt(randomMin, 10) || 1;
-                  handleRandomMinChange((num + 1).toString());
+                  const newVal = (num + 1).toString();
+                  setRandomMin(newVal);
+                  dispatch(
+                    setRandomConfig({
+                      minMinutes: num + 1,
+                      maxMinutes: scheduleState.randomConfig.maxMinutes,
+                    })
+                  );
+                  rescheduleIfEnabled();
                 }}
                 onDecrement={() => {
                   const num = parseInt(randomMin, 10) || 1;
                   const minAllowed = getMinIntervalMinutes();
-                  if (num > minAllowed)
-                    handleRandomMinChange((num - 1).toString());
+                  if (num > minAllowed) {
+                    const newVal = (num - 1).toString();
+                    setRandomMin(newVal);
+                    dispatch(
+                      setRandomConfig({
+                        minMinutes: num - 1,
+                        maxMinutes: scheduleState.randomConfig.maxMinutes,
+                      })
+                    );
+                    rescheduleIfEnabled();
+                  }
                 }}
               />
               <NumericInputWithButtons
                 label="Max Minutes"
-                value={formatTwoDigits(randomMax)}
+                value={randomMax}
                 onChangeText={handleRandomMaxChange}
+                onBlur={handleRandomMaxBlur}
                 onIncrement={() => {
                   const num = parseInt(randomMax, 10) || 1;
-                  handleRandomMaxChange((num + 1).toString());
+                  const newVal = (num + 1).toString();
+                  setRandomMax(newVal);
+                  dispatch(
+                    setRandomConfig({
+                      minMinutes: scheduleState.randomConfig.minMinutes,
+                      maxMinutes: num + 1,
+                    })
+                  );
+                  rescheduleIfEnabled();
                 }}
                 onDecrement={() => {
                   const num = parseInt(randomMax, 10) || 1;
                   const minAllowed = getMinIntervalMinutes();
-                  if (num > minAllowed)
-                    handleRandomMaxChange((num - 1).toString());
+                  if (num > minAllowed) {
+                    const newVal = (num - 1).toString();
+                    setRandomMax(newVal);
+                    dispatch(
+                      setRandomConfig({
+                        minMinutes: scheduleState.randomConfig.minMinutes,
+                        maxMinutes: num - 1,
+                      })
+                    );
+                    rescheduleIfEnabled();
+                  }
                 }}
               />
             </View>
@@ -407,28 +536,70 @@ export default function Schedule() {
             <View style={styles.row}>
               <NumericInputWithButtons
                 label="Hour"
-                value={formatTwoDigits(quietStartHour)}
+                value={quietStartHour}
                 onChangeText={handleQuietStartHourChange}
+                onBlur={handleQuietStartHourBlur}
                 onIncrement={() => {
                   const num = parseInt(quietStartHour, 10) || 0;
-                  if (num < 23) handleQuietStartHourChange((num + 1).toString());
+                  if (num < 23) {
+                    const newVal = (num + 1).toString();
+                    setQuietStartHour(newVal);
+                    dispatch(
+                      setQuietHours({
+                        ...scheduleState.quietHours,
+                        startHour: num + 1,
+                      })
+                    );
+                    rescheduleIfEnabled();
+                  }
                 }}
                 onDecrement={() => {
                   const num = parseInt(quietStartHour, 10) || 0;
-                  if (num > 0) handleQuietStartHourChange((num - 1).toString());
+                  if (num > 0) {
+                    const newVal = (num - 1).toString();
+                    setQuietStartHour(newVal);
+                    dispatch(
+                      setQuietHours({
+                        ...scheduleState.quietHours,
+                        startHour: num - 1,
+                      })
+                    );
+                    rescheduleIfEnabled();
+                  }
                 }}
               />
               <NumericInputWithButtons
                 label="Minute"
-                value={formatTwoDigits(quietStartMinute)}
+                value={quietStartMinute}
                 onChangeText={handleQuietStartMinuteChange}
+                onBlur={handleQuietStartMinuteBlur}
                 onIncrement={() => {
                   const num = parseInt(quietStartMinute, 10) || 0;
-                  if (num < 59) handleQuietStartMinuteChange((num + 1).toString());
+                  if (num < 59) {
+                    const newVal = (num + 1).toString();
+                    setQuietStartMinute(newVal);
+                    dispatch(
+                      setQuietHours({
+                        ...scheduleState.quietHours,
+                        startMinute: num + 1,
+                      })
+                    );
+                    rescheduleIfEnabled();
+                  }
                 }}
                 onDecrement={() => {
                   const num = parseInt(quietStartMinute, 10) || 0;
-                  if (num > 0) handleQuietStartMinuteChange((num - 1).toString());
+                  if (num > 0) {
+                    const newVal = (num - 1).toString();
+                    setQuietStartMinute(newVal);
+                    dispatch(
+                      setQuietHours({
+                        ...scheduleState.quietHours,
+                        startMinute: num - 1,
+                      })
+                    );
+                    rescheduleIfEnabled();
+                  }
                 }}
               />
             </View>
@@ -441,28 +612,70 @@ export default function Schedule() {
             <View style={styles.row}>
               <NumericInputWithButtons
                 label="Hour"
-                value={formatTwoDigits(quietEndHour)}
+                value={quietEndHour}
                 onChangeText={handleQuietEndHourChange}
+                onBlur={handleQuietEndHourBlur}
                 onIncrement={() => {
                   const num = parseInt(quietEndHour, 10) || 0;
-                  if (num < 23) handleQuietEndHourChange((num + 1).toString());
+                  if (num < 23) {
+                    const newVal = (num + 1).toString();
+                    setQuietEndHour(newVal);
+                    dispatch(
+                      setQuietHours({
+                        ...scheduleState.quietHours,
+                        endHour: num + 1,
+                      })
+                    );
+                    rescheduleIfEnabled();
+                  }
                 }}
                 onDecrement={() => {
                   const num = parseInt(quietEndHour, 10) || 0;
-                  if (num > 0) handleQuietEndHourChange((num - 1).toString());
+                  if (num > 0) {
+                    const newVal = (num - 1).toString();
+                    setQuietEndHour(newVal);
+                    dispatch(
+                      setQuietHours({
+                        ...scheduleState.quietHours,
+                        endHour: num - 1,
+                      })
+                    );
+                    rescheduleIfEnabled();
+                  }
                 }}
               />
               <NumericInputWithButtons
                 label="Minute"
-                value={formatTwoDigits(quietEndMinute)}
+                value={quietEndMinute}
                 onChangeText={handleQuietEndMinuteChange}
+                onBlur={handleQuietEndMinuteBlur}
                 onIncrement={() => {
                   const num = parseInt(quietEndMinute, 10) || 0;
-                  if (num < 59) handleQuietEndMinuteChange((num + 1).toString());
+                  if (num < 59) {
+                    const newVal = (num + 1).toString();
+                    setQuietEndMinute(newVal);
+                    dispatch(
+                      setQuietHours({
+                        ...scheduleState.quietHours,
+                        endMinute: num + 1,
+                      })
+                    );
+                    rescheduleIfEnabled();
+                  }
                 }}
                 onDecrement={() => {
                   const num = parseInt(quietEndMinute, 10) || 0;
-                  if (num > 0) handleQuietEndMinuteChange((num - 1).toString());
+                  if (num > 0) {
+                    const newVal = (num - 1).toString();
+                    setQuietEndMinute(newVal);
+                    dispatch(
+                      setQuietHours({
+                        ...scheduleState.quietHours,
+                        endMinute: num - 1,
+                      })
+                    );
+                    rescheduleIfEnabled();
+                  }
                 }}
               />
             </View>

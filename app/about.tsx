@@ -207,13 +207,11 @@ export default function About() {
                 left={(props) => <List.Icon {...props} icon="refresh" />}
               />
 
-              {preferences.backgroundTaskRunHistory.length > 0 && (
-                <List.Item
-                  title="Background Task Run History"
-                  description={`Last ${preferences.backgroundTaskRunHistory.length} runs`}
-                  left={(props) => <List.Icon {...props} icon="history" />}
-                />
-              )}
+              <List.Item
+                title="Background Task Run History"
+                description={`Last ${preferences.backgroundTaskRunHistory.length} runs`}
+                left={(props) => <List.Icon {...props} icon="history" />}
+              />
             </View>
           </>
         )}
@@ -283,7 +281,7 @@ export default function About() {
                   <Text variant="titleSmall" style={styles.debugSubtitle}>
                     Debug Messages
                   </Text>
-                  {preferences.debugInfo.map((info, index) => (
+                  {preferences.debugInfo.slice().reverse().map((info, index) => (
                     <Text
                       key={`debug-${index}`}
                       variant="bodySmall"
