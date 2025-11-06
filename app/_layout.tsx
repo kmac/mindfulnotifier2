@@ -62,7 +62,7 @@ function AppContent() {
         console.log("[App] Initializing app...");
 
         // // Initialize notifications and request permissions
-        // const permissionsGranted = await initializeNotifications();
+        const permissionsGranted = await initializeNotifications();
         // if (!permissionsGranted) {
         //   console.warn("[App] Notification permissions not granted");
         //   // Continue anyway - user can enable later

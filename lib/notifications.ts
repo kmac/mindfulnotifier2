@@ -151,7 +151,8 @@ export async function initializeNotifications(): Promise<boolean> {
   if (Platform.OS === "android") {
     await createNotificationChannels();
   }
-  return await requestPermissions();
+  return true;
+  // return await requestPermissions();
 }
 
 /**
