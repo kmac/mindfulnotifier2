@@ -275,7 +275,6 @@ export async function scheduleNotification(
     }
 
     const notificationId = await Notifications.scheduleNotificationAsync({
-      identifier: "mindful-notifier-active", // Fixed identifier to replace previous notifications
       content: {
         title: title,
         body: body,
@@ -285,7 +284,7 @@ export async function scheduleNotification(
         // On Android 8.0+, channel settings take precedence
         sticky: false,
         autoDismiss: false,
-        // Android-specific: tag ensures notifications replace each other
+        // Android-specific: tag ensures notifications replace each other in the notification tray
         data: {
           tag: "mindful-notifier-active",
         },

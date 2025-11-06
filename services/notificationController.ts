@@ -71,46 +71,24 @@ class WebNotificationService {
  * Schedules actual notifications instead of callbacks
  */
 class AndroidNotificationService {
-  private scheduledNotifications: Map<string, string> = new Map();
-
   async scheduleAt(
-    id: string,
     date: Date,
     title: string,
     body: string,
-  ): Promise<void> {
+  ): Promise<string> {
     const delayMS = date.getTime() - Date.now();
 
     if (delayMS <= 0) {
       throw new Error(`scheduleAt: date is not in the future: ${date}`);
     }
 
-    // Cancel any existing notification with this ID
-    await this.cancel(id);
-
-    // Schedule notification
-    // ERROR here: the id is never used:
+    // Schedule notification and return the Expo-generated ID
     const notificationId = await scheduleNotification(title, body, date);
-    this.scheduledNotifications.set(id, notificationId);
-  }
-
-  async cancel(id: string): Promise<void> {
-    const notificationId = this.scheduledNotifications.get(id);
-    if (notificationId) {
-      // Note: We can't cancel individual notifications by our custom ID easily
-      // This is a limitation we'll need to work around
-      this.scheduledNotifications.delete(id);
-      console.log(
-        debugLog(
-          `[AndroidNotificationService] Removed tracking for notification ${id}`,
-        ),
-      );
-    }
+    return notificationId;
   }
 
   async cancelAll(): Promise<void> {
     await cancelAllNotifications();
-    this.scheduledNotifications.clear();
     console.log(
       debugLog(`[AndroidNotificationService] Cancelled all notifications`),
     );
@@ -301,8 +279,8 @@ export class Controller {
         if (callback) callback();
       });
     } else if (Platform.OS === "android") {
-      // On Android, schedule a real notification
-      await this.androidNotificationService.scheduleAt(id, date, title, body);
+      // On Android, schedule a real notification (id is ignored, kept for web compatibility)
+      await this.androidNotificationService.scheduleAt(date, title, body);
     } else {
       throw new Error(`Platform is not supported: ${Platform.OS}`);
     }
@@ -310,13 +288,13 @@ export class Controller {
 
   /**
    * Cancel a scheduled notification by ID
+   * Only works on web - Android doesn't support canceling individual notifications by custom ID
    */
   async cancelScheduledNotification(id: string): Promise<void> {
     if (Platform.OS === "web") {
       this.webNotificationService.cancel(id);
-    } else if (Platform.OS === "android") {
-      await this.androidNotificationService.cancel(id);
     }
+    // Android doesn't support canceling by custom ID - use cancelAll instead
   }
 
   /**
@@ -514,7 +492,6 @@ export class Controller {
 
         // Schedule the notification
         await this.androidNotificationService.scheduleAt(
-          `mindfulnotifier-${i}`,
           nextFireDate.date,
           "Mindful Notifier",
           reminderText,
