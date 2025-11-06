@@ -41,6 +41,14 @@ export function isSoundEnabled(): boolean {
 }
 
 /**
+ * Check if vibration is enabled in preferences
+ */
+export function isVibrationEnabled(): boolean {
+  const state = store.getState();
+  return state.preferences.vibrationEnabled;
+}
+
+/**
  * Get the Audio.Sound source for playing the selected sound
  * This is different from notification sounds - used for preview playback
  */

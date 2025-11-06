@@ -4,8 +4,12 @@ import { useAppSelector, useAppDispatch } from "@/store/store";
 import { clearDebugInfo } from "@/store/slices/preferencesSlice";
 import { Controller } from "@/services/notificationController";
 import { getBackgroundTaskStatus } from "@/services/backgroundTaskService";
-import { debugNotificationChannels, getNotificationChannelId, getScheduledNotifications } from "@/lib/notifications";
-import { getSelectedSoundUri } from "@/lib/sound";
+import {
+  debugNotificationChannels,
+  getNotificationChannelId,
+  getScheduledNotifications,
+} from "@/lib/notifications";
+import { getSelectedSoundUri, isVibrationEnabled } from "@/lib/sound";
 import { useState, useEffect } from "react";
 import { Platform } from "react-native";
 import { debugLog } from "@/utils/util";
@@ -13,7 +17,9 @@ import { debugLog } from "@/utils/util";
 export default function About() {
   const dispatch = useAppDispatch();
   const preferences = useAppSelector((state) => state.preferences);
-  const [nextNotificationTime, setNextNotificationTime] = useState<Date | null>(null);
+  const [nextNotificationTime, setNextNotificationTime] = useState<Date | null>(
+    null,
+  );
   const [scheduledCount, setScheduledCount] = useState<number>(0);
   const [backgroundTaskStatus, setBackgroundTaskStatus] = useState<string>("");
 
@@ -73,8 +79,8 @@ export default function About() {
     }
 
     const timeStr = date.toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit'
+      hour: "2-digit",
+      minute: "2-digit",
     });
 
     return `${timeStr} (${timeUntil})`;
@@ -102,8 +108,8 @@ export default function About() {
 
     const date = new Date(timestamp);
     const timeStr = date.toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit'
+      hour: "2-digit",
+      minute: "2-digit",
     });
 
     return `${timeStr} (${timeAgo})`;
@@ -117,10 +123,15 @@ export default function About() {
     if (Platform.OS === "android") {
       await debugNotificationChannels();
 
-      // Also log what channel would be used for current sound
+      // Also log what channel would be used for current sound and vibration settings
       const soundUri = getSelectedSoundUri();
-      const channelId = getNotificationChannelId(soundUri);
-      console.log(debugLog(`[Debug] Current sound: ${soundUri}, would use channel: ${channelId}`));
+      const vibrationEnabled = isVibrationEnabled();
+      const channelId = getNotificationChannelId(soundUri, vibrationEnabled);
+      console.log(
+        debugLog(
+          `[Debug] Current sound: ${soundUri}, vibration: ${vibrationEnabled}, would use channel: ${channelId}`,
+        ),
+      );
     }
   };
 
@@ -131,7 +142,8 @@ export default function About() {
           About Mindful Notifier
         </Text>
         <Text variant="bodyLarge" style={styles.description}>
-          A mindfulness reminder application to help you stay present throughout your day.
+          A mindfulness reminder application to help you stay present throughout
+          your day.
         </Text>
         <Text variant="bodyMedium" style={styles.version}>
           Version 1.0.0
@@ -194,8 +206,8 @@ export default function About() {
                       backgroundTaskStatus === "Available"
                         ? "check-circle"
                         : backgroundTaskStatus === "Restricted"
-                        ? "alert-circle"
-                        : "help-circle"
+                          ? "alert-circle"
+                          : "help-circle"
                     }
                   />
                 )}
@@ -203,7 +215,9 @@ export default function About() {
 
               <List.Item
                 title="Last Buffer Replenishment"
-                description={formatLastReplenishTime(preferences.lastBufferReplenishTime)}
+                description={formatLastReplenishTime(
+                  preferences.lastBufferReplenishTime,
+                )}
                 left={(props) => <List.Icon {...props} icon="refresh" />}
               />
 
@@ -246,50 +260,57 @@ export default function About() {
               </View>
 
               {/* Background Task Run History */}
-              {Platform.OS === "android" && preferences.backgroundTaskRunHistory.length > 0 && (
-                <View style={styles.debugSubsection}>
-                  <Text variant="titleSmall" style={styles.debugSubtitle}>
-                    Background Task Run History (Last {preferences.backgroundTaskRunHistory.length})
-                  </Text>
-                  {preferences.backgroundTaskRunHistory
-                    .slice()
-                    .reverse()
-                    .map((timestamp, index) => {
-                      const date = new Date(timestamp);
-                      const timeStr = date.toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                      });
-                      const dateStr = date.toLocaleDateString();
-                      return (
-                        <Text
-                          key={`run-${timestamp}-${index}`}
-                          variant="bodySmall"
-                          style={styles.debugText}
-                        >
-                          {index + 1}. {dateStr} {timeStr} ({formatLastReplenishTime(timestamp)})
-                        </Text>
-                      );
-                    })}
-                </View>
-              )}
+              {Platform.OS === "android" &&
+                preferences.backgroundTaskRunHistory.length > 0 && (
+                  <View style={styles.debugSubsection}>
+                    <Text variant="titleSmall" style={styles.debugSubtitle}>
+                      Background Task Run History (Last{" "}
+                      {preferences.backgroundTaskRunHistory.length})
+                    </Text>
+                    {preferences.backgroundTaskRunHistory
+                      .slice()
+                      .reverse()
+                      .map((timestamp, index) => {
+                        const date = new Date(timestamp);
+                        const timeStr = date.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit",
+                        });
+                        const dateStr = date.toLocaleDateString();
+                        return (
+                          <Text
+                            key={`run-${timestamp}-${index}`}
+                            variant="bodySmall"
+                            style={styles.debugText}
+                          >
+                            {index + 1}. {dateStr} {timeStr} (
+                            {formatLastReplenishTime(timestamp)})
+                          </Text>
+                        );
+                      })}
+                  </View>
+                )}
 
               {/* Debug Info Messages */}
-              {Array.isArray(preferences.debugInfo) && preferences.debugInfo.length > 0 ? (
+              {Array.isArray(preferences.debugInfo) &&
+              preferences.debugInfo.length > 0 ? (
                 <View style={styles.debugSubsection}>
                   <Text variant="titleSmall" style={styles.debugSubtitle}>
                     Debug Messages
                   </Text>
-                  {preferences.debugInfo.slice().reverse().map((info, index) => (
-                    <Text
-                      key={`debug-${index}`}
-                      variant="bodySmall"
-                      style={styles.debugText}
-                    >
-                      {String(info)}
-                    </Text>
-                  ))}
+                  {preferences.debugInfo
+                    .slice()
+                    .reverse()
+                    .map((info, index) => (
+                      <Text
+                        key={`debug-${index}`}
+                        variant="bodySmall"
+                        style={styles.debugText}
+                      >
+                        {String(info)}
+                      </Text>
+                    ))}
                 </View>
               ) : (
                 <Text variant="bodySmall" style={styles.debugText}>

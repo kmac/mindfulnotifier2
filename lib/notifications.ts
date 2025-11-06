@@ -6,6 +6,7 @@ import type { NotificationConfig } from "./notifications.types";
 import {
   getSelectedSoundUri,
   isSoundEnabled,
+  isVibrationEnabled,
   playSelectedSound,
 } from "./sound";
 import { debugLog } from "@/utils/util";
@@ -60,38 +61,48 @@ export async function requestPermissions() {
  * Expo Notifications API expects the full filename with .mp3 extension
  */
 const NOTIFICATION_SOUNDS = [
-  { id: 'bell_inside', name: 'Bell Inside', resource: 'bell_inside.mp3' },
-  { id: 'bowl_struck', name: 'Bowl Struck', resource: 'bowl_struck.mp3' },
-  { id: 'ding_soft', name: 'Ding Soft', resource: 'ding_soft.mp3' },
-  { id: 'tibetan_bell_ding_b', name: 'Tibetan Bell', resource: 'tibetan_bell_ding_b.mp3' },
-  { id: 'zenbell_1', name: 'Zen Bell', resource: 'zenbell_1.mp3' },
+  { id: "bell_inside", name: "Bell Inside", resource: "bell_inside.mp3" },
+  { id: "bowl_struck", name: "Bowl Struck", resource: "bowl_struck.mp3" },
+  { id: "ding_soft", name: "Ding Soft", resource: "ding_soft.mp3" },
+  {
+    id: "tibetan_bell_ding_b",
+    name: "Tibetan Bell",
+    resource: "tibetan_bell_ding_b.mp3",
+  },
+  { id: "zenbell_1", name: "Zen Bell", resource: "zenbell_1.mp3" },
 ] as const;
 
 /**
- * Get the notification channel ID for a given sound
+ * Get the notification channel ID for a given sound and vibration setting
  * @param soundName The sound name (e.g., 'zenbell_1.mp3' or 'zenbell_1')
- * @returns The channel ID to use for this sound
+ * @param vibrationEnabled Whether vibration is enabled
+ * @returns The channel ID to use for this sound and vibration setting
  */
-export function getNotificationChannelId(soundName: string | null): string {
+export function getNotificationChannelId(
+  soundName: string | null,
+  vibrationEnabled: boolean,
+): string {
+  const vibrateSuffix = vibrationEnabled ? "" : "_no_vibrate";
+
   if (!soundName) {
-    return 'mindful_silent';
+    return `mindful_silent${vibrateSuffix}`;
   }
 
   // Remove .mp3 extension if present
-  const cleanSoundName = soundName.replace('.mp3', '');
+  const cleanSoundName = soundName.replace(".mp3", "");
 
   // Check if it's a known sound
-  const sound = NOTIFICATION_SOUNDS.find(s => s.id === cleanSoundName);
+  const sound = NOTIFICATION_SOUNDS.find((s) => s.id === cleanSoundName);
   if (sound) {
-    return `mindful_${sound.id}`;
+    return `mindful_${sound.id}${vibrateSuffix}`;
   }
 
   // For custom sounds, use a generic channel
-  return 'mindful_custom';
+  return `mindful_custom${vibrateSuffix}`;
 }
 
 /**
- * Create or update all notification channels for different sounds
+ * Create or update all notification channels for different sounds and vibration settings
  * This should be called during app initialization and when sound preferences change
  */
 async function createNotificationChannels(): Promise<void> {
@@ -101,23 +112,43 @@ async function createNotificationChannels(): Promise<void> {
 
   console.log("[Notifications] Creating notification channels");
 
-  // Create a channel for each built-in sound
+  // Create channels for each built-in sound with vibration enabled and disabled
   for (const sound of NOTIFICATION_SOUNDS) {
+    // Channel with vibration
     await Notifications.setNotificationChannelAsync(`mindful_${sound.id}`, {
       name: `Mindful Reminders (${sound.name})`,
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: "#4A9022",
-      sound: sound.resource, // Set the specific sound for this channel
+      sound: sound.resource,
       enableVibrate: true,
       showBadge: false,
     });
-    console.log(`[Notifications] Created channel: mindful_${sound.id} with sound: ${sound.resource}`);
+    console.log(
+      `[Notifications] Created channel: mindful_${sound.id} with sound: ${sound.resource}`,
+    );
+
+    // Channel without vibration
+    await Notifications.setNotificationChannelAsync(
+      `mindful_${sound.id}_no_vibrate`,
+      {
+        name: `Mindful Reminders (${sound.name}, No Vibrate)`,
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: null,
+        lightColor: "#4A9022",
+        sound: sound.resource,
+        enableVibrate: false,
+        showBadge: false,
+      },
+    );
+    console.log(
+      `[Notifications] Created channel: mindful_${sound.id}_no_vibrate with sound: ${sound.resource}, no vibration`,
+    );
   }
 
-  // Create a silent channel (no sound)
-  await Notifications.setNotificationChannelAsync('mindful_silent', {
-    name: 'Mindful Reminders (Silent)',
+  // Create silent channels (no sound) with and without vibration
+  await Notifications.setNotificationChannelAsync("mindful_silent", {
+    name: "Mindful Reminders (Silent)",
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
     lightColor: "#4A9022",
@@ -127,17 +158,39 @@ async function createNotificationChannels(): Promise<void> {
   });
   console.log("[Notifications] Created silent channel");
 
-  // Create a custom sound channel (will use default sound)
-  await Notifications.setNotificationChannelAsync('mindful_custom', {
-    name: 'Mindful Reminders (Custom)',
+  await Notifications.setNotificationChannelAsync("mindful_silent_no_vibrate", {
+    name: "Mindful Reminders (Silent, No Vibrate)",
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: null,
+    lightColor: "#4A9022",
+    sound: null,
+    enableVibrate: false,
+    showBadge: false,
+  });
+  console.log("[Notifications] Created silent no-vibrate channel");
+
+  // Create custom sound channels with and without vibration
+  await Notifications.setNotificationChannelAsync("mindful_custom", {
+    name: "Mindful Reminders (Custom)",
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
     lightColor: "#4A9022",
-    sound: 'default',
+    sound: "default",
     enableVibrate: true,
     showBadge: false,
   });
   console.log("[Notifications] Created custom sound channel");
+
+  await Notifications.setNotificationChannelAsync("mindful_custom_no_vibrate", {
+    name: "Mindful Reminders (Custom, No Vibrate)",
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: null,
+    lightColor: "#4A9022",
+    sound: "default",
+    enableVibrate: false,
+    showBadge: false,
+  });
+  console.log("[Notifications] Created custom sound no-vibrate channel");
 }
 
 /**
@@ -238,16 +291,17 @@ async function showAndroidNotification(
   // Clear any existing notifications for this app
   //await Notifications.dismissAllNotificationsAsync();
 
-  // Get the selected sound from preferences
+  // Get the selected sound and vibration from preferences
   const soundEnabled = isSoundEnabled();
   const soundUri = soundEnabled ? getSelectedSoundUri() : null;
+  const vibrationEnabled = isVibrationEnabled();
 
-  // Get the appropriate notification channel for this sound
-  const channelId = getNotificationChannelId(soundUri);
+  // Get the appropriate notification channel for this sound and vibration setting
+  const channelId = getNotificationChannelId(soundUri, vibrationEnabled);
 
   console.log(
     debugLog(
-      `[Notifications] Raising notification with sound: ${soundUri}, channel: ${channelId}`,
+      `[Notifications] Raising notification with sound: ${soundUri}, vibration: ${vibrationEnabled}, channel: ${channelId}`,
     ),
   );
 
@@ -389,34 +443,28 @@ export async function scheduleNotification(
       };
     }
 
-    // Get the selected sound from preferences
+    // Get the selected sound and vibration from preferences
     const soundEnabled = isSoundEnabled();
     const soundUri = soundEnabled ? getSelectedSoundUri() : null;
+    const vibrationEnabled = isVibrationEnabled();
 
-    // Get the appropriate notification channel for this sound
-    const channelId = getNotificationChannelId(soundUri);
+    const channelId = getNotificationChannelId(soundUri, vibrationEnabled);
 
-    if (soundEnabled) {
-      console.log(
-        debugLog(
-          `[Notifications] Scheduling notification with sound: ${soundUri}, channel: ${channelId}, trigger: ${triggerLog}`,
-        ),
-      );
-    } else {
-      console.log(
-        debugLog(
-          `[Notifications] Scheduling notification no sound, channel: ${channelId}, trigger: ${triggerLog}`,
-        ),
-      );
-    }
+    console.log(
+      debugLog(
+        `[Notifications] Scheduling notification with sound: ${soundUri}, ` +
+          `vibration: ${vibrationEnabled}, channel: ${channelId}, ` +
+          `trigger: ${triggerLog}`,
+      ),
+    );
 
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
         title: title,
         body: body,
-        vibrate: [0, 250, 250, 250],
+        vibrate: vibrationEnabled ? [0, 250, 250, 250] : undefined,
         priority: Notifications.AndroidNotificationPriority.HIGH,
-        // Note: sound is controlled by the channel, not per-notification
+        // Note: sound and vibration are controlled by the channel, not per-notification
         // On Android 8.0+, channel settings take precedence
         sticky: false,
         autoDismiss: false,
@@ -465,10 +513,7 @@ export async function cancelAllNotifications(): Promise<void> {
     await Notifications.cancelAllScheduledNotificationsAsync();
     console.log("[Notifications] Cancelled all notifications");
   } catch (error) {
-    console.error(
-      "[Notifications] Failed to cancel all notifications:",
-      error,
-    );
+    console.error("[Notifications] Failed to cancel all notifications:", error);
   }
 }
 
@@ -543,7 +588,9 @@ export async function recreateNotificationChannels(): Promise<void> {
  * Get all notification channels (Android only)
  * @returns Array of notification channels
  */
-export async function getNotificationChannels(): Promise<Notifications.NotificationChannel[]> {
+export async function getNotificationChannels(): Promise<
+  Notifications.NotificationChannel[]
+> {
   if (Platform.OS === "android") {
     return await Notifications.getNotificationChannelsAsync();
   }
@@ -591,7 +638,7 @@ export async function resetNotificationChannels(): Promise<void> {
 
   // Delete each channel
   for (const channel of channels) {
-    if (channel.id.startsWith('mindful_')) {
+    if (channel.id.startsWith("mindful_")) {
       console.log(`[Notifications] Deleting channel: ${channel.id}`);
       await Notifications.deleteNotificationChannelAsync(channel.id);
     }
