@@ -6,7 +6,7 @@ import {
   IconButton,
   Button,
 } from "react-native-paper";
-import { StyleSheet, View, ScrollView } from "react-native";
+import { StyleSheet, View, ScrollView, Platform } from "react-native";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import { setSelectedSound, setCustomSound } from "@/store/slices/soundSlice";
 import { useAudioPlayer } from "expo-audio";
@@ -61,6 +61,17 @@ export default function Sound() {
         const asset = result.assets[0];
         dispatch(setCustomSound({ uri: asset.uri, name: asset.name }));
         dispatch(setSelectedSound("custom"));
+
+        // If the service is running, reschedule notifications with the new custom sound
+        if (isEnabled) {
+          try {
+            const controller = Controller.getInstance();
+            await controller.reschedule();
+            console.log(`[Sound] Rescheduled notifications for custom sound`);
+          } catch (error) {
+            console.error("[Sound] Failed to reschedule notifications:", error);
+          }
+        }
       }
     } catch (error) {
       console.error("Error picking custom sound:", error);
@@ -116,49 +127,60 @@ export default function Sound() {
             </View>
           ))}
 
-          <View style={styles.customSoundContainer}>
-            <View style={styles.soundItem}>
-              <RadioButton.Item
-                label={customSoundUri ? "Custom Sound" : "Custom (none selected)"}
-                value="custom"
-                style={styles.radioItem}
-                position="leading"
-                disabled={!customSoundUri}
-              />
-              {customSoundUri && (
-                <IconButton
-                  icon={playingSound === "custom" ? "stop" : "play"}
-                  size={24}
-                  onPress={() => {
-                    if (playingSound === "custom") {
-                      handleStopSound();
-                    } else {
-                      handlePlaySound("custom");
-                    }
-                  }}
-                  style={styles.playButton}
+          {Platform.OS !== "android" && (
+            <View style={styles.customSoundContainer}>
+              <View style={styles.soundItem}>
+                <RadioButton.Item
+                  label={customSoundUri ? "Custom Sound" : "Custom (none selected)"}
+                  value="custom"
+                  style={styles.radioItem}
+                  position="leading"
+                  disabled={!customSoundUri}
                 />
-              )}
-            </View>
-            {customSoundUri && customSoundName && (
-              <View style={styles.filePathContainer}>
-                <Text variant="bodySmall" style={styles.filePathLabel}>
-                  File:
-                </Text>
-                <Text variant="bodySmall" style={styles.filePath} numberOfLines={2}>
-                  {customSoundName}
-                </Text>
+                {customSoundUri && (
+                  <IconButton
+                    icon={playingSound === "custom" ? "stop" : "play"}
+                    size={24}
+                    onPress={() => {
+                      if (playingSound === "custom") {
+                        handleStopSound();
+                      } else {
+                        handlePlaySound("custom");
+                      }
+                    }}
+                    style={styles.playButton}
+                  />
+                )}
               </View>
-            )}
-            <Button
-              mode="outlined"
-              onPress={handlePickCustomSound}
-              style={styles.pickButton}
-              icon="folder-open"
-            >
-              {customSoundUri ? "Change File" : "Choose File"}
-            </Button>
-          </View>
+              {customSoundUri && customSoundName && (
+                <View style={styles.filePathContainer}>
+                  <Text variant="bodySmall" style={styles.filePathLabel}>
+                    File:
+                  </Text>
+                  <Text variant="bodySmall" style={styles.filePath} numberOfLines={2}>
+                    {customSoundName}
+                  </Text>
+                </View>
+              )}
+              <Button
+                mode="outlined"
+                onPress={handlePickCustomSound}
+                style={styles.pickButton}
+                icon="folder-open"
+              >
+                {customSoundUri ? "Change File" : "Choose File"}
+              </Button>
+            </View>
+          )}
+
+          {Platform.OS === "android" && (
+            <View style={styles.customSoundContainer}>
+              <Text variant="bodyMedium" style={styles.androidNote}>
+                Custom sounds are not available on Android due to platform limitations.
+                Android notifications can only use built-in sounds.
+              </Text>
+            </View>
+          )}
         </RadioButton.Group>
       </ScrollView>
     </Surface>
@@ -215,5 +237,11 @@ const styles = StyleSheet.create({
   filePath: {
     opacity: 0.7,
     fontFamily: "monospace",
+  },
+  androidNote: {
+    opacity: 0.7,
+    fontStyle: "italic",
+    textAlign: "center",
+    paddingVertical: 16,
   },
 });

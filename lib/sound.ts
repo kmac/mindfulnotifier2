@@ -1,5 +1,6 @@
 import { store } from '@/store/store';
 import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
+import { Platform } from 'react-native';
 
 /**
  * Get the sound to use for notifications
@@ -13,8 +14,13 @@ export function getSelectedSoundUri(): string | null {
   const state = store.getState();
   const { selectedSound, customSoundUri } = state.sound;
 
-  // If custom sound is selected, return the custom URI
+  // If custom sound is selected on Android, fallback to default
+  // Android notifications can't use custom sounds from user files
   if (selectedSound === 'custom') {
+    if (Platform.OS === 'android') {
+      console.warn('[Sound] Custom sounds not supported on Android, using default');
+      return 'zenbell_1'; // Fallback to zen bell
+    }
     return customSoundUri;
   }
 
