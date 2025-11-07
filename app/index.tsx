@@ -1,11 +1,11 @@
-import { View, StyleSheet } from "react-native";
+import { View, Platform, StyleSheet } from "react-native";
 import {
-  Text,
-  Surface,
-  SegmentedButtons,
-  IconButton,
-  useTheme,
   Button,
+  IconButton,
+  SegmentedButtons,
+  Surface,
+  Text,
+  useTheme,
 } from "react-native-paper";
 import { getRandomReminder } from "@/lib/reminders";
 import { useState, useMemo } from "react";
@@ -15,7 +15,10 @@ import {
   setSoundEnabled,
   setVibrationEnabled,
 } from "@/store/slices/preferencesSlice";
-import { Controller, scheduleNotificationAt } from "@/services/notificationController";
+import {
+  Controller,
+  scheduleNotificationAt,
+} from "@/services/notificationController";
 
 export default function Index() {
   const theme = useTheme();
@@ -31,7 +34,7 @@ export default function Index() {
   // Memoize the fallback reminder so it doesn't change on every render
   const fallbackReminder = useMemo(
     () => getRandomReminder(reminders),
-    [reminders]
+    [reminders],
   );
 
   const handleSetEnabled = async (value: string) => {
@@ -60,7 +63,6 @@ export default function Index() {
 
       // Update Redux state
       dispatch(setEnabled(newIsEnabledState));
-
     } catch (error) {
       console.error("Failed to toggle alarm service:", error);
     } finally {
@@ -68,12 +70,46 @@ export default function Index() {
     }
   };
 
-  const handleToggleSound = () => {
+  const handleToggleSound = async () => {
     dispatch(setSoundEnabled(!preferences.soundEnabled));
+
+    // On Android, we need to reschedule all notifications because
+    // notification channels are immutable and sound is baked into the channel
+    if (preferences.isEnabled && Platform.OS === "android") {
+      try {
+        const controller = Controller.getInstance();
+        await controller.reschedule();
+        console.log(
+          "[Index] Rescheduled notifications with new sound settings",
+        );
+      } catch (error) {
+        console.error(
+          "[Index] Failed to reschedule after sound toggle:",
+          error,
+        );
+      }
+    }
   };
 
-  const handleToggleVibration = () => {
+  const handleToggleVibration = async () => {
     dispatch(setVibrationEnabled(!preferences.vibrationEnabled));
+
+    // On Android, we need to reschedule all notifications because
+    // notification channels are immutable and vibration is baked into the channel
+    if (preferences.isEnabled && Platform.OS === "android") {
+      try {
+        const controller = Controller.getInstance();
+        await controller.reschedule();
+        console.log(
+          "[Index] Rescheduled notifications with new vibration settings",
+        );
+      } catch (error) {
+        console.error(
+          "[Index] Failed to reschedule after vibration toggle:",
+          error,
+        );
+      }
+    }
   };
 
   const handleTestNotification = async () => {
@@ -149,7 +185,7 @@ export default function Index() {
             onPress={handleToggleVibration}
           />
         </View>
-        {(__DEV__) && (
+        {__DEV__ && (
           <View style={styles.testRow}>
             <Button
               mode="outlined"

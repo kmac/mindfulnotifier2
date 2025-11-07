@@ -272,7 +272,7 @@ export class Controller {
       // Schedule new notifications with updated settings
       await this.scheduleNextNotification();
 
-      console.info("Rescheduled successfully");
+      console.info(debugLog("Rescheduled successfully"));
     } catch (error) {
       console.error("Failed to reschedule:", error);
       throw error;
