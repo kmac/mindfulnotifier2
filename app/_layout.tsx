@@ -24,6 +24,7 @@ import {
   addNotificationReceivedListener,
   addNotificationResponseListener,
 } from "@/lib/notifications";
+import * as Notifications from "expo-notifications";
 import { store, persistor, RootState } from "@/store/store";
 import { setLastNotificationText } from "@/store/slices/remindersSlice";
 
@@ -103,8 +104,18 @@ function AppContent() {
     );
 
     // Update the last notification text when user taps notification
-    const responseListener = addNotificationResponseListener((response) => {
+    const responseListener = addNotificationResponseListener(async (response) => {
       console.log("[App] Notification response received:", response);
+
+      // Dismiss all presented notifications when user taps any notification
+      // This clears the notification tray of accumulated notifications
+      try {
+        await Notifications.dismissAllNotificationsAsync();
+        console.log("[App] Dismissed all presented notifications");
+      } catch (error) {
+        console.error("[App] Failed to dismiss notifications:", error);
+      }
+
       const reminderText = response.notification.request.content.body;
       if (reminderText) {
         store.dispatch(setLastNotificationText(reminderText));

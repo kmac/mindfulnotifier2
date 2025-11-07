@@ -310,10 +310,7 @@ async function showAndroidNotification(
     content: {
       title: config.title,
       body: config.body,
-      data: {
-        ...(config.data || {}),
-        tag: "mindful-notifier-active", // Android-specific: tag ensures notifications replace each other
-      },
+      data: config.data || {},
       badge: config.badge,
       sticky: false,
       // Note: sound is controlled by the channel, not per-notification
@@ -468,10 +465,6 @@ export async function scheduleNotification(
         // On Android 8.0+, channel settings take precedence
         sticky: false,
         autoDismiss: false,
-        // Android-specific: tag ensures notifications replace each other in the notification tray
-        data: {
-          tag: "mindful-notifier-active",
-        },
       },
       trigger: {
         ...triggerInput,
