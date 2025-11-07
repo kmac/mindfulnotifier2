@@ -1,12 +1,16 @@
-import { Stack, useRouter } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import {
   PaperProvider,
   MD3LightTheme,
   MD3DarkTheme,
   IconButton,
   useTheme,
+  Portal,
+  Dialog,
+  Button,
+  Paragraph,
 } from "react-native-paper";
-import { useColorScheme } from "react-native";
+import { useColorScheme, BackHandler, Alert } from "react-native";
 import { useEffect, useState } from "react";
 import { Provider, useSelector } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
@@ -38,8 +42,10 @@ function AppContent() {
   const theme = effectiveColorScheme === "dark" ? MD3DarkTheme : MD3LightTheme;
 
   const router = useRouter();
+  const segments = useSegments();
   const [isInitialized, setIsInitialized] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [exitDialogVisible, setExitDialogVisible] = useState(false);
 
   // Custom drawer toggle button that respects theme
   const ThemedDrawerToggle = () => {
@@ -113,9 +119,55 @@ function AppContent() {
     };
   }, []);
 
+  // Handle Android hardware back button
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        // If we're on the index screen (segments array is empty)
+        // When on index, segments will be an empty array
+        const isOnIndexScreen = !segments || segments.length < 1;
+
+        if (isOnIndexScreen) {
+          // Show exit dialog
+          setExitDialogVisible(true);
+          return true; // Prevent default back behavior
+        }
+
+        // For other screens, navigate back to index
+        router.push("/");
+        return true; // Prevent default back behavior
+      }
+    );
+
+    return () => backHandler.remove();
+  }, [segments, router]);
+
   const BackButton = () => (
-    <IconButton icon="arrow-left" onPress={() => router.push("/")} />
+    <IconButton
+      icon="arrow-left"
+      onPress={() => {
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.push("/");
+        }
+      }}
+    />
   );
+
+  const handleExitApp = () => {
+    setExitDialogVisible(false);
+    // Disable the controller if it's enabled
+    if (isEnabled) {
+      Controller.getInstance()
+        .disable()
+        .catch((error) =>
+          console.error("[App] Failed to disable controller on exit:", error)
+        );
+    }
+    BackHandler.exitApp();
+  };
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -124,6 +176,25 @@ function AppContent() {
           visible={drawerVisible}
           onClose={() => setDrawerVisible(false)}
         />
+        <Portal>
+          <Dialog
+            visible={exitDialogVisible}
+            onDismiss={() => setExitDialogVisible(false)}
+          >
+            <Dialog.Title>Exit App?</Dialog.Title>
+            <Dialog.Content>
+              <Paragraph>
+                {isEnabled
+                  ? "The background notification service will be terminated and the app will shut down. Are you sure you want to exit?"
+                  : "Are you sure you want to exit the app?"}
+              </Paragraph>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setExitDialogVisible(false)}>Cancel</Button>
+              <Button onPress={handleExitApp}>Exit</Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
         <Stack
           screenOptions={{
             headerStyle: {
