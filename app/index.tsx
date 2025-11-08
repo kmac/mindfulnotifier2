@@ -3,6 +3,7 @@ import {
   Button,
   IconButton,
   SegmentedButtons,
+  Snackbar,
   Surface,
   Text,
   useTheme,
@@ -30,6 +31,7 @@ export default function Index() {
   const reminders = useAppSelector((state) => state.reminders.reminders);
 
   const [isInitializing, setIsInitializing] = useState(false);
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
 
   // Memoize the fallback reminder so it doesn't change on every render
   const fallbackReminder = useMemo(
@@ -63,6 +65,11 @@ export default function Index() {
 
       // Update Redux state
       dispatch(setEnabled(newIsEnabledState));
+
+      // Show snackbar confirmation when enabled
+      if (newIsEnabledState) {
+        setSnackbarVisible(true);
+      }
     } catch (error) {
       console.error("Failed to toggle alarm service:", error);
     } finally {
@@ -198,6 +205,19 @@ export default function Index() {
           </View>
         )}
       </Surface>
+
+      {/* Snackbar for notifications enabled */}
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={3000}
+        action={{
+          label: "OK",
+          onPress: () => setSnackbarVisible(false),
+        }}
+      >
+        Schedule is active, notifications are enqueued
+      </Snackbar>
     </View>
   );
 }
