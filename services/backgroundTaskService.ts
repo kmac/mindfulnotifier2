@@ -58,16 +58,10 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
     const scheduled: Notifications.NotificationRequest[] =
       await Notifications.getAllScheduledNotificationsAsync();
 
-    console.log(
-      debugLog(
-        `[BackgroundTask] Found ${scheduled.length} scheduled notifications`,
-      ),
-    );
-
     if (scheduled.length < MIN_NOTIFICATION_BUFFER) {
       console.log(
         debugLog(
-          `[BackgroundTask] Notification buffer low (${scheduled.length}/${MIN_NOTIFICATION_BUFFER}), scheduling more`,
+          `[BackgroundTask] Notification buffer low: (${scheduled.length}/${MIN_NOTIFICATION_BUFFER})`,
         ),
       );
       const controller = Controller.getInstance();
@@ -107,16 +101,12 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
         lastScheduledTime,
       );
 
-      console.log(
-        debugLog("[BackgroundTask] Notifications replenished successfully"),
-      );
-
-      // Update last buffer replenish time
       store.dispatch(setLastBufferReplenishTime(Date.now()));
     } else {
       console.log(
         debugLog(
-          `[BackgroundTask] Notification buffer healthy (${scheduled.length} notifications)`,
+          "[BackgroundTask] Notification buffer healthy: " +
+            `(${scheduled.length}/${MIN_NOTIFICATION_BUFFER} notifications)`,
         ),
       );
     }

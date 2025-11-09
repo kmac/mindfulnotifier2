@@ -1,3 +1,4 @@
+import { MAX_BACKGROUND_TASK_HISTORY } from '@/constants/scheduleConstants';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 export type ColorScheme = 'light' | 'dark' | 'auto';
@@ -63,11 +64,10 @@ const preferencesSlice = createSlice({
       state.lastBufferReplenishTime = action.payload;
     },
     addBackgroundTaskRun: (state, action: PayloadAction<number>) => {
-      // Keep only the last 10 run timestamps
-      const MAX_HISTORY = 10;
+      // Keep only the last N run timestamps
       state.backgroundTaskRunHistory.push(action.payload);
-      if (state.backgroundTaskRunHistory.length > MAX_HISTORY) {
-        state.backgroundTaskRunHistory = state.backgroundTaskRunHistory.slice(-MAX_HISTORY);
+      if (state.backgroundTaskRunHistory.length > MAX_BACKGROUND_TASK_HISTORY) {
+        state.backgroundTaskRunHistory = state.backgroundTaskRunHistory.slice(-MAX_BACKGROUND_TASK_HISTORY);
       }
     },
     resetPreferences: () => initialState,

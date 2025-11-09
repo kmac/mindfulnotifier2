@@ -6,6 +6,8 @@ export const BACKGROUND_TASK_INTERVAL_MINUTES = 40;
 // Maintain at least N upcoming notifications
 export const MIN_NOTIFICATION_BUFFER = 20;
 
+export const MAX_BACKGROUND_TASK_HISTORY = 10;
+
 /**
  * Minimum notification interval in minutes for Android
  * Android background task limitations require at least 15 minutes for reliability

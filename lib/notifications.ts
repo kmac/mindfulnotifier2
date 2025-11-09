@@ -440,19 +440,19 @@ export async function scheduleNotification(
       };
     }
 
-    // Get the selected sound and vibration from preferences
     const soundEnabled = isSoundEnabled();
     const soundUri = soundEnabled ? getSelectedSoundUri() : null;
     const vibrationEnabled = isVibrationEnabled();
-
     const channelId = getNotificationChannelId(soundUri, vibrationEnabled);
 
     console.log(
-      debugLog(
         `[Notifications] Scheduling notification with sound: ${soundUri}, ` +
           `vibration: ${vibrationEnabled}, channel: ${channelId}, ` +
           `trigger: ${triggerLog}`,
-      ),
+    );
+    debugLog(
+      `[Notifications] Scheduling notification: ${triggerLog}`,
+        `on channel: ${channelId}`
     );
 
     const notificationId = await Notifications.scheduleNotificationAsync({
@@ -464,7 +464,7 @@ export async function scheduleNotification(
         // Note: sound and vibration are controlled by the channel, not per-notification
         // On Android 8.0+, channel settings take precedence
         sticky: false,
-        autoDismiss: false,
+        autoDismiss: true,
       },
       trigger: {
         ...triggerInput,

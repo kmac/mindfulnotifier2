@@ -508,7 +508,7 @@ export class Controller {
         }
 
         console.info(
-          `Created ${schedule.scheduleType} scheduler with Redux configuration`,
+          `Created ${schedule.scheduleType} scheduler`,
         );
       }
 

@@ -63,11 +63,8 @@ abstract class DelegatedScheduler {
       );
       postQuiet = true;
       console.info(`Scheduling next reminder, past quiet hours: ${nextFire}`);
-      // scheduler.sendInfoMessage(
-      //     "${constants.reminderMessageQuietHours}, next reminder at ${formatHHMMSS(_nextDate!)}");
     } else {
       console.info(`Scheduling next reminder at ${nextFire}`);
-      // scheduler.sendInfoMessage("Next reminder at ${formatHHMMSS(_nextDate!)}");
     }
     return { date: nextFire, postQuiet: postQuiet } as NextFireDate;
   }

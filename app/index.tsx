@@ -151,7 +151,7 @@ export default function Index() {
     >
       {/* Main Reminder Display */}
       <View style={styles.reminderContainer}>
-        <Text
+        <Text variant="titleMedium"
           style={[styles.reminderText, { color: theme.colors.onBackground }]}
         >
           {lastNotificationText || fallbackReminder}
