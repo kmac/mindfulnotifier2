@@ -9,6 +9,7 @@ export interface PreferencesState {
   soundEnabled: boolean;
   vibrationEnabled: boolean;
   colorScheme: ColorScheme;
+  backgroundImageEnabled: boolean;
   debugInfoEnabled: boolean;
   debugInfo: string[];
   lastBufferReplenishTime: number | null; // timestamp
@@ -21,6 +22,7 @@ const initialState: PreferencesState = {
   soundEnabled: true,
   vibrationEnabled: true,
   colorScheme: 'auto',
+  backgroundImageEnabled: true,
   debugInfoEnabled: false,
   debugInfo: [],
   lastBufferReplenishTime: null,
@@ -45,6 +47,9 @@ const preferencesSlice = createSlice({
     },
     setColorScheme: (state, action: PayloadAction<ColorScheme>) => {
       state.colorScheme = action.payload;
+    },
+    setBackgroundImageEnabled: (state, action: PayloadAction<boolean>) => {
+      state.backgroundImageEnabled = action.payload;
     },
     setDebugInfoEnabled: (state, action: PayloadAction<boolean>) => {
       state.debugInfoEnabled = action.payload;
@@ -80,6 +85,7 @@ export const {
   setSoundEnabled,
   setVibrationEnabled,
   setColorScheme,
+  setBackgroundImageEnabled,
   setDebugInfoEnabled,
   addDebugInfo,
   clearDebugInfo,

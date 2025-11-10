@@ -1,5 +1,5 @@
 import { Surface, Text, Divider, List, Button } from "react-native-paper";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Linking, ScrollView, StyleSheet, View } from "react-native";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import { clearDebugInfo } from "@/store/slices/preferencesSlice";
 import { Controller } from "@/services/notificationController";
@@ -136,7 +136,7 @@ export default function About() {
   };
 
   return (
-    <ScrollView style={styles.scrollView}>
+    <ScrollView style={styles.scrollView} contentContainerStyle={{ flexGrow: 1 }}>
       <Surface style={styles.container}>
         <Text variant="headlineMedium" style={styles.title}>
           About Mindful Notifier
@@ -148,87 +148,29 @@ export default function About() {
         <Text variant="bodyMedium" style={styles.version}>
           Version 1.0.0
         </Text>
-
-        <Divider style={styles.divider} />
-
-        {/* Service Status Section */}
-        <View style={styles.section}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Service Status
+        <View
+          style={{
+            alignContent: "flex-start",
+            marginTop: 16,
+          }}
+        >
+          <Text variant="bodyMedium" style={styles.source}>
+            Source code is available at:
           </Text>
-
-          <List.Item
-            title="Service State"
-            description={
-              preferences.isEnabled
-                ? "Active - Notifications are being scheduled"
-                : "Inactive - Service is stopped"
+          <Button
+            icon="github"
+            compact
+            onPress={() =>
+              Linking.openURL("https://github.com/kmac/mindfulnotifier")
             }
-            left={(props) => (
-              <List.Icon
-                {...props}
-                icon={preferences.isEnabled ? "check-circle" : "close-circle"}
-              />
-            )}
-          />
-
-          {preferences.isEnabled && nextNotificationTime && (
-            <List.Item
-              title="Next Notification"
-              description={formatNotificationTime(nextNotificationTime)}
-              left={(props) => <List.Icon {...props} icon="bell-outline" />}
-            />
-          )}
+          >
+            https://github.com/kmac/mindfulnotifier
+          </Button>
         </View>
-
-        {/* Monitoring Dashboard Section (Android only) */}
-        {Platform.OS === "android" && preferences.isEnabled && (
-          <>
-            <Divider style={styles.divider} />
-            <View style={styles.section}>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                Monitoring Dashboard
-              </Text>
-
-              <List.Item
-                title="Scheduled Notifications"
-                description={`${scheduledCount} notifications in buffer`}
-                left={(props) => <List.Icon {...props} icon="calendar-clock" />}
-              />
-
-              <List.Item
-                title="Background Task Status"
-                description={backgroundTaskStatus || "Loading..."}
-                left={(props) => (
-                  <List.Icon
-                    {...props}
-                    icon={
-                      backgroundTaskStatus === "Available"
-                        ? "check-circle"
-                        : backgroundTaskStatus === "Restricted"
-                          ? "alert-circle"
-                          : "help-circle"
-                    }
-                  />
-                )}
-              />
-
-              <List.Item
-                title="Last Buffer Replenishment"
-                description={formatLastReplenishTime(
-                  preferences.lastBufferReplenishTime,
-                )}
-                left={(props) => <List.Icon {...props} icon="refresh" />}
-              />
-
-              <List.Item
-                title="Background Task Run History"
-                description={`Last ${preferences.backgroundTaskRunHistory.length} runs`}
-                left={(props) => <List.Icon {...props} icon="history" />}
-              />
-            </View>
-          </>
-        )}
+        <Text variant="bodySmall" style={styles.version}>
+          Mindfulness graphic taken from
+          https://radicalcourse.org/mindfulness-symbol/
+        </Text>
 
         {preferences.debugInfoEnabled && (
           <View>
@@ -258,6 +200,82 @@ export default function About() {
                   </Button>
                 </View>
               </View>
+
+              {/* Service Status Section */}
+              <View style={styles.debugSubsection}>
+                <Text variant="titleSmall" style={styles.debugSubtitle}>
+                  Service Status
+                </Text>
+
+                <List.Item
+                  title="Service State"
+                  description={
+                    preferences.isEnabled
+                      ? "Active - Notifications are being scheduled"
+                      : "Inactive - Service is stopped"
+                  }
+                  left={(props) => (
+                    <List.Icon
+                      {...props}
+                      icon={preferences.isEnabled ? "check-circle" : "close-circle"}
+                    />
+                  )}
+                />
+
+                {preferences.isEnabled && nextNotificationTime && (
+                  <List.Item
+                    title="Next Notification"
+                    description={formatNotificationTime(nextNotificationTime)}
+                    left={(props) => <List.Icon {...props} icon="bell-outline" />}
+                  />
+                )}
+              </View>
+
+              {/* Monitoring Dashboard Section (Android only) */}
+              {Platform.OS === "android" && preferences.isEnabled && (
+                <View style={styles.debugSubsection}>
+                  <Text variant="titleSmall" style={styles.debugSubtitle}>
+                    Monitoring Dashboard
+                  </Text>
+
+                  <List.Item
+                    title="Scheduled Notifications"
+                    description={`${scheduledCount} notifications in buffer`}
+                    left={(props) => <List.Icon {...props} icon="calendar-clock" />}
+                  />
+
+                  <List.Item
+                    title="Background Task Status"
+                    description={backgroundTaskStatus || "Loading..."}
+                    left={(props) => (
+                      <List.Icon
+                        {...props}
+                        icon={
+                          backgroundTaskStatus === "Available"
+                            ? "check-circle"
+                            : backgroundTaskStatus === "Restricted"
+                              ? "alert-circle"
+                              : "help-circle"
+                        }
+                      />
+                    )}
+                  />
+
+                  <List.Item
+                    title="Last Buffer Replenishment"
+                    description={formatLastReplenishTime(
+                      preferences.lastBufferReplenishTime,
+                    )}
+                    left={(props) => <List.Icon {...props} icon="refresh" />}
+                  />
+
+                  <List.Item
+                    title="Background Task Run History"
+                    description={`Last ${preferences.backgroundTaskRunHistory.length} runs`}
+                    left={(props) => <List.Icon {...props} icon="history" />}
+                  />
+                </View>
+              )}
 
               {/* Background Task Run History */}
               {Platform.OS === "android" &&
@@ -342,6 +360,9 @@ const styles = StyleSheet.create({
   },
   version: {
     opacity: 0.5,
+  },
+  source: {
+    opacity: 0.7,
   },
   section: {
     marginBottom: 8,

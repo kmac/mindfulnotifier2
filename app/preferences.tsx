@@ -15,6 +15,7 @@ import {
   setVibrationEnabled,
   ColorScheme,
   setNotificationsGranted,
+  setBackgroundImageEnabled,
   setDebugInfoEnabled,
   clearDebugInfo,
 } from "@/store/slices/preferencesSlice";
@@ -36,6 +37,10 @@ export default function Preferences() {
 
   const handleToggleVibration = () => {
     dispatch(setVibrationEnabled(!preferences.vibrationEnabled));
+  };
+
+  const handleToggleBackgroundImage = () => {
+    dispatch(setBackgroundImageEnabled(!preferences.backgroundImageEnabled));
   };
 
   const handleToggleDebugInfo = () => {
@@ -130,6 +135,22 @@ export default function Preferences() {
               style={styles.segmentedButtons}
             />
           </View>
+
+          <List.Item
+            title="Background Image"
+            description={
+              preferences.backgroundImageEnabled
+                ? "Show mindfulness symbol on home screen"
+                : "Background image is hidden"
+            }
+            left={(props) => <List.Icon {...props} icon="image" />}
+            right={() => (
+              <Switch
+                value={preferences.backgroundImageEnabled}
+                onValueChange={handleToggleBackgroundImage}
+              />
+            )}
+          />
         </View>
 
         <Divider style={styles.divider} />

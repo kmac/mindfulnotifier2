@@ -1,4 +1,4 @@
-import { View, Platform, StyleSheet } from "react-native";
+import { View, Platform, StyleSheet, ImageBackground } from "react-native";
 import {
   Button,
   IconButton,
@@ -151,11 +151,26 @@ export default function Index() {
     >
       {/* Main Reminder Display */}
       <View style={styles.reminderContainer}>
-        <Text variant="titleMedium"
-          style={[styles.reminderText, { color: theme.colors.onBackground }]}
-        >
-          {lastNotificationText || fallbackReminder}
-        </Text>
+        {preferences.backgroundImageEnabled ? (
+          <ImageBackground
+            source={require("@/assets/images/mindfulness-symbol.svg")}
+            style={styles.backgroundImage}
+            tintColor={theme.colors.secondaryContainer}
+            resizeMode="contain"
+          >
+            <Text
+              style={[styles.reminderText, { color: theme.colors.onBackground }]}
+            >
+              {lastNotificationText || fallbackReminder}
+            </Text>
+          </ImageBackground>
+        ) : (
+          <Text
+            style={[styles.reminderText, { color: theme.colors.onBackground }]}
+          >
+            {lastNotificationText || fallbackReminder}
+          </Text>
+        )}
       </View>
 
       {/* Control Panel at Bottom */}
@@ -233,6 +248,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 32,
     gap: 24,
+  },
+  backgroundImage: {
+    flex: 1,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
   },
   reminderText: {
     fontSize: 24,
