@@ -155,11 +155,12 @@ export default function Index() {
           <ImageBackground
             source={require("@/assets/images/mindfulness-symbol.svg")}
             style={styles.backgroundImage}
+            imageStyle={styles.backgroundImageStyle}
             tintColor={theme.colors.secondaryContainer}
             resizeMode="contain"
           >
             <Text
-              style={[styles.reminderText, { color: theme.colors.onBackground }]}
+              style={[styles.reminderText, { color: theme.colors.onSecondaryContainer }]}
             >
               {lastNotificationText || fallbackReminder}
             </Text>
@@ -255,6 +256,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 32,
+  },
+  backgroundImageStyle: {
+    top: "50%",
+    transform: [{ translateY: "-50%" }],
   },
   reminderText: {
     fontSize: 24,
