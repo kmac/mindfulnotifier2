@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "mindfulnotifier",
+    "name": "Mindful Notifier",
     "slug": "mindfulnotifier",
-    "version": "1.0.0",
+    "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mindfulnotifier",
@@ -18,6 +18,8 @@
       "bundleIdentifier": "com.mindfulnotifier.app"
     },
     "android": {
+      "versionCode": 1,
+      "package": "com.mindfulnotifier.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -30,13 +32,13 @@
         "SCHEDULE_EXACT_ALARM",
         "USE_EXACT_ALARM",
         "WAKE_LOCK"
-      ],
-      "package": "com.mindfulnotifier.app"
+      ]
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "buildNumber": "1"
     },
     "plugins": [
       "expo-router",

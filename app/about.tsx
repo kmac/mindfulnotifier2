@@ -13,6 +13,7 @@ import { getSelectedSoundUri, isVibrationEnabled } from "@/lib/sound";
 import { useState, useEffect } from "react";
 import { Platform } from "react-native";
 import { debugLog } from "@/utils/util";
+import { versionManager } from "@/utils/version";
 
 export default function About() {
   const dispatch = useAppDispatch();
@@ -22,6 +23,21 @@ export default function About() {
   );
   const [scheduledCount, setScheduledCount] = useState<number>(0);
   const [backgroundTaskStatus, setBackgroundTaskStatus] = useState<string>("");
+  const [versionInfo, setVersionInfo] = useState<string>("");
+
+  useEffect(() => {
+    const loadVersionInfo = async () => {
+      try {
+        const formattedVersion = await versionManager.getFormattedVersion();
+        setVersionInfo(formattedVersion);
+      } catch (error) {
+        console.error("Failed to load version info:", error);
+        setVersionInfo("Unknown version");
+      }
+    };
+
+    loadVersionInfo();
+  }, []);
 
   useEffect(() => {
     // Update the next notification time and monitoring data
@@ -136,7 +152,10 @@ export default function About() {
   };
 
   return (
-    <ScrollView style={styles.scrollView} contentContainerStyle={{ flexGrow: 1 }}>
+    <ScrollView
+      style={styles.scrollView}
+      contentContainerStyle={{ flexGrow: 1 }}
+    >
       <Surface style={styles.container}>
         <Text variant="headlineMedium" style={styles.title}>
           About Mindful Notifier
@@ -146,8 +165,9 @@ export default function About() {
           your day.
         </Text>
         <Text variant="bodyMedium" style={styles.version}>
-          Version 1.0.0
+          Version: {versionInfo}
         </Text>
+
         <View
           style={{
             alignContent: "flex-start",
@@ -167,6 +187,17 @@ export default function About() {
             https://github.com/kmac/mindfulnotifier
           </Button>
         </View>
+        <Text variant="bodyMedium" style={styles.source}>
+          It's very likely that this app is getting killed by android. Aside
+          from disabling battery optimization, you may need to take
+          vendor-specific actions.
+        </Text>
+        <Button
+          compact
+          onPress={() => Linking.openURL("https://dontkillmyapp.com/")}
+        >
+          https://dontkillmyapp.com/
+        </Button>
         <Text variant="bodySmall" style={styles.version}>
           Mindfulness graphic taken from
           https://radicalcourse.org/mindfulness-symbol/
@@ -217,7 +248,9 @@ export default function About() {
                   left={(props) => (
                     <List.Icon
                       {...props}
-                      icon={preferences.isEnabled ? "check-circle" : "close-circle"}
+                      icon={
+                        preferences.isEnabled ? "check-circle" : "close-circle"
+                      }
                     />
                   )}
                 />
@@ -226,7 +259,9 @@ export default function About() {
                   <List.Item
                     title="Next Notification"
                     description={formatNotificationTime(nextNotificationTime)}
-                    left={(props) => <List.Icon {...props} icon="bell-outline" />}
+                    left={(props) => (
+                      <List.Icon {...props} icon="bell-outline" />
+                    )}
                   />
                 )}
               </View>
@@ -241,7 +276,9 @@ export default function About() {
                   <List.Item
                     title="Scheduled Notifications"
                     description={`${scheduledCount} notifications in buffer`}
-                    left={(props) => <List.Icon {...props} icon="calendar-clock" />}
+                    left={(props) => (
+                      <List.Icon {...props} icon="calendar-clock" />
+                    )}
                   />
 
                   <List.Item
