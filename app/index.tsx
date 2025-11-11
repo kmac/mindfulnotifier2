@@ -153,14 +153,14 @@ export default function Index() {
       <View style={styles.reminderContainer}>
         {preferences.backgroundImageEnabled ? (
           <ImageBackground
-            source={require("@/assets/images/mindfulness-symbol.svg")}
+            source={require("@/assets/images/mindfulness-symbol.png")}
             style={styles.backgroundImage}
             imageStyle={styles.backgroundImageStyle}
             tintColor={theme.colors.secondaryContainer}
             resizeMode="contain"
           >
             <Text
-              style={[styles.reminderText, { color: theme.colors.onSecondaryContainer }]}
+              style={[styles.reminderText]}
             >
               {lastNotificationText || fallbackReminder}
             </Text>
