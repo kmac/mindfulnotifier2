@@ -337,18 +337,13 @@ export default function About() {
                   />
 
                   <List.Item
-                    title="Last Buffer Replenishment"
+                    title="Last Notification Replenishment"
                     description={formatLastReplenishTime(
                       preferences.lastBufferReplenishTime,
                     )}
                     left={(props) => <List.Icon {...props} icon="refresh" />}
                   />
 
-                  <List.Item
-                    title="Background Task Run History"
-                    description={`Last ${preferences.backgroundTaskRunHistory.length} runs`}
-                    left={(props) => <List.Icon {...props} icon="history" />}
-                  />
                 </View>
               )}
 
@@ -394,7 +389,7 @@ export default function About() {
                   </Text>
                   {preferences.debugInfo
                     .slice()
-                    .reverse()
+                    // .reverse()
                     .map((info, index) => (
                       <Text
                         key={`debug-${index}`}

@@ -9,7 +9,7 @@ import {
   useTheme,
 } from "react-native-paper";
 import { getRandomReminder } from "@/lib/reminders";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import {
   setEnabled,
@@ -20,6 +20,9 @@ import {
   Controller,
   scheduleNotificationAt,
 } from "@/services/notificationController";
+
+// Track if this is the first mount across all instances
+let hasShownStartupSnackbar = false;
 
 export default function Index() {
   const theme = useTheme();
@@ -32,6 +35,14 @@ export default function Index() {
 
   const [isInitializing, setIsInitializing] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
+
+  // Show snackbar on app startup if notifications are enabled (only once per app session)
+  useEffect(() => {
+    if (preferences.isEnabled && !hasShownStartupSnackbar) {
+      setSnackbarVisible(true);
+      hasShownStartupSnackbar = true;
+    }
+  }, []);
 
   // Memoize the fallback reminder so it doesn't change on every render
   const fallbackReminder = useMemo(
@@ -232,7 +243,7 @@ export default function Index() {
           onPress: () => setSnackbarVisible(false),
         }}
       >
-        Schedule is active, notifications are enqueued
+        Background task is starting, notifications are enqueued
       </Snackbar>
     </View>
   );
