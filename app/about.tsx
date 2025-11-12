@@ -1,4 +1,11 @@
-import { Surface, Text, Divider, List, Button } from "react-native-paper";
+import {
+  Surface,
+  Text,
+  Divider,
+  List,
+  Button,
+  useTheme,
+} from "react-native-paper";
 import { Linking, ScrollView, StyleSheet, View } from "react-native";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import { clearDebugInfo } from "@/store/slices/preferencesSlice";
@@ -17,6 +24,7 @@ import { versionManager } from "@/utils/version";
 
 export default function About() {
   const dispatch = useAppDispatch();
+  const theme = useTheme();
   const preferences = useAppSelector((state) => state.preferences);
   const [nextNotificationTime, setNextNotificationTime] = useState<Date | null>(
     null,
@@ -170,7 +178,9 @@ export default function About() {
 
         <View
           style={{
-            alignContent: "flex-start",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            alignContent: "center",
             marginTop: 16,
           }}
         >
@@ -187,21 +197,49 @@ export default function About() {
             https://github.com/kmac/mindfulnotifier
           </Button>
         </View>
-        <Text variant="bodyMedium" style={styles.source}>
-          It's very likely that this app is getting killed by android. Aside
-          from disabling battery optimization, you may need to take
-          vendor-specific actions.
-        </Text>
-        <Button
-          compact
-          onPress={() => Linking.openURL("https://dontkillmyapp.com/")}
+        <View
+          style={{
+            alignContent: "flex-start",
+            marginTop: 16,
+          }}
         >
-          https://dontkillmyapp.com/
-        </Button>
-        <Text variant="bodySmall" style={styles.version}>
-          Mindfulness graphic taken from
-          https://radicalcourse.org/mindfulness-symbol/
-        </Text>
+          <Text variant="bodyMedium" style={styles.version}>
+            Mindfulness graphic taken from{" "}
+            <Text
+              style={[styles.link, { color: theme.colors.primary }]}
+              onPress={() =>
+                Linking.openURL("https://radicalcourse.org/mindfulness-symbol/")
+              }
+            >
+              https://radicalcourse.org/mindfulness-symbol/
+            </Text>{" "}
+          </Text>
+        </View>
+        <View
+          style={{
+            alignContent: "flex-start",
+            marginTop: 16,
+          }}
+        >
+          <Text variant="titleMedium" style={styles.title}>
+            Reminders Not Showing?
+          </Text>
+          <Text variant="bodyMedium" style={styles.source}>
+            If the app hasn't been opened for a while, the app is likely getting
+            killed by android. Aside from disabling battery optimization, you
+            may need to take vendor-specific actions.
+          </Text>
+          <Text variant="bodyMedium" style={styles.source}>
+            See{" "}
+            <Text
+              style={[styles.link, { color: theme.colors.primary }]}
+              onPress={() => Linking.openURL("https://dontkillmyapp.com/")}
+            >
+              https://dontkillmyapp.com/
+            </Text>{" "}
+            for more information.
+          </Text>
+        </View>
 
         {preferences.debugInfoEnabled && (
           <View>
@@ -439,5 +477,12 @@ const styles = StyleSheet.create({
     fontFamily: "monospace",
     opacity: 0.7,
     marginBottom: 4,
+  },
+  link: {
+    fontWeight: "600",
+    textDecorationLine: "underline",
+    ...(Platform.OS === "web" && {
+      textDecoration: "underline",
+    }),
   },
 });

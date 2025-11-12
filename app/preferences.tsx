@@ -231,6 +231,7 @@ export default function Preferences() {
               <List.Item
                 title="Battery Optimization"
                 description="Disable battery optimization to ensure background notifications work reliably"
+                descriptionNumberOfLines={3}
                 left={(props) => <List.Icon {...props} icon="battery-heart" />}
               />
               <Button mode="outlined" onPress={handleBatteryOptimization} style={styles.actionButton}>
@@ -258,7 +259,7 @@ export default function Preferences() {
             title="Debug Info"
             description={
               preferences.debugInfoEnabled
-                ? "Debug information is visible"
+                ? "Debug information is visible in the 'About' page"
                 : "Debug information is hidden"
             }
             left={(props) => <List.Icon {...props} icon="bug" />}

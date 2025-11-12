@@ -64,6 +64,7 @@ const preferencesSlice = createSlice({
     },
     clearDebugInfo: (state) => {
       state.debugInfo = [];
+      state.backgroundTaskRunHistory = [];
     },
     setLastBufferReplenishTime: (state, action: PayloadAction<number>) => {
       state.lastBufferReplenishTime = action.payload;
