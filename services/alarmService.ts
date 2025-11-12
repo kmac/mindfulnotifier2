@@ -5,6 +5,7 @@ import {
   getBackgroundTaskStatus,
 } from './backgroundTaskService';
 import { cancelAllScheduled } from './notificationController';
+import { debugLog } from "@/utils/util";
 
 export function getAlarmService() : AlarmService {
   if (Platform.OS === 'web') {
@@ -101,9 +102,8 @@ export class AndroidAlarmService extends AlarmService {
       // Register background tasks on initialization
       await registerBackgroundTasks();
 
-      // Check background fetch status
       const status = await getBackgroundTaskStatus();
-      console.log(`[AndroidAlarmService] Background fetch status: ${status}`);
+      console.log(debugLog(`[AndroidAlarmService] Background task status: ${status}`));
 
       if (status === 'Denied' || status === 'Restricted') {
         console.warn('[AndroidAlarmService] Background fetch is not available');
@@ -112,6 +112,7 @@ export class AndroidAlarmService extends AlarmService {
       this.running = false;
     } catch (error) {
       console.error('[AndroidAlarmService] Initialization failed:', error);
+      debugLog('[AndroidAlarmService] Initialization failed:', error);
       throw error;
     }
   }
@@ -127,6 +128,7 @@ export class AndroidAlarmService extends AlarmService {
       console.log('[AndroidAlarmService] Background tasks enabled');
     } catch (error) {
       console.error('[AndroidAlarmService] Failed to enable:', error);
+      debugLog('[AndroidAlarmService] Failed to enable:', error);
       throw error;
     }
   }

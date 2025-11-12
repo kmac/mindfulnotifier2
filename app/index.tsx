@@ -255,11 +255,9 @@ const styles = StyleSheet.create({
     width: "100%",
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 32,
   },
   backgroundImageStyle: {
-    top: "50%",
-    transform: [{ translateY: "-50%" }],
+    alignSelf: "center",
   },
   reminderText: {
     fontSize: 24,

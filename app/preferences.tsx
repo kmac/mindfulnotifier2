@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View, Platform, Alert } from "react-native";
+import { ScrollView, StyleSheet, View, Platform, Alert, AppState } from "react-native";
 import {
   Button,
   Surface,
@@ -19,13 +19,38 @@ import {
   setDebugInfoEnabled,
   clearDebugInfo,
 } from "@/store/slices/preferencesSlice";
-import * as Notifications from "expo-notifications";
 import { isPermissionsGranted, requestPermissions } from "@/lib/notifications";
-import { openBatteryOptimizationSettings } from "@/lib/batteryOptimization";
+import { openBatteryOptimizationSettings, isBatteryOptimizationDisabled } from "@/lib/batteryOptimization";
+import { debugLog } from "@/utils/util";
+import { useEffect, useState } from "react";
 
 export default function Preferences() {
   const dispatch = useAppDispatch();
   const preferences = useAppSelector((state) => state.preferences);
+  const [batteryOptimizationDisabled, setBatteryOptimizationDisabled] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Check battery optimization status when component mounts
+    async function checkBatteryStatus() {
+      const status = await isBatteryOptimizationDisabled();
+      setBatteryOptimizationDisabled(status);
+    }
+
+    if (Platform.OS === 'android') {
+      checkBatteryStatus();
+
+      // Re-check when app comes to foreground
+      const subscription = AppState.addEventListener('change', (nextAppState) => {
+        if (nextAppState === 'active') {
+          checkBatteryStatus();
+        }
+      });
+
+      return () => {
+        subscription.remove();
+      };
+    }
+  }, []);
 
   const handleColorSchemeChange = (value: string) => {
     dispatch(setColorScheme(value as ColorScheme));
@@ -78,12 +103,19 @@ export default function Preferences() {
 
     try {
       await openBatteryOptimizationSettings();
+
+      // Wait a bit and recheck the status after user returns from settings
+      setTimeout(async () => {
+        const status = await isBatteryOptimizationDisabled();
+        setBatteryOptimizationDisabled(status);
+      }, 1000);
     } catch (error) {
       Alert.alert(
         'Error',
         'Failed to open battery optimization settings. Please check your device settings manually.'
       );
       console.error('Failed to open battery optimization settings:', error);
+      debugLog('Failed to open battery optimization settings:', error);
     }
   }
 
@@ -230,13 +262,32 @@ export default function Preferences() {
             <>
               <List.Item
                 title="Battery Optimization"
-                description="Disable battery optimization to ensure background notifications work reliably"
+                description={
+                  batteryOptimizationDisabled === true
+                    ? "Battery optimization is disabled - notifications should work reliably"
+                    : batteryOptimizationDisabled === false
+                    ? "Battery optimization is enabled - this may affect background notifications"
+                    : "Checking battery optimization status..."
+                }
                 descriptionNumberOfLines={3}
-                left={(props) => <List.Icon {...props} icon="battery-heart" />}
+                left={(props) => (
+                  <List.Icon
+                    {...props}
+                    icon={
+                      batteryOptimizationDisabled === true
+                        ? "check-circle"
+                        : batteryOptimizationDisabled === false
+                        ? "alert-circle"
+                        : "battery-heart"
+                    }
+                  />
+                )}
               />
-              <Button mode="outlined" onPress={handleBatteryOptimization} style={styles.actionButton}>
-                Open Battery Settings
-              </Button>
+              {batteryOptimizationDisabled === false && (
+                <Button mode="outlined" onPress={handleBatteryOptimization} style={styles.actionButton}>
+                  Open Battery Settings
+                </Button>
+              )}
             </>
           )}
 
