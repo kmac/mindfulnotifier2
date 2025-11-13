@@ -377,3 +377,188 @@ test("random: schedule 40 notifications simulating app buffer", () => {
     );
   });
 });
+
+// ============================================================================
+// Alignment Algorithm Tests
+// ============================================================================
+
+test("alignment: 15-minute intervals should align to 0, 15, 30, 45", () => {
+  let quietHours = new QuietHours(new TimeOfDay(23), new TimeOfDay(7));
+  let periodic = new scheduler.PeriodicScheduler(quietHours, 0, 15);
+
+  // Test from various starting times - all should align to quarter-hour marks
+  const testCases = [
+    { start: new Date(2025, 1, 1, 10, 3, 27), expectedMinute: 15 },
+    { start: new Date(2025, 1, 1, 10, 17, 45), expectedMinute: 30 },
+    { start: new Date(2025, 1, 1, 10, 32, 10), expectedMinute: 45 },
+    { start: new Date(2025, 1, 1, 10, 46, 59), expectedMinute: 0 }, // Should roll to next hour
+  ];
+
+  testCases.forEach(({ start, expectedMinute }) => {
+    let nextFire = periodic.getNextFireDate(start);
+    console.log(`Start: ${start.toLocaleTimeString()}, Next: ${nextFire.date.toLocaleTimeString()}`);
+
+    expect(nextFire.date.getMinutes()).toBe(expectedMinute);
+    expect(nextFire.date.getSeconds()).toBe(0);
+    expect(nextFire.date.getTime()).toBeGreaterThan(start.getTime());
+  });
+});
+
+test("alignment: 30-minute intervals should align to 0, 30", () => {
+  let quietHours = new QuietHours(new TimeOfDay(23), new TimeOfDay(7));
+  let periodic = new scheduler.PeriodicScheduler(quietHours, 0, 30);
+
+  const testCases = [
+    { start: new Date(2025, 1, 1, 10, 5, 0), expectedMinute: 30 },
+    { start: new Date(2025, 1, 1, 10, 28, 0), expectedMinute: 30 },
+    { start: new Date(2025, 1, 1, 10, 35, 0), expectedMinute: 0 }, // Next hour
+    { start: new Date(2025, 1, 1, 10, 58, 0), expectedMinute: 0 }, // Next hour
+  ];
+
+  testCases.forEach(({ start, expectedMinute }) => {
+    let nextFire = periodic.getNextFireDate(start);
+    console.log(`Start: ${start.toLocaleTimeString()}, Next: ${nextFire.date.toLocaleTimeString()}`);
+
+    expect(nextFire.date.getMinutes()).toBe(expectedMinute);
+    expect(nextFire.date.getSeconds()).toBe(0);
+  });
+});
+
+test("alignment: 1-hour intervals should align to top of hour", () => {
+  let quietHours = new QuietHours(new TimeOfDay(23), new TimeOfDay(7));
+  let periodic = new scheduler.PeriodicScheduler(quietHours, 1, 0);
+
+  const testCases = [
+    { start: new Date(2025, 1, 1, 10, 15, 30), expectedHour: 11 },
+    { start: new Date(2025, 1, 1, 10, 45, 0), expectedHour: 11 },
+    { start: new Date(2025, 1, 1, 13, 5, 0), expectedHour: 14 },
+  ];
+
+  testCases.forEach(({ start, expectedHour }) => {
+    let nextFire = periodic.getNextFireDate(start);
+    console.log(`Start: ${start.toLocaleString()}, Next: ${nextFire.date.toLocaleString()}`);
+
+    expect(nextFire.date.getHours()).toBe(expectedHour);
+    expect(nextFire.date.getMinutes()).toBe(0);
+    expect(nextFire.date.getSeconds()).toBe(0);
+  });
+});
+
+test("alignment: 2-hour intervals should align to even hours (0, 2, 4, ...)", () => {
+  let quietHours = new QuietHours(new TimeOfDay(23), new TimeOfDay(7));
+  let periodic = new scheduler.PeriodicScheduler(quietHours, 2, 0);
+
+  // Starting from 10:30 AM, next should be 12:00 (noon)
+  let start1 = new Date(2025, 1, 1, 10, 30, 0);
+  let next1 = periodic.getNextFireDate(start1);
+  console.log(`Start: ${start1.toLocaleString()}, Next: ${next1.date.toLocaleString()}`);
+
+  // With 2-hour intervals, should align to 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22
+  expect(next1.date.getHours() % 2).toBe(0);
+  expect(next1.date.getMinutes()).toBe(0);
+
+  // Chain a few to verify consistent alignment
+  let currentTime = start1;
+  for (let i = 0; i < 5; i++) {
+    let nextFire = periodic.getNextFireDate(currentTime);
+    console.log(`[${i}] ${nextFire.date.toLocaleString()} (hour: ${nextFire.date.getHours()})`);
+
+    expect(nextFire.date.getHours() % 2).toBe(0);
+    expect(nextFire.date.getMinutes()).toBe(0);
+    expect(nextFire.date.getSeconds()).toBe(0);
+
+    currentTime = nextFire.date;
+  }
+});
+
+test("alignment: mixed interval (1 hour 15 minutes) alignment behavior", () => {
+  let quietHours = new QuietHours(new TimeOfDay(23), new TimeOfDay(7));
+  let periodic = new scheduler.PeriodicScheduler(quietHours, 1, 15);
+
+  // With 75-minute intervals, alignment behavior is important
+  // Starting at 10:00, should go: 11:15, 12:30, 13:45, 15:00, etc.
+  let start = new Date(2025, 1, 1, 10, 0, 0);
+  let expectedTimes = [
+    { hour: 11, minute: 15 },
+    { hour: 12, minute: 30 },
+    { hour: 13, minute: 45 },
+    { hour: 15, minute: 0 },
+    { hour: 16, minute: 15 },
+  ];
+
+  let currentTime = start;
+  for (let i = 0; i < expectedTimes.length; i++) {
+    let nextFire = periodic.getNextFireDate(currentTime);
+    console.log(`[${i}] ${nextFire.date.toLocaleString()}`);
+
+    expect(nextFire.date.getHours()).toBe(expectedTimes[i].hour);
+    expect(nextFire.date.getMinutes()).toBe(expectedTimes[i].minute);
+    expect(nextFire.date.getSeconds()).toBe(0);
+
+    currentTime = nextFire.date;
+  }
+});
+
+test("alignment: 20-minute intervals (non-hour-divisible)", () => {
+  let quietHours = new QuietHours(new TimeOfDay(23), new TimeOfDay(7));
+  let periodic = new scheduler.PeriodicScheduler(quietHours, 0, 20);
+
+  // 20 minutes doesn't divide evenly into an hour, so pattern is: 0, 20, 40, 0, 20, 40...
+  let start = new Date(2025, 1, 1, 10, 5, 0);
+  let expectedMinutes = [20, 40, 0, 20, 40, 0]; // Next alignment points
+
+  let currentTime = start;
+  for (let i = 0; i < expectedMinutes.length; i++) {
+    let nextFire = periodic.getNextFireDate(currentTime);
+    console.log(`[${i}] ${nextFire.date.toLocaleTimeString()}`);
+
+    expect(nextFire.date.getMinutes()).toBe(expectedMinutes[i]);
+    expect(nextFire.date.getSeconds()).toBe(0);
+
+    currentTime = nextFire.date;
+  }
+});
+
+test("alignment: 5-minute intervals consistency over time", () => {
+  let quietHours = new QuietHours(new TimeOfDay(23), new TimeOfDay(7));
+  let periodic = new scheduler.PeriodicScheduler(quietHours, 0, 5);
+
+  // 5-minute intervals should always align to multiples of 5
+  let start = new Date(2025, 1, 1, 10, 3, 27);
+  let currentTime = start;
+
+  for (let i = 0; i < 20; i++) {
+    let nextFire = periodic.getNextFireDate(currentTime);
+    let minute = nextFire.date.getMinutes();
+
+    // Should always be a multiple of 5
+    expect(minute % 5).toBe(0);
+    expect(nextFire.date.getSeconds()).toBe(0);
+
+    currentTime = nextFire.date;
+  }
+});
+
+test("alignment: verify spacing between aligned intervals", () => {
+  let quietHours = new QuietHours(new TimeOfDay(23), new TimeOfDay(7));
+  let periodic = new scheduler.PeriodicScheduler(quietHours, 0, 15);
+
+  let start = new Date(2025, 1, 1, 10, 0, 0);
+  let currentTime = start;
+  let prevTime: Date | null = null;
+
+  for (let i = 0; i < 10; i++) {
+    let nextFire = periodic.getNextFireDate(currentTime);
+
+    if (prevTime) {
+      let diffMinutes = (nextFire.date.getTime() - prevTime.getTime()) / (1000 * 60);
+      console.log(`[${i}] Spacing: ${diffMinutes} minutes`);
+
+      // Each interval should be exactly 15 minutes apart
+      expect(diffMinutes).toBe(15);
+    }
+
+    prevTime = nextFire.date;
+    currentTime = nextFire.date;
+  }
+});

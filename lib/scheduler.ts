@@ -99,44 +99,45 @@ export class PeriodicScheduler extends DelegatedScheduler {
     );
 
     // Algorithm:
-    // - add hours and minutes.
-    // - align to next interval
-    // Number of msec from now = intervalMsecs - (nextDateRawEpochMsec MOD intervalMsecs)
+    // - Calculate how far we are into the current interval period, relative to midnight
+    // - Round up to the next interval boundary
+    // - This ensures we always schedule at aligned times (e.g., on the hour, half-hour, etc.)
+    // - Aligning to midnight (rather than Unix epoch) gives more predictable results:
+    //   e.g., 2-hour intervals align to 0:00, 2:00, 4:00, etc. regardless of timezone
 
-    // nextFireTimeMsec = (timenowMsec + intervalMsec) MOD intervalMsec
-    // nextFireTimeMsec = timenowMsec+intervalMsec + timenowMsec ~/ intervalMsec - (timenowMsec % intervalMsec)
+    // Calculate the total interval in milliseconds (hours + minutes)
+    let totalIntervalMS: number =
+      (this.durationHours * 60 + this.durationMinutes) * 60 * 1000;
 
-    //       now           interval             now+interval
-    //        |  ----------------------------->  |
-    //                                  |
-    // -----------------------------------------------------------------------
-    //                              alignment
-    //
-    /*
-    How to calculate 'alignment'?
-    - subract out the hours component
-    - how many 'interval minutes' fit in an hour?
-        - is it even?  then align to top of hour
-        - if it doesn't fit evenly, then just pick next interval (don't align)
-    */
+    // Get midnight of the current day
+    let midnight: Date = new Date(fromTime);
+    midnight.setHours(0, 0, 0, 0);
 
-    // Add interval hours:
-    let nextDateRaw: Date = addDuration(fromTime, {
-      hours: this.durationHours,
-    } as Duration);
+    // Calculate how far we are from midnight
+    let timeSinceMidnight: number = fromTime.getTime() - midnight.getTime();
 
-    // Add interval minutes:
-    let intervalMins: Duration = { minutes: this.durationMinutes };
+    // Calculate how far we are into the current interval period (relative to midnight)
+    let offsetMS: number = timeSinceMidnight % totalIntervalMS;
 
-    nextDateRaw = addDuration(nextDateRaw, intervalMins);
-
-    // Now bring it back to the start of the interval:
-    let minutesOverMS: number =
-      nextDateRaw.getTime() % (this.durationMinutes * 60 * 1000);
-
-    let nextDate: Date = subtractDuration(nextDateRaw, {
-      milliseconds: minutesOverMS,
-    } as Duration);
+    let nextDate: Date;
+    if (offsetMS === 0) {
+      // We're exactly on a boundary
+      if (adjustFromQuiet) {
+        // After quiet hours, we want the NEXT interval, not the current boundary
+        nextDate = addDuration(fromTime, {
+          milliseconds: totalIntervalMS,
+        } as Duration);
+      } else {
+        // Normal case: padding landed us on a boundary, use it
+        nextDate = fromTime;
+      }
+    } else {
+      // Round up to the next boundary
+      let timeToNextBoundary: number = totalIntervalMS - offsetMS;
+      nextDate = addDuration(fromTime, {
+        milliseconds: timeToNextBoundary,
+      } as Duration);
+    }
 
     return nextDate;
   }
