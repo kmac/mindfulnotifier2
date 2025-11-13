@@ -254,6 +254,13 @@ function AppContent() {
             }}
           />
           <Stack.Screen
+            name="help"
+            options={{
+              title: "Help",
+              headerLeft: () => <BackButton />,
+            }}
+          />
+          <Stack.Screen
             name="about"
             options={{
               title: "About Mindful Notifier",

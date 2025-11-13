@@ -67,6 +67,12 @@ export default function CustomDrawer({ visible, onClose }: CustomDrawerProps) {
             />
             <Divider />
             <Drawer.Item
+              label="Help"
+              active={pathname === "/help"}
+              onPress={() => handleNavigation("/help")}
+              icon="help-box-outline"
+            />
+            <Drawer.Item
               label="About"
               active={pathname === "/about"}
               onPress={() => handleNavigation("/about")}
