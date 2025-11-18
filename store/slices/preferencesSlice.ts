@@ -1,5 +1,5 @@
 import { MAX_BACKGROUND_TASK_HISTORY } from '@/constants/scheduleConstants';
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
 export type ColorScheme = 'light' | 'dark' | 'auto';
 
@@ -28,6 +28,19 @@ const initialState: PreferencesState = {
   lastBufferReplenishTime: null,
   backgroundTaskRunHistory: [],
 };
+
+/**
+ * Async thunk to clear debug info and background task data
+ * Clears both Redux state and AsyncStorage
+ */
+export const clearDebugInfoAsync = createAsyncThunk(
+  'preferences/clearDebugInfo',
+  async () => {
+    // Import here to avoid circular dependency
+    const { clearBackgroundTaskData } = await import('@/services/backgroundTaskService');
+    await clearBackgroundTaskData();
+  }
+);
 
 const preferencesSlice = createSlice({
   name: 'preferences',
@@ -77,6 +90,13 @@ const preferencesSlice = createSlice({
       }
     },
     resetPreferences: () => initialState,
+  },
+  extraReducers: (builder) => {
+    builder.addCase(clearDebugInfoAsync.fulfilled, (state) => {
+      // Clear Redux state when AsyncStorage clear is complete
+      state.debugInfo = [];
+      state.backgroundTaskRunHistory = [];
+    });
   },
 });
 

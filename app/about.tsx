@@ -8,7 +8,7 @@ import {
 } from "react-native-paper";
 import { Linking, ScrollView, StyleSheet, View } from "react-native";
 import { useAppSelector, useAppDispatch } from "@/store/store";
-import { clearDebugInfo } from "@/store/slices/preferencesSlice";
+import { clearDebugInfoAsync } from "@/store/slices/preferencesSlice";
 import { Controller } from "@/services/notificationController";
 import { getBackgroundTaskStatus } from "@/services/backgroundTaskService";
 import {
@@ -140,7 +140,7 @@ export default function About() {
   };
 
   const handleClearDebugInfo = () => {
-    dispatch(clearDebugInfo());
+    dispatch(clearDebugInfoAsync());
   };
 
   const handleDebugChannels = async () => {

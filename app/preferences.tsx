@@ -17,7 +17,7 @@ import {
   setNotificationsGranted,
   setBackgroundImageEnabled,
   setDebugInfoEnabled,
-  clearDebugInfo,
+  clearDebugInfoAsync,
 } from "@/store/slices/preferencesSlice";
 import { isPermissionsGranted, requestPermissions } from "@/lib/notifications";
 import { openBatteryOptimizationSettings, isBatteryOptimizationDisabled } from "@/lib/batteryOptimization";
@@ -73,7 +73,7 @@ export default function Preferences() {
     dispatch(setDebugInfoEnabled(newValue));
     // Clear debug info when disabling
     if (!newValue) {
-      dispatch(clearDebugInfo());
+      dispatch(clearDebugInfoAsync());
     }
   };
 

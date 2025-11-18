@@ -27,7 +27,12 @@ import {
 import * as Notifications from "expo-notifications";
 import { store, persistor, RootState } from "@/store/store";
 import { setLastNotificationText } from "@/store/slices/remindersSlice";
+import { addBackgroundTaskRun, addDebugInfo } from "@/store/slices/preferencesSlice";
 import { useFlutterMigration } from "@/hooks/useFlutterMigration";
+import {
+  getBackgroundTaskHistory,
+  getBackgroundTaskLogs,
+} from "@/services/backgroundTaskService";
 
 function AppContent() {
   // Perform Flutter migration if needed (runs once on first launch after update)
@@ -70,6 +75,28 @@ function AppContent() {
     async function initialize() {
       try {
         console.log("[App] Initializing app...");
+
+        // Load background task history from AsyncStorage and sync to Redux
+        const taskHistory = await getBackgroundTaskHistory();
+        const taskLogs = await getBackgroundTaskLogs();
+
+        if (taskHistory.length > 0) {
+          console.log(
+            `[App] Found ${taskHistory.length} background task runs in storage`
+          );
+          // Sync to Redux store
+          taskHistory.forEach((timestamp) => {
+            store.dispatch(addBackgroundTaskRun(timestamp));
+          });
+        }
+
+        if (taskLogs.length > 0) {
+          console.log(`[App] Found ${taskLogs.length} background task logs`);
+          // Add logs to Redux debugInfo
+          taskLogs.forEach((log) => {
+            store.dispatch(addDebugInfo(log));
+          });
+        }
 
         // // Initialize notifications and request permissions
         const permissionsGranted = await initializeNotifications();
