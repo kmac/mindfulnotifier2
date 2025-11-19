@@ -7,6 +7,7 @@ export const BACKGROUND_TASK_INTERVAL_MINUTES = 20;
 export const MIN_NOTIFICATION_BUFFER = 20;
 
 export const MAX_BACKGROUND_TASK_HISTORY = 10;
+export const MAX_DEBUG_INFO = 100;
 
 /**
  * Minimum notification interval in minutes for Android

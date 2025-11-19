@@ -42,6 +42,7 @@ async function persistBackgroundTaskRun(timestamp: number): Promise<void> {
     );
   } catch (error) {
     console.error("[BackgroundTask] Failed to persist task run:", error);
+    debugLog("[BackgroundTask] Failed to persist task run:", error);
   }
 }
 
@@ -63,6 +64,7 @@ async function persistBackgroundTaskLog(logMessage: string): Promise<void> {
     );
   } catch (error) {
     console.error("[BackgroundTask] Failed to persist log:", error);
+    debugLog("[BackgroundTask] Failed to persist log:", error);
   }
 }
 

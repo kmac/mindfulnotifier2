@@ -1,4 +1,4 @@
-import { MAX_BACKGROUND_TASK_HISTORY } from '@/constants/scheduleConstants';
+import { MAX_BACKGROUND_TASK_HISTORY, MAX_DEBUG_INFO } from '@/constants/scheduleConstants';
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
 export type ColorScheme = 'light' | 'dark' | 'auto';
@@ -69,7 +69,6 @@ const preferencesSlice = createSlice({
     },
     addDebugInfo: (state, action: PayloadAction<string>) => {
       // Keep only the last N debug messages to prevent unbounded growth
-      const MAX_DEBUG_INFO = 100;
       state.debugInfo.push(action.payload);
       if (state.debugInfo.length > MAX_DEBUG_INFO) {
         state.debugInfo = state.debugInfo.slice(-MAX_DEBUG_INFO);
