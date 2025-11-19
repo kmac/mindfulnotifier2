@@ -4,7 +4,7 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { debugLog } from "@/utils/util";
-import { Controller } from "./notificationController";
+import { Controller, getLastScheduledTime, debugLogTrigger} from "./notificationController";
 import { store } from "@/store/store";
 import { setLastBufferReplenishTime } from "@/store/slices/preferencesSlice";
 import {
@@ -20,80 +20,6 @@ export const BACKGROUND_CHECK_TASK = "BACKGROUND_CHECK_TASK";
 // AsyncStorage keys for background task data
 const BACKGROUND_TASK_HISTORY_KEY = "backgroundTaskHistory";
 const LAST_SCHEDULED_TIME_KEY = "lastScheduledNotificationTime";
-
-/**
- * Debug helper to log trigger properties
- * Useful for understanding what properties are available in notification triggers
- */
-function debugLogTrigger(trigger: Notifications.NotificationTrigger): void {
-  if (!trigger) {
-    console.log(debugLog("[BackgroundTask] Trigger is null/undefined"));
-    return;
-  }
-
-  const props = Object.keys(trigger);
-  console.log(
-    debugLog(`[BackgroundTask] Trigger properties: ${props.join(", ")}`),
-  );
-
-  // Log specific known properties if they exist
-  if ("type" in trigger) {
-    console.log(debugLog(`  - type: ${trigger.type}`));
-  }
-  if ("date" in trigger) {
-    console.log(debugLog(`  - date: ${trigger.date}`));
-  }
-  if ("seconds" in trigger) {
-    console.log(debugLog(`  - seconds: ${trigger.seconds}`));
-  }
-  if ("value" in trigger) {
-    console.log(debugLog(`  - value: ${trigger.value}`));
-  }
-  if ("nextTriggerDate" in trigger) {
-    console.log(debugLog(`  - nextTriggerDate: ${trigger.nextTriggerDate}`));
-  }
-}
-
-/**
- * Extract the absolute fire time from a notification trigger
- * Handles both CALENDAR (date-based) and TIME_INTERVAL (seconds-based) triggers
- * @param trigger The notification trigger object
- * @returns Timestamp in milliseconds, or null if unable to extract
- */
-function extractTriggerTime(
-  trigger: Notifications.NotificationTrigger,
-): number | null {
-  // Try to extract date property (CALENDAR triggers)
-  if (trigger && "date" in trigger && trigger.date) {
-    const date = trigger.date;
-    return typeof date === "number" ? date : date.getTime();
-  }
-
-  // Try to extract value property (some trigger types)
-  if (trigger && "value" in trigger && typeof trigger.value === "number") {
-    return trigger.value;
-  }
-
-  // For TIME_INTERVAL triggers, check if there's a nextTriggerDate
-  if (trigger && "nextTriggerDate" in trigger && trigger.nextTriggerDate) {
-    const nextDate = trigger.nextTriggerDate;
-    if (typeof nextDate === "number") {
-      return nextDate;
-    }
-    if (nextDate instanceof Date) {
-      return nextDate.getTime();
-    }
-    if (typeof nextDate === "object" && nextDate && "getTime" in nextDate) {
-      return (nextDate as Date).getTime();
-    }
-  }
-
-  // Note: We cannot reliably calculate absolute time from 'seconds' alone
-  // because we don't know when the notification was originally scheduled
-  // The 'seconds' value is relative to schedule time, not to "now"
-
-  return null;
-}
 
 /**
  * Persist background task run timestamp directly to AsyncStorage
@@ -165,68 +91,17 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
       );
       const controller = Controller.getInstance();
 
-      // Find the last scheduled notification time to continue from there
-      let lastScheduledTime: Date | undefined = undefined;
+      // Debug: Log the first notification's trigger properties
+      // Uncomment this to debug what properties are available in triggers
       if (scheduled.length > 0) {
-        // Debug: Log the first notification's trigger properties
-        // Uncomment this to debug what properties are available in triggers
         debugLogTrigger(scheduled[0]?.trigger);
-
-        // Get the latest trigger time from all scheduled notifications
-        // Use the helper function that tries multiple extraction methods
-        const triggerTimes = scheduled
-          .map((notif) => extractTriggerTime(notif.trigger))
-          .filter((time): time is number => time !== null);
-
-        if (triggerTimes.length > 0) {
-          const latestTime = Math.max(...triggerTimes);
-          lastScheduledTime = new Date(latestTime);
-          console.log(
-            debugLog(
-              `[BackgroundTask] Extracted last scheduled time from ${triggerTimes.length}/${scheduled.length} notifications: ${lastScheduledTime}`,
-            ),
-          );
-        } else {
-          console.log(
-            debugLog(
-              `[BackgroundTask] Could not extract trigger times from ${scheduled.length} scheduled notifications`,
-            ),
-          );
-        }
-      } else {
-        console.log(
-          debugLog("[BackgroundTask] found no scheduled notifications"),
-        );
       }
 
-      // If we couldn't determine lastScheduledTime from notifications,
-      // try to read it from AsyncStorage as a fallback
-      if (!lastScheduledTime) {
-        try {
-          const storedTime = await AsyncStorage.getItem(
-            LAST_SCHEDULED_TIME_KEY,
-          );
-          if (storedTime) {
-            lastScheduledTime = new Date(parseInt(storedTime, 10));
-            console.log(
-              debugLog(
-                `[BackgroundTask] Using stored lastScheduledTime: ${lastScheduledTime}`,
-              ),
-            );
-          } else {
-            console.log(
-              debugLog(
-                "[BackgroundTask] Did not find stored lastScheduledTime from storage",
-              ),
-            );
-          }
-        } catch (error) {
-          console.error(
-            "[BackgroundTask] Failed to read lastScheduledTime from AsyncStorage:",
-            error,
-          );
-        }
-      }
+      // Find the last scheduled notification time to continue from there
+      const lastScheduledTime = await getLastScheduledTime(
+        scheduled,
+        "[BackgroundTask]",
+      );
 
       // Schedule next notifications to replenish the buffer
       // Starting from the last scheduled time to avoid gaps or duplicates
@@ -322,7 +197,9 @@ export async function registerBackgroundTasks(): Promise<void> {
       );
     } else {
       console.log(
-        `[BackgroundTask] Background task ${BACKGROUND_CHECK_TASK} already registered`,
+        debugLog(
+          `[BackgroundTask] Background task ${BACKGROUND_CHECK_TASK} already registered`,
+        ),
       );
     }
   } catch (error) {

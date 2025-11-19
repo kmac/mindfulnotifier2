@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Notifications from "expo-notifications";
 import { getRandomReminder } from "@/lib/reminders";
 import {
   scheduleNotification,
@@ -29,6 +30,144 @@ import { MIN_NOTIFICATION_BUFFER } from "@/constants/scheduleConstants";
 
 // AsyncStorage key for persisting the last scheduled notification time
 const LAST_SCHEDULED_TIME_KEY = "lastScheduledNotificationTime";
+
+/**
+ * Extract the absolute fire time from a notification trigger
+ * Handles both CALENDAR (date-based) and TIME_INTERVAL (seconds-based) triggers
+ * @param trigger The notification trigger object
+ * @returns Timestamp in milliseconds, or null if unable to extract
+ */
+export function extractTriggerTime(
+  trigger: Notifications.NotificationTrigger,
+): number | null {
+  // Try to extract date property (CALENDAR triggers)
+  if (trigger && "date" in trigger && trigger.date) {
+    const date = trigger.date;
+    return typeof date === "number" ? date : date.getTime();
+  }
+
+  // Try to extract value property (some trigger types)
+  if (trigger && "value" in trigger && typeof trigger.value === "number") {
+    return trigger.value;
+  }
+
+  // For TIME_INTERVAL triggers, check if there's a nextTriggerDate
+  if (trigger && "nextTriggerDate" in trigger && trigger.nextTriggerDate) {
+    const nextDate = trigger.nextTriggerDate;
+    if (typeof nextDate === "number") {
+      return nextDate;
+    }
+    if (nextDate instanceof Date) {
+      return nextDate.getTime();
+    }
+    if (typeof nextDate === "object" && nextDate && "getTime" in nextDate) {
+      return (nextDate as Date).getTime();
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Debug helper to log trigger properties
+ * Useful for understanding what properties are available in notification triggers
+ */
+export function debugLogTrigger(trigger: Notifications.NotificationTrigger): void {
+  if (!trigger) {
+    console.log(debugLog("[BackgroundTask] Trigger is null/undefined"));
+    return;
+  }
+
+  const props = Object.keys(trigger);
+  console.log(
+    debugLog(`[BackgroundTask] Trigger properties: ${props.join(", ")}`),
+  );
+
+  // Log specific known properties if they exist
+  if ("type" in trigger) {
+    console.log(debugLog(`  - type: ${trigger.type}`));
+  }
+  if ("date" in trigger) {
+    console.log(debugLog(`  - date: ${trigger.date}`));
+  }
+  if ("seconds" in trigger) {
+    console.log(debugLog(`  - seconds: ${trigger.seconds}`));
+  }
+  if ("value" in trigger) {
+    console.log(debugLog(`  - value: ${trigger.value}`));
+  }
+  if ("nextTriggerDate" in trigger) {
+    console.log(debugLog(`  - nextTriggerDate: ${trigger.nextTriggerDate}`));
+  }
+}
+
+/**
+ * Get the last scheduled notification time from existing scheduled notifications
+ * Falls back to AsyncStorage if unable to extract from notifications
+ * @param scheduled Array of scheduled notifications
+ * @param logPrefix Prefix for debug log messages (e.g., "[Controller]" or "[BackgroundTask]")
+ * @returns The last scheduled time, or undefined if not found
+ */
+export async function getLastScheduledTime(
+  scheduled: Notifications.NotificationRequest[],
+  logPrefix: string = "[Controller]",
+): Promise<Date | undefined> {
+  let lastScheduledTime: Date | undefined = undefined;
+
+  if (scheduled.length > 0) {
+    // Get the latest trigger time from all scheduled notifications
+    const triggerTimes = scheduled
+      .map((notif) => extractTriggerTime(notif.trigger))
+      .filter((time): time is number => time !== null);
+
+    if (triggerTimes.length > 0) {
+      const latestTime = Math.max(...triggerTimes);
+      lastScheduledTime = new Date(latestTime);
+      console.log(
+        debugLog(
+          `${logPrefix} Extracted last scheduled time from ${triggerTimes.length}/${scheduled.length} notifications: ${lastScheduledTime}`,
+        ),
+      );
+    } else {
+      console.log(
+        debugLog(
+          `${logPrefix} Could not extract trigger times from ${scheduled.length} scheduled notifications`,
+        ),
+      );
+    }
+  } else {
+    console.log(debugLog(`${logPrefix} Found no scheduled notifications`));
+  }
+
+  // If we couldn't determine lastScheduledTime from notifications,
+  // try to read it from AsyncStorage as a fallback
+  if (!lastScheduledTime) {
+    try {
+      const storedTime = await AsyncStorage.getItem(LAST_SCHEDULED_TIME_KEY);
+      if (storedTime) {
+        lastScheduledTime = new Date(parseInt(storedTime, 10));
+        console.log(
+          debugLog(
+            `${logPrefix} Using stored lastScheduledTime: ${lastScheduledTime}`,
+          ),
+        );
+      } else {
+        console.log(
+          debugLog(
+            `${logPrefix} No stored lastScheduledTime found in AsyncStorage`,
+          ),
+        );
+      }
+    } catch (error) {
+      console.error(
+        `${logPrefix} Failed to read lastScheduledTime from AsyncStorage:`,
+        error,
+      );
+    }
+  }
+
+  return lastScheduledTime;
+}
 
 /**
  * Web-based notification service using setTimeout
@@ -394,8 +533,53 @@ export class Controller {
    */
   async scheduleNextNotification() {
     if (Platform.OS === "android") {
-      // On Android, schedule multiple notifications ahead of time
-      return this.scheduleMultipleNotifications();
+      // On Android, check existing notification buffer before scheduling
+      const scheduled: Notifications.NotificationRequest[] =
+        await Notifications.getAllScheduledNotificationsAsync();
+
+      console.log(
+        debugLog(
+          `[Controller] scheduleNextNotification: ${scheduled.length} notifications already scheduled`,
+        ),
+      );
+
+      // If buffer is healthy, no need to schedule more
+      if (scheduled.length >= MIN_NOTIFICATION_BUFFER) {
+        // Debug: Log the first notification's trigger properties
+        // Uncomment this to debug what properties are available in triggers
+        debugLogTrigger(scheduled[0]?.trigger);
+
+        console.log(
+          debugLog(
+            `[Controller] Notification buffer healthy (${scheduled.length}/${MIN_NOTIFICATION_BUFFER}), skipping scheduling`,
+          ),
+        );
+        return;
+      }
+
+
+      // Buffer is low, need to replenish
+      console.log(
+        debugLog(
+          `[Controller] Notification buffer low (${scheduled.length}/${MIN_NOTIFICATION_BUFFER}), replenishing`,
+        ),
+      );
+
+      // Find the last scheduled notification time to continue from there
+      const lastScheduledTime = await getLastScheduledTime(
+        scheduled,
+        "[Controller]",
+      );
+
+      // Calculate how many notifications to schedule
+      const notificationsToSchedule =
+        MIN_NOTIFICATION_BUFFER - scheduled.length;
+
+      // Schedule notifications to replenish the buffer
+      return this.scheduleMultipleNotifications(
+        notificationsToSchedule,
+        lastScheduledTime,
+      );
     }
 
     console.info("Controller scheduleNextNotification");

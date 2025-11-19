@@ -333,7 +333,7 @@ export default function Logs() {
 
               <List.Item
                 title="Scheduled Notifications"
-                description={`${scheduledCount} notifications in buffer`}
+                description={`${scheduledCount} android notifications scheduled`}
                 left={(props) => <List.Icon {...props} icon="calendar-clock" />}
               />
 
