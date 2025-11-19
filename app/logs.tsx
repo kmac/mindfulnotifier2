@@ -34,6 +34,7 @@ export default function Logs() {
   const [scheduledCount, setScheduledCount] = useState<number>(0);
   const [backgroundTaskStatus, setBackgroundTaskStatus] = useState<string>("");
   const [snackbarVisible, setSnackbarVisible] = useState<boolean>(false);
+  const [snackbarMessage, setSnackbarMessage] = useState<string>("Logs copied to clipboard");
 
   useEffect(() => {
     // Update the next notification time and monitoring data
@@ -210,39 +211,62 @@ export default function Logs() {
     try {
       const logsText = buildLogsText();
       await Clipboard.setStringAsync(logsText);
+      setSnackbarMessage("Logs copied to clipboard");
       setSnackbarVisible(true);
     } catch (error) {
       console.error("Failed to copy logs to clipboard:", error);
+      setSnackbarMessage("Failed to copy logs");
+      setSnackbarVisible(true);
     }
   };
 
   const handleShareLogs = async () => {
     try {
+      console.log("[ShareLogs] Starting share process...");
+
       // Check if sharing is available
       const isAvailable = await Sharing.isAvailableAsync();
+      console.log(`[ShareLogs] Sharing available: ${isAvailable}`);
+
       if (!isAvailable) {
-        console.error("Sharing is not available on this platform");
+        console.error("[ShareLogs] Sharing is not available on this platform");
+        setSnackbarMessage("Sharing is not available on this device");
+        setSnackbarVisible(true);
         return;
       }
 
       // Build the logs text
       const logsText = buildLogsText();
+      console.log(`[ShareLogs] Built logs text (${logsText.length} chars)`);
 
       // Create a temporary file with the logs
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
       const fileName = `mindful-notifier-logs-${timestamp}.txt`;
       const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
 
+      console.log(`[ShareLogs] Writing to file: ${fileUri}`);
       await FileSystem.writeAsStringAsync(fileUri, logsText);
 
+      // Verify file was created
+      const fileInfo = await FileSystem.getInfoAsync(fileUri);
+      console.log(`[ShareLogs] File created: ${fileInfo.exists}, size: ${fileInfo.size}`);
+
       // Share the file
+      console.log("[ShareLogs] Calling shareAsync...");
       await Sharing.shareAsync(fileUri, {
         mimeType: "text/plain",
         dialogTitle: "Share Mindful Notifier Logs",
         UTI: "public.plain-text",
       });
+
+      console.log("[ShareLogs] Share completed successfully");
+      setSnackbarMessage("Logs shared successfully");
+      setSnackbarVisible(true);
     } catch (error) {
-      console.error("Failed to share logs:", error);
+      console.error("[ShareLogs] Failed to share logs:", error);
+      console.error("[ShareLogs] Error details:", JSON.stringify(error, null, 2));
+      setSnackbarMessage(`Failed to share logs: ${error instanceof Error ? error.message : "Unknown error"}`);
+      setSnackbarVisible(true);
     }
   };
 
@@ -432,7 +456,7 @@ export default function Logs() {
           onPress: () => setSnackbarVisible(false),
         }}
       >
-        Logs copied to clipboard
+        {snackbarMessage}
       </Snackbar>
     </ScrollView>
   );
@@ -451,6 +475,7 @@ const styles = StyleSheet.create({
   },
   debugButtons: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     gap: 8,
     marginBottom: 16,

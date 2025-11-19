@@ -196,6 +196,47 @@ function withAppBuildGradle(config) {
 }
 
 /**
+ * Add SEND intent to queries section for expo-sharing
+ * This is required for Android 11+ (API 30+)
+ */
+function withSendIntentQuery(config) {
+  return withAndroidManifest(config, async (config) => {
+    const manifest = config.modResults;
+
+    // Ensure queries array exists
+    if (!manifest.manifest.queries) {
+      manifest.manifest.queries = [];
+    }
+
+    // Check if SEND intent already exists
+    const hasSendIntent = manifest.manifest.queries.some(query => {
+      if (!query.intent) return false;
+      const intents = Array.isArray(query.intent) ? query.intent : [query.intent];
+      return intents.some(intent =>
+        intent.action?.[0]?.$?.['android:name'] === 'android.intent.action.SEND'
+      );
+    });
+
+    if (!hasSendIntent) {
+      // Add SEND intent for sharing functionality
+      manifest.manifest.queries.push({
+        intent: [
+          {
+            action: [{ $: { 'android:name': 'android.intent.action.SEND' } }],
+            data: [{ $: { 'android:mimeType': '*/*' } }]
+          }
+        ]
+      });
+      console.log('✅ Added SEND intent to queries for sharing functionality');
+    } else {
+      console.log('✅ SEND intent already exists in queries');
+    }
+
+    return config;
+  });
+}
+
+/**
  * Main plugin function
  */
 module.exports = function withRawResourceKeep(config) {
@@ -207,6 +248,9 @@ module.exports = function withRawResourceKeep(config) {
 
   // Step 3: Modify build.gradle to add AAPT options
   config = withAppBuildGradle(config);
+
+  // Step 4: Add SEND intent to queries for sharing
+  config = withSendIntentQuery(config);
 
   return config;
 };
