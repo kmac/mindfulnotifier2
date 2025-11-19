@@ -32,6 +32,7 @@ export default function Logs() {
     null,
   );
   const [scheduledCount, setScheduledCount] = useState<number>(0);
+  const [lastScheduledTime, setLastScheduledTime] = useState<Date | null>(null);
   const [backgroundTaskStatus, setBackgroundTaskStatus] = useState<string>("");
   const [snackbarVisible, setSnackbarVisible] = useState<boolean>(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string>("Logs copied to clipboard");
@@ -48,6 +49,31 @@ export default function Logs() {
         try {
           const scheduled = await getScheduledNotifications();
           setScheduledCount(scheduled.length);
+
+          // Find the last scheduled notification (furthest in the future)
+          if (scheduled.length > 0) {
+            const lastScheduled = scheduled.reduce((latest, current) => {
+              const currentTrigger = current.trigger as any;
+              const latestTrigger = latest.trigger as any;
+
+              // Extract the date from the trigger
+              const currentDate = currentTrigger?.value || currentTrigger?.date;
+              const latestDate = latestTrigger?.value || latestTrigger?.date;
+
+              if (!currentDate) return latest;
+              if (!latestDate) return current;
+
+              return new Date(currentDate) > new Date(latestDate) ? current : latest;
+            });
+
+            const lastTrigger = lastScheduled.trigger as any;
+            const lastDate = lastTrigger?.value || lastTrigger?.date;
+            if (lastDate) {
+              setLastScheduledTime(new Date(lastDate));
+            }
+          } else {
+            setLastScheduledTime(null);
+          }
         } catch (error) {
           console.error("Failed to get scheduled notifications:", error);
         }
@@ -164,6 +190,9 @@ export default function Logs() {
     if (Platform.OS === "android" && preferences.isEnabled) {
       logsText += "MONITORING DASHBOARD\n";
       logsText += `Scheduled Notifications: ${scheduledCount} notifications in buffer\n`;
+      if (lastScheduledTime) {
+        logsText += `Last Scheduled: ${formatNotificationTime(lastScheduledTime)}\n`;
+      }
       logsText += `Background Task Status: ${backgroundTaskStatus || "Loading..."}\n`;
       logsText += `Last Notification Replenishment: ${formatLastReplenishTime(preferences.lastBufferReplenishTime)}\n`;
       logsText += "\n";
@@ -357,7 +386,11 @@ export default function Logs() {
 
               <List.Item
                 title="Scheduled Notifications"
-                description={`${scheduledCount} android notifications scheduled`}
+                description={
+                  lastScheduledTime
+                    ? `${scheduledCount} android notifications scheduled\nLast scheduled: ${formatNotificationTime(lastScheduledTime)}`
+                    : `${scheduledCount} android notifications scheduled`
+                }
                 left={(props) => <List.Icon {...props} icon="calendar-clock" />}
               />
 
