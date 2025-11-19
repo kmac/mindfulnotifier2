@@ -507,9 +507,7 @@ export class Controller {
           );
         }
 
-        console.info(
-          `Created ${schedule.scheduleType} scheduler`,
-        );
+        console.info(`Created ${schedule.scheduleType} scheduler`);
       }
 
       // Only cancel existing notifications if we're not continuing from a specific time
@@ -546,7 +544,12 @@ export class Controller {
         scheduleFromTime = nextFireDate.date;
       }
 
-      console.info(`Successfully scheduled ${count} notifications`);
+      console.info(
+        debugLog(
+          `Successfully scheduled ${count} notifications. ` +
+            `Last notification at: ${scheduleFromTime?.toLocaleString()}`,
+        ),
+      );
 
       // Update last buffer replenish time
       store.dispatch(setLastBufferReplenishTime(Date.now()));

@@ -439,10 +439,6 @@ export async function scheduleNotification(
           `vibration: ${vibrationEnabled}, channel: ${channelId}, ` +
           `trigger: ${triggerLog}`,
     );
-    debugLog(
-      `[Notifications] Scheduling notification: ${triggerLog}`,
-        `on channel: ${channelId}`
-    );
 
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
