@@ -27,11 +27,10 @@ import {
 import * as Notifications from "expo-notifications";
 import { store, persistor, RootState } from "@/store/store";
 import { setLastNotificationText } from "@/store/slices/remindersSlice";
-import { addBackgroundTaskRun, addDebugInfo } from "@/store/slices/preferencesSlice";
+import { addBackgroundTaskRun } from "@/store/slices/preferencesSlice";
 import { useFlutterMigration } from "@/hooks/useFlutterMigration";
 import {
   getBackgroundTaskHistory,
-  getBackgroundTaskLogs,
 } from "@/services/backgroundTaskService";
 
 function AppContent() {
@@ -77,8 +76,8 @@ function AppContent() {
         console.log("[App] Initializing app...");
 
         // Load background task history from AsyncStorage and sync to Redux
+        // Note: Debug logs are now persisted via Redux, so only need to sync task run timestamps
         const taskHistory = await getBackgroundTaskHistory();
-        const taskLogs = await getBackgroundTaskLogs();
 
         if (taskHistory.length > 0) {
           console.log(
@@ -87,14 +86,6 @@ function AppContent() {
           // Sync to Redux store
           taskHistory.forEach((timestamp) => {
             store.dispatch(addBackgroundTaskRun(timestamp));
-          });
-        }
-
-        if (taskLogs.length > 0) {
-          console.log(`[App] Found ${taskLogs.length} background task logs`);
-          // Add logs to Redux debugInfo
-          taskLogs.forEach((log) => {
-            store.dispatch(addDebugInfo(log));
           });
         }
 

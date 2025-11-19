@@ -8,7 +8,6 @@ import { Controller } from "./notificationController";
 import { store } from "@/store/store";
 import {
   setLastBufferReplenishTime,
-  addBackgroundTaskRun,
 } from "@/store/slices/preferencesSlice";
 import {
   BACKGROUND_TASK_INTERVAL_MINUTES,
@@ -22,7 +21,6 @@ export const BACKGROUND_CHECK_TASK = "BACKGROUND_CHECK_TASK";
 
 // AsyncStorage keys for background task data
 const BACKGROUND_TASK_HISTORY_KEY = "backgroundTaskHistory";
-const BACKGROUND_TASK_LOGS_KEY = "backgroundTaskLogs";
 
 /**
  * Persist background task run timestamp directly to AsyncStorage
@@ -43,28 +41,6 @@ async function persistBackgroundTaskRun(timestamp: number): Promise<void> {
   } catch (error) {
     console.error("[BackgroundTask] Failed to persist task run:", error);
     debugLog("[BackgroundTask] Failed to persist task run:", error);
-  }
-}
-
-/**
- * Persist background task log message directly to AsyncStorage
- * This is necessary because Redux debugInfo is not persisted
- */
-async function persistBackgroundTaskLog(logMessage: string): Promise<void> {
-  try {
-    const logsJson = await AsyncStorage.getItem(BACKGROUND_TASK_LOGS_KEY);
-    const logs: string[] = logsJson ? JSON.parse(logsJson) : [];
-    logs.push(logMessage);
-
-    // Keep only the last 100 entries
-    const trimmedLogs = logs.slice(-100);
-    await AsyncStorage.setItem(
-      BACKGROUND_TASK_LOGS_KEY,
-      JSON.stringify(trimmedLogs)
-    );
-  } catch (error) {
-    console.error("[BackgroundTask] Failed to persist log:", error);
-    debugLog("[BackgroundTask] Failed to persist log:", error);
   }
 }
 
@@ -99,24 +75,21 @@ async function persistBackgroundTaskLog(logMessage: string): Promise<void> {
 TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
   try {
     const runTimestamp = Date.now();
-    const logMsg = debugLog("[BackgroundTask] Running periodic background check");
-    console.log(logMsg);
+    console.log(debugLog("[BackgroundTask] Running periodic background check"));
 
     // Persist task run to AsyncStorage (Redux store is not hydrated in headless context)
     await persistBackgroundTaskRun(runTimestamp);
-    await persistBackgroundTaskLog(logMsg);
 
     // Check if we need to schedule notifications
     const scheduled: Notifications.NotificationRequest[] =
       await Notifications.getAllScheduledNotificationsAsync();
 
     if (scheduled.length < MIN_NOTIFICATION_BUFFER) {
-      const lowBufferMsg = debugLog(
-        `[BackgroundTask] Notification buffer low: (${scheduled.length}/${MIN_NOTIFICATION_BUFFER})`,
+      console.log(
+        debugLog(
+          `[BackgroundTask] Notification buffer low: (${scheduled.length}/${MIN_NOTIFICATION_BUFFER})`,
+        ),
       );
-      console.log(lowBufferMsg);
-      await persistBackgroundTaskLog(lowBufferMsg);
-
       const controller = Controller.getInstance();
 
       // Find the last scheduled notification time to continue from there
@@ -137,11 +110,11 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
         if (triggerTimes.length > 0) {
           const latestTime = Math.max(...triggerTimes);
           lastScheduledTime = new Date(latestTime);
-          const lastSchedMsg = debugLog(
-            `[BackgroundTask] Last scheduled notification at ${lastScheduledTime}`,
+          console.log(
+            debugLog(
+              `[BackgroundTask] Last scheduled notification at ${lastScheduledTime}`,
+            ),
           );
-          console.log(lastSchedMsg);
-          await persistBackgroundTaskLog(lastSchedMsg);
         }
       }
 
@@ -162,19 +135,18 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
         JSON.stringify(replenishTime)
       );
     } else {
-      const healthyMsg = debugLog(
-        "[BackgroundTask] Notification buffer healthy: " +
-          `(${scheduled.length}/${MIN_NOTIFICATION_BUFFER} notifications)`,
+      console.log(
+        debugLog(
+          "[BackgroundTask] Notification buffer healthy: " +
+            `(${scheduled.length}/${MIN_NOTIFICATION_BUFFER} notifications)`,
+        ),
       );
-      console.log(healthyMsg);
-      await persistBackgroundTaskLog(healthyMsg);
     }
 
     return BackgroundTask.BackgroundTaskResult.Success;
   } catch (error) {
-    const errorMsg = debugLog("[BackgroundTask] Error in background check:", error);
-    console.error(errorMsg);
-    await persistBackgroundTaskLog(errorMsg);
+    debugLog("[BackgroundTask] Error in background check:", error);
+    console.error("[BackgroundTask] Error in background check:", error);
     return BackgroundTask.BackgroundTaskResult.Failed;
   }
 });
@@ -194,27 +166,13 @@ export async function getBackgroundTaskHistory(): Promise<number[]> {
 }
 
 /**
- * Get background task logs from AsyncStorage
- * Returns array of log messages from background task execution
- */
-export async function getBackgroundTaskLogs(): Promise<string[]> {
-  try {
-    const logsJson = await AsyncStorage.getItem(BACKGROUND_TASK_LOGS_KEY);
-    return logsJson ? JSON.parse(logsJson) : [];
-  } catch (error) {
-    console.error("[BackgroundTask] Failed to get task logs:", error);
-    return [];
-  }
-}
-
-/**
- * Clear background task history and logs
+ * Clear background task history data
+ * Note: Debug logs are now persisted via Redux, so only clear AsyncStorage history
  */
 export async function clearBackgroundTaskData(): Promise<void> {
   try {
     await AsyncStorage.multiRemove([
       BACKGROUND_TASK_HISTORY_KEY,
-      BACKGROUND_TASK_LOGS_KEY,
       "lastBufferReplenishTime",
     ]);
   } catch (error) {

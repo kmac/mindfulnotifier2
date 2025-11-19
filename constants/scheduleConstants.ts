@@ -1,7 +1,7 @@
 import { Platform } from "react-native";
 
 // 15 minutes is minimum allowed by Android
-export const BACKGROUND_TASK_INTERVAL_MINUTES = 20;
+export const BACKGROUND_TASK_INTERVAL_MINUTES = 15;
 
 // Maintain at least N upcoming notifications
 export const MIN_NOTIFICATION_BUFFER = 20;
