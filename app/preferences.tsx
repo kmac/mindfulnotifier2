@@ -310,7 +310,7 @@ export default function Preferences() {
             title="Debug Info"
             description={
               preferences.debugInfoEnabled
-                ? "Debug information is visible in the 'About' page"
+                ? "Debug information is visible in the 'Logs' page"
                 : "Debug information is hidden"
             }
             left={(props) => <List.Icon {...props} icon="bug" />}

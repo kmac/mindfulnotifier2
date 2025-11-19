@@ -2,6 +2,7 @@ import React from "react";
 import { View, StyleSheet, Modal, TouchableOpacity } from "react-native";
 import { Drawer, useTheme, Divider } from "react-native-paper";
 import { useRouter, usePathname } from "expo-router";
+import { useAppSelector } from "@/store/store";
 
 interface CustomDrawerProps {
   visible: boolean;
@@ -12,6 +13,9 @@ export default function CustomDrawer({ visible, onClose }: CustomDrawerProps) {
   const theme = useTheme();
   const router = useRouter();
   const pathname = usePathname();
+  const debugInfoEnabled = useAppSelector(
+    (state) => state.preferences.debugInfoEnabled,
+  );
 
   const handleNavigation = (route: string) => {
     router.push(route as any);
@@ -78,6 +82,14 @@ export default function CustomDrawer({ visible, onClose }: CustomDrawerProps) {
               onPress={() => handleNavigation("/about")}
               icon="information"
             />
+            {debugInfoEnabled && (
+              <Drawer.Item
+                label="Logs"
+                active={pathname === "/logs"}
+                onPress={() => handleNavigation("/logs")}
+                icon="file-document-outline"
+              />
+            )}
           </Drawer.Section>
         </View>
 

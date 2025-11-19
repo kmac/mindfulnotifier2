@@ -300,6 +300,13 @@ function AppContent() {
               headerLeft: () => <BackButton />,
             }}
           />
+          <Stack.Screen
+            name="logs"
+            options={{
+              title: "Logs",
+              headerLeft: () => <BackButton />,
+            }}
+          />
         </Stack>
       </PaperProvider>
     </GestureHandlerRootView>
