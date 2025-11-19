@@ -29,19 +29,17 @@ import { store, persistor, RootState } from "@/store/store";
 import { setLastNotificationText } from "@/store/slices/remindersSlice";
 import { addBackgroundTaskRun } from "@/store/slices/preferencesSlice";
 import { useFlutterMigration } from "@/hooks/useFlutterMigration";
-import {
-  getBackgroundTaskHistory,
-} from "@/services/backgroundTaskService";
+import { getBackgroundTaskHistory } from "@/services/backgroundTaskService";
 
 function AppContent() {
   // Perform Flutter migration if needed (runs once on first launch after update)
   const migrationStatus = useFlutterMigration();
   const systemColorScheme = useColorScheme();
   const userColorScheme = useSelector(
-    (state: RootState) => state.preferences.colorScheme
+    (state: RootState) => state.preferences.colorScheme,
   );
   const isEnabled = useSelector(
-    (state: RootState) => state.preferences.isEnabled
+    (state: RootState) => state.preferences.isEnabled,
   );
 
   // Determine which theme to use based on user preference
@@ -71,34 +69,74 @@ function AppContent() {
   useEffect(() => {
     let isMounted = true;
 
-    async function initialize() {
+    console.log("[App] Initializing app...");
+
+    // Configure notification handler FIRST (synchronous, runs once)
+    // This determines how notifications are displayed when app is in foreground
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      }),
+    });
+
+    // Listen for notifications received while the app is in the foreground
+    const notificationListener = addNotificationReceivedListener(
+      (notification) => {
+        console.log("[App] Notification received in foreground:", notification);
+
+        // Update the last notification text when received in foreground
+        const reminderText = notification.request.content.body;
+        if (reminderText) {
+          store.dispatch(setLastNotificationText(reminderText));
+        }
+      },
+    );
+
+    // Listen for notification taps (when user interacts with notification)
+    const responseListener = addNotificationResponseListener(
+      async (response) => {
+        console.log("[App] Notification response received:", response);
+
+        // Dismiss all presented notifications when user taps any notification
+        // This clears the notification tray of accumulated notifications
+        try {
+          await Notifications.dismissAllNotificationsAsync();
+          console.log("[App] Dismissed all presented notifications");
+        } catch (error) {
+          console.error("[App] Failed to dismiss notifications:", error);
+        }
+
+        const reminderText = response.notification.request.content.body;
+        if (reminderText) {
+          store.dispatch(setLastNotificationText(reminderText));
+        }
+      },
+    );
+
+    // Perform async initialization tasks
+    async function initializeAsync() {
       try {
-        console.log("[App] Initializing app...");
-
         // Load background task history from AsyncStorage and sync to Redux
-        // Note: Debug logs are now persisted via Redux, so only need to sync task run timestamps
         const taskHistory = await getBackgroundTaskHistory();
-
         if (taskHistory.length > 0) {
           console.log(
-            `[App] Found ${taskHistory.length} background task runs in storage`
+            `[App] Found ${taskHistory.length} background task runs in storage`,
           );
-          // Sync to Redux store
           taskHistory.forEach((timestamp) => {
             store.dispatch(addBackgroundTaskRun(timestamp));
           });
         }
 
-        // // Initialize notifications and request permissions
-        const permissionsGranted = await initializeNotifications();
-        // if (!permissionsGranted) {
-        //   console.warn("[App] Notification permissions not granted");
-        //   // Continue anyway - user can enable later
-        // }
+        // Initialize notification channels (Android) and request permissions
+        // Note: We continue even if permissions not granted - user can enable later
+        await initializeNotifications();
 
+        // Start the notification controller if enabled
         if (isEnabled) {
           const controller = Controller.getInstance();
-
           await controller.initialize(); // sets up alarm service
           await controller.enable(); // starts scheduling
           console.log("[App] Controller enabled");
@@ -115,33 +153,8 @@ function AppContent() {
       }
     }
 
-    initialize();
-
-    // Listen for notifications received while the app is in the foreground
-    const notificationListener = addNotificationReceivedListener(
-      (notification) => {
-        console.log("[App] Notification received in foreground:", notification);
-      },
-    );
-
-    // Update the last notification text when user taps notification
-    const responseListener = addNotificationResponseListener(async (response) => {
-      console.log("[App] Notification response received:", response);
-
-      // Dismiss all presented notifications when user taps any notification
-      // This clears the notification tray of accumulated notifications
-      try {
-        await Notifications.dismissAllNotificationsAsync();
-        console.log("[App] Dismissed all presented notifications");
-      } catch (error) {
-        console.error("[App] Failed to dismiss notifications:", error);
-      }
-
-      const reminderText = response.notification.request.content.body;
-      if (reminderText) {
-        store.dispatch(setLastNotificationText(reminderText));
-      }
-    });
+    // Start async initialization
+    initializeAsync();
 
     // Cleanup on unmount
     return () => {
@@ -169,7 +182,7 @@ function AppContent() {
         // For other screens, navigate back to index
         router.push("/");
         return true; // Prevent default back behavior
-      }
+      },
     );
 
     return () => backHandler.remove();
@@ -195,7 +208,7 @@ function AppContent() {
       Controller.getInstance()
         .disable()
         .catch((error) =>
-          console.error("[App] Failed to disable controller on exit:", error)
+          console.error("[App] Failed to disable controller on exit:", error),
         );
     }
     BackHandler.exitApp();
@@ -222,7 +235,9 @@ function AppContent() {
               </Paragraph>
             </Dialog.Content>
             <Dialog.Actions>
-              <Button onPress={() => setExitDialogVisible(false)}>Cancel</Button>
+              <Button onPress={() => setExitDialogVisible(false)}>
+                Cancel
+              </Button>
               <Button onPress={handleExitApp}>Exit</Button>
             </Dialog.Actions>
           </Dialog>

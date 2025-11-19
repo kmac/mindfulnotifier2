@@ -16,17 +16,8 @@ export type { NotificationConfig };
 
 /**
  * Platform-specific notification handlers
+ * Note: Notification handler is configured in app/_layout.tsx during initialization
  */
-
-// Configure how notifications are handled when the app is in foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
 
 export async function isPermissionsGranted(): Promise<boolean> {
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -194,18 +185,16 @@ async function createNotificationChannels(): Promise<void> {
 }
 
 /**
- * Initialize notifications and request permissions
+ * Initialize notifications
  * Sets up notification channels for Android
  * @returns true if permissions granted, false otherwise
  */
-export async function initializeNotifications(): Promise<boolean> {
+export async function initializeNotifications() {
   console.log("[Notifications] Initializing notifications");
 
   if (Platform.OS === "android") {
     await createNotificationChannels();
   }
-  return true;
-  // return await requestPermissions();
 }
 
 /**
