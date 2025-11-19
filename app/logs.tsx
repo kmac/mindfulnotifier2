@@ -1,4 +1,11 @@
-import { Surface, Text, List, Button, useTheme } from "react-native-paper";
+import {
+  Surface,
+  Text,
+  List,
+  Button,
+  useTheme,
+  Snackbar,
+} from "react-native-paper";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import { clearDebugInfoAsync } from "@/store/slices/preferencesSlice";
@@ -13,6 +20,9 @@ import { getSelectedSoundUri, isVibrationEnabled } from "@/lib/sound";
 import { useState, useEffect } from "react";
 import { Platform } from "react-native";
 import { debugLog } from "@/utils/util";
+import * as Clipboard from "expo-clipboard";
+import * as Sharing from "expo-sharing";
+import * as FileSystem from "expo-file-system";
 
 export default function Logs() {
   const dispatch = useAppDispatch();
@@ -23,6 +33,7 @@ export default function Logs() {
   );
   const [scheduledCount, setScheduledCount] = useState<number>(0);
   const [backgroundTaskStatus, setBackgroundTaskStatus] = useState<string>("");
+  const [snackbarVisible, setSnackbarVisible] = useState<boolean>(false);
 
   useEffect(() => {
     // Update the next notification time and monitoring data
@@ -136,6 +147,105 @@ export default function Logs() {
     }
   };
 
+  const buildLogsText = (): string => {
+    // Build the logs text
+    let logsText = "=== Mindful Notifier Debug Logs ===\n\n";
+
+    // Service Status
+    logsText += "SERVICE STATUS\n";
+    logsText += `Service State: ${preferences.isEnabled ? "Active - Notifications are being scheduled" : "Inactive - Service is stopped"}\n`;
+    if (preferences.isEnabled && nextNotificationTime) {
+      logsText += `Next Notification: ${formatNotificationTime(nextNotificationTime)}\n`;
+    }
+    logsText += "\n";
+
+    // Android-specific monitoring data
+    if (Platform.OS === "android" && preferences.isEnabled) {
+      logsText += "MONITORING DASHBOARD\n";
+      logsText += `Scheduled Notifications: ${scheduledCount} notifications in buffer\n`;
+      logsText += `Background Task Status: ${backgroundTaskStatus || "Loading..."}\n`;
+      logsText += `Last Notification Replenishment: ${formatLastReplenishTime(preferences.lastBufferReplenishTime)}\n`;
+      logsText += "\n";
+    }
+
+    // Background Task Run History
+    if (
+      Platform.OS === "android" &&
+      preferences.backgroundTaskRunHistory.length > 0
+    ) {
+      logsText += `BACKGROUND TASK RUN HISTORY (Last ${preferences.backgroundTaskRunHistory.length})\n`;
+      preferences.backgroundTaskRunHistory
+        .slice()
+        .reverse()
+        .forEach((timestamp, index) => {
+          const date = new Date(timestamp);
+          const timeStr = date.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+          const dateStr = date.toLocaleDateString();
+          logsText += `${index + 1}. ${dateStr} ${timeStr} (${formatLastReplenishTime(timestamp)})\n`;
+        });
+      logsText += "\n";
+    }
+
+    // Debug Messages
+    logsText += "DEBUG MESSAGES\n";
+    if (
+      Array.isArray(preferences.debugInfo) &&
+      preferences.debugInfo.length > 0
+    ) {
+      preferences.debugInfo.forEach((info) => {
+        logsText += `${String(info)}\n`;
+      });
+    } else {
+      logsText += "No debug information available\n";
+    }
+
+    return logsText;
+  };
+
+  const handleCopyLogs = async () => {
+    try {
+      const logsText = buildLogsText();
+      await Clipboard.setStringAsync(logsText);
+      setSnackbarVisible(true);
+    } catch (error) {
+      console.error("Failed to copy logs to clipboard:", error);
+    }
+  };
+
+  const handleShareLogs = async () => {
+    try {
+      // Check if sharing is available
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (!isAvailable) {
+        console.error("Sharing is not available on this platform");
+        return;
+      }
+
+      // Build the logs text
+      const logsText = buildLogsText();
+
+      // Create a temporary file with the logs
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const fileName = `mindful-notifier-logs-${timestamp}.txt`;
+      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+
+      await FileSystem.writeAsStringAsync(fileUri, logsText);
+
+      // Share the file
+      await Sharing.shareAsync(fileUri, {
+        mimeType: "text/plain",
+        dialogTitle: "Share Mindful Notifier Logs",
+        UTI: "public.plain-text",
+      });
+    } catch (error) {
+      console.error("Failed to share logs:", error);
+    }
+  };
+
   return (
     <ScrollView
       style={styles.scrollView}
@@ -143,26 +253,9 @@ export default function Logs() {
     >
       <Surface style={styles.container}>
         <View style={styles.debugSection}>
-          <View style={styles.debugHeader}>
-            <Text variant="titleMedium" style={styles.debugTitle}>
-              Debug Information
-            </Text>
-            <View style={styles.debugButtons}>
-              {Platform.OS === "android" && (
-                <Button
-                  mode="outlined"
-                  onPress={handleDebugChannels}
-                  compact
-                  style={{ marginRight: 8 }}
-                >
-                  Debug Channels
-                </Button>
-              )}
-              <Button mode="outlined" onPress={handleClearDebugInfo} compact>
-                Clear
-              </Button>
-            </View>
-          </View>
+          <Text variant="titleLarge" style={styles.debugTitle}>
+            Debug Information
+          </Text>
 
           {/* Service Status Section */}
           <View style={styles.debugSubsection}>
@@ -191,6 +284,43 @@ export default function Logs() {
                 description={formatNotificationTime(nextNotificationTime)}
                 left={(props) => <List.Icon {...props} icon="bell-outline" />}
               />
+            )}
+          </View>
+          <View style={styles.debugButtons}>
+            <Button
+              mode="outlined"
+              icon="notification-clear-all"
+              onPress={handleClearDebugInfo}
+              compact
+            >
+              Clear
+            </Button>
+            <Button
+              mode="outlined"
+              onPress={handleCopyLogs}
+              compact
+              icon="content-copy"
+            >
+              Copy Logs
+            </Button>
+            {Platform.OS !== "web" && (
+              <Button
+                mode="outlined"
+                onPress={handleShareLogs}
+                compact
+                icon="share-variant"
+              >
+                Share
+              </Button>
+            )}
+            {Platform.OS === "android" && (
+              <Button
+                mode="outlined"
+                onPress={handleDebugChannels}
+                compact
+              >
+                Debug Channels
+              </Button>
             )}
           </View>
 
@@ -293,6 +423,17 @@ export default function Logs() {
           )}
         </View>
       </Surface>
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={3000}
+        action={{
+          label: "OK",
+          onPress: () => setSnackbarVisible(false),
+        }}
+      >
+        Logs copied to clipboard
+      </Snackbar>
     </ScrollView>
   );
 }
@@ -308,18 +449,15 @@ const styles = StyleSheet.create({
   debugSection: {
     marginTop: 8,
   },
-  debugHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
   debugButtons: {
-    flexDirection: "column",
+    flexDirection: "row",
     alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
   },
   debugTitle: {
     fontWeight: "600",
+    marginBottom: 16,
   },
   debugSubsection: {
     marginBottom: 16,

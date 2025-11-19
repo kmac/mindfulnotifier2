@@ -219,7 +219,7 @@ export default function Index() {
             onPress={handleToggleVibration}
           />
         </View>
-        {__DEV__ && (
+        {false && __DEV__ && (
           <View style={styles.testRow}>
             <Button
               mode="outlined"
