@@ -213,6 +213,23 @@ Handles Android background task registration and notification scheduling:
 
 **This is why we pre-schedule 20 notifications** - The actual notification delivery relies on AlarmManager (via expo-notifications), which DOES provide exact timing. The background task is only a safety net to replenish the buffer.
 
+#### Backgrounding vs Killing the app
+
+Minimizing (Backgrounding) the app:
+- App process stays alive in memory
+- All app state is preserved
+- Background services continue running
+- When you return via recent apps, the app resumes instantly from where you left off
+- Android activity lifecycle: onPause() → onStop()
+
+Killing the app:
+- App process is terminated completely
+- All state is lost (unless persisted)
+- Background services are stopped
+- When you relaunch, it's a fresh start
+- Android activity lifecycle: onPause() → onStop() → onDestroy() → process killed
+
+
 #### Key Functions
 
 **Setup**:
