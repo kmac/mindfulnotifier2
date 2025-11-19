@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getRandomReminder } from "@/lib/reminders";
 import {
   scheduleNotification,
@@ -24,6 +25,10 @@ import {
   setNotificationsGranted,
 } from "@/store/slices/preferencesSlice";
 import { debugLog } from "@/utils/util";
+import { MIN_NOTIFICATION_BUFFER } from "@/constants/scheduleConstants";
+
+// AsyncStorage key for persisting the last scheduled notification time
+const LAST_SCHEDULED_TIME_KEY = "lastScheduledNotificationTime";
 
 /**
  * Web-based notification service using setTimeout
@@ -467,7 +472,10 @@ export class Controller {
    * @param count Number of notifications to schedule
    * @param fromTime Optional time to start scheduling from (uses last scheduled notification time to avoid canceling)
    */
-  async scheduleMultipleNotifications(count: number = 40, fromTime?: Date) {
+  async scheduleMultipleNotifications(
+    count: number = MIN_NOTIFICATION_BUFFER,
+    fromTime?: Date,
+  ) {
     console.info(
       debugLog(
         `Controller scheduleMultipleNotifications (count=${count}, fromTime=${fromTime})`,
@@ -553,6 +561,15 @@ export class Controller {
 
       // Update last buffer replenish time
       store.dispatch(setLastBufferReplenishTime(Date.now()));
+
+      // Persist the last scheduled time to AsyncStorage for reliability
+      // This ensures we can continue scheduling even if the notification list is empty
+      if (scheduleFromTime) {
+        await AsyncStorage.setItem(
+          LAST_SCHEDULED_TIME_KEY,
+          scheduleFromTime.getTime().toString(),
+        );
+      }
     } catch (error) {
       console.error("Failed to schedule multiple notifications:", error);
       const errorMessage =

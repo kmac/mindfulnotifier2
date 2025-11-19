@@ -4,7 +4,7 @@ import { Platform } from "react-native";
 export const BACKGROUND_TASK_INTERVAL_MINUTES = 15;
 
 // Maintain at least N upcoming notifications
-export const MIN_NOTIFICATION_BUFFER = 20;
+export const MIN_NOTIFICATION_BUFFER = 30;
 
 export const MAX_BACKGROUND_TASK_HISTORY = 10;
 export const MAX_DEBUG_INFO = 100;
