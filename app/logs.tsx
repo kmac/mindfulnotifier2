@@ -3,7 +3,6 @@ import {
   Text,
   List,
   Button,
-  useTheme,
   Snackbar,
 } from "react-native-paper";
 import { ScrollView, StyleSheet, View } from "react-native";
@@ -22,11 +21,10 @@ import { Platform } from "react-native";
 import { debugLog } from "@/utils/util";
 import * as Clipboard from "expo-clipboard";
 import * as Sharing from "expo-sharing";
-import * as FileSystem from "expo-file-system";
+import { File, Paths } from "expo-file-system";
 
 export default function Logs() {
   const dispatch = useAppDispatch();
-  const theme = useTheme();
   const preferences = useAppSelector((state) => state.preferences);
   const [nextNotificationTime, setNextNotificationTime] = useState<Date | null>(
     null,
@@ -35,7 +33,9 @@ export default function Logs() {
   const [lastScheduledTime, setLastScheduledTime] = useState<Date | null>(null);
   const [backgroundTaskStatus, setBackgroundTaskStatus] = useState<string>("");
   const [snackbarVisible, setSnackbarVisible] = useState<boolean>(false);
-  const [snackbarMessage, setSnackbarMessage] = useState<string>("Logs copied to clipboard");
+  const [snackbarMessage, setSnackbarMessage] = useState<string>(
+    "Logs copied to clipboard",
+  );
 
   useEffect(() => {
     // Update the next notification time and monitoring data
@@ -63,7 +63,9 @@ export default function Logs() {
               if (!currentDate) return latest;
               if (!latestDate) return current;
 
-              return new Date(currentDate) > new Date(latestDate) ? current : latest;
+              return new Date(currentDate) > new Date(latestDate)
+                ? current
+                : latest;
             });
 
             const lastTrigger = lastScheduled.trigger as any;
@@ -250,6 +252,7 @@ export default function Logs() {
   };
 
   const handleShareLogs = async () => {
+    let cacheFile: File | undefined = undefined;
     try {
       console.log("[ShareLogs] Starting share process...");
 
@@ -271,18 +274,20 @@ export default function Logs() {
       // Create a temporary file with the logs
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
       const fileName = `mindful-notifier-logs-${timestamp}.txt`;
-      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
 
-      console.log(`[ShareLogs] Writing to file: ${fileUri}`);
-      await FileSystem.writeAsStringAsync(fileUri, logsText);
+      cacheFile = new File(Paths.cache, fileName);
+      console.log(`[ShareLogs] Writing to file: ${cacheFile}`);
+      cacheFile.create(); // can throw an error if the file already exists or no permission to create it
+      cacheFile.write(logsText);
 
       // Verify file was created
-      const fileInfo = await FileSystem.getInfoAsync(fileUri);
-      console.log(`[ShareLogs] File created: ${fileInfo.exists}, size: ${fileInfo.size}`);
+      console.log(
+        `[ShareLogs] File created: ${cacheFile.uri}, size: ${cacheFile.size}`,
+      );
 
       // Share the file
       console.log("[ShareLogs] Calling shareAsync...");
-      await Sharing.shareAsync(fileUri, {
+      await Sharing.shareAsync(cacheFile.uri, {
         mimeType: "text/plain",
         dialogTitle: "Share Mindful Notifier Logs",
         UTI: "public.plain-text",
@@ -293,9 +298,22 @@ export default function Logs() {
       setSnackbarVisible(true);
     } catch (error) {
       console.error("[ShareLogs] Failed to share logs:", error);
-      console.error("[ShareLogs] Error details:", JSON.stringify(error, null, 2));
-      setSnackbarMessage(`Failed to share logs: ${error instanceof Error ? error.message : "Unknown error"}`);
+      console.error(
+        "[ShareLogs] Error details:",
+        JSON.stringify(error, null, 2),
+      );
+      setSnackbarMessage(
+        `Failed to share logs: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
       setSnackbarVisible(true);
+    } finally {
+      if (cacheFile && cacheFile.exists) {
+        try {
+          cacheFile.delete();
+        } catch (error) {
+          console.error("[ShareLogs] Failed to delete cache file", error);
+        }
+      }
     }
   };
 
@@ -367,11 +385,7 @@ export default function Logs() {
               </Button>
             )}
             {Platform.OS === "android" && (
-              <Button
-                mode="outlined"
-                onPress={handleDebugChannels}
-                compact
-              >
+              <Button mode="outlined" onPress={handleDebugChannels} compact>
                 Debug Channels
               </Button>
             )}
