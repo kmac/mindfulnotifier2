@@ -557,7 +557,18 @@ export class Controller {
         "[Controller]",
       );
 
-      // Calculate how many notifications to schedule
+      // If we can't determine lastScheduledTime, we need to do a full refresh
+      // This prevents canceling existing notifications and only scheduling the gap
+      if (!lastScheduledTime) {
+        console.log(
+          debugLog(
+            `[Controller] Cannot determine lastScheduledTime, scheduling full buffer`,
+          ),
+        );
+        return this.scheduleMultipleNotifications(MIN_NOTIFICATION_BUFFER, undefined);
+      }
+
+      // Calculate how many notifications to schedule to fill the gap
       const notificationsToSchedule =
         MIN_NOTIFICATION_BUFFER - scheduled.length;
 

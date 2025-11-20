@@ -76,13 +76,6 @@ export class WebAlarmService extends AlarmService {
 
     // Set running to false immediately to ensure consistent state
     this.running = false;
-
-    try {
-      await cancelAllScheduled();
-    } catch (error) {
-      console.error("[WebAlarmService] Failed to disable:", error);
-      throw error;
-    }
   }
 
   async shutdown(): Promise<void> {
@@ -155,8 +148,6 @@ export class AndroidAlarmService extends AlarmService {
     this.running = false;
 
     try {
-      await cancelAllScheduled();
-
       // Unregister background tasks
       await unregisterBackgroundTasks();
 

@@ -222,7 +222,6 @@ export default function Logs() {
       logsText += `BACKGROUND TASK RUN HISTORY (Last ${preferences.backgroundTaskRunHistory.length})\n`;
       preferences.backgroundTaskRunHistory
         .slice()
-        .reverse()
         .forEach((timestamp, index) => {
           const date = new Date(timestamp);
           const timeStr = date.toLocaleTimeString([], {

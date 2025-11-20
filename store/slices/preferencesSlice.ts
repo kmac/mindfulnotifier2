@@ -86,10 +86,13 @@ const preferencesSlice = createSlice({
       state.lastBufferReplenishTime = action.payload;
     },
     addBackgroundTaskRun: (state, action: PayloadAction<number>) => {
-      // Keep only the last N run timestamps
-      state.backgroundTaskRunHistory.push(action.payload);
-      if (state.backgroundTaskRunHistory.length > MAX_BACKGROUND_TASK_HISTORY) {
-        state.backgroundTaskRunHistory = state.backgroundTaskRunHistory.slice(-MAX_BACKGROUND_TASK_HISTORY);
+      // Only add if this timestamp doesn't already exist (deduplication)
+      if (!state.backgroundTaskRunHistory.includes(action.payload)) {
+        state.backgroundTaskRunHistory.push(action.payload);
+        // Keep only the last N run timestamps
+        if (state.backgroundTaskRunHistory.length > MAX_BACKGROUND_TASK_HISTORY) {
+          state.backgroundTaskRunHistory = state.backgroundTaskRunHistory.slice(-MAX_BACKGROUND_TASK_HISTORY);
+        }
       }
     },
     setBackgroundTaskIntervalMinutes: (state, action: PayloadAction<number>) => {

@@ -151,15 +151,14 @@ export async function getBackgroundTaskHistory(): Promise<number[]> {
 }
 
 /**
- * Clear background task history data
- * Note: Debug logs are now persisted via Redux, so only clear AsyncStorage history
+ * Clear background task history and debug data
+ * Note: This only clears debug/monitoring data, NOT operational data like lastScheduledTime
  */
 export async function clearBackgroundTaskData(): Promise<void> {
   try {
     await AsyncStorage.multiRemove([
       BACKGROUND_TASK_HISTORY_KEY,
       "lastBufferReplenishTime",
-      LAST_SCHEDULED_TIME_KEY,
     ]);
   } catch (error) {
     console.error("[BackgroundTask] Failed to clear task data:", error);
