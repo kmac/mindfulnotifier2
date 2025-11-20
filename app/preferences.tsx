@@ -1,4 +1,11 @@
-import { ScrollView, StyleSheet, View, Platform, Alert, AppState } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  View,
+  Platform,
+  Alert,
+  AppState,
+} from "react-native";
 import {
   Button,
   Surface,
@@ -7,6 +14,7 @@ import {
   Divider,
   List,
   Switch,
+  TextInput,
 } from "react-native-paper";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import {
@@ -18,16 +26,34 @@ import {
   setBackgroundImageEnabled,
   setDebugInfoEnabled,
   clearDebugInfoAsync,
+  setBackgroundTaskIntervalMinutes,
+  setMinNotificationBuffer,
 } from "@/store/slices/preferencesSlice";
+import {
+  BACKGROUND_TASK_INTERVAL_MINUTES,
+  MIN_NOTIFICATION_BUFFER,
+} from "@/constants/scheduleConstants";
 import { isPermissionsGranted, requestPermissions } from "@/lib/notifications";
-import { openBatteryOptimizationSettings, isBatteryOptimizationDisabled } from "@/lib/batteryOptimization";
+import {
+  openBatteryOptimizationSettings,
+  isBatteryOptimizationDisabled,
+} from "@/lib/batteryOptimization";
 import { debugLog } from "@/utils/util";
 import { useEffect, useState } from "react";
 
 export default function Preferences() {
   const dispatch = useAppDispatch();
   const preferences = useAppSelector((state) => state.preferences);
-  const [batteryOptimizationDisabled, setBatteryOptimizationDisabled] = useState<boolean | null>(null);
+  const [batteryOptimizationDisabled, setBatteryOptimizationDisabled] =
+    useState<boolean | null>(null);
+  const [taskIntervalInput, setTaskIntervalInput] = useState(
+    preferences.backgroundTaskIntervalMinutes?.toString() ||
+      BACKGROUND_TASK_INTERVAL_MINUTES.toString(),
+  );
+  const [notificationBufferInput, setNotificationBufferInput] = useState(
+    preferences.minNotificationBuffer?.toString() ||
+      MIN_NOTIFICATION_BUFFER.toString(),
+  );
 
   useEffect(() => {
     // Check battery optimization status when component mounts
@@ -36,15 +62,18 @@ export default function Preferences() {
       setBatteryOptimizationDisabled(status);
     }
 
-    if (Platform.OS === 'android') {
+    if (Platform.OS === "android") {
       checkBatteryStatus();
 
       // Re-check when app comes to foreground
-      const subscription = AppState.addEventListener('change', (nextAppState) => {
-        if (nextAppState === 'active') {
-          checkBatteryStatus();
-        }
-      });
+      const subscription = AppState.addEventListener(
+        "change",
+        (nextAppState) => {
+          if (nextAppState === "active") {
+            checkBatteryStatus();
+          }
+        },
+      );
 
       return () => {
         subscription.remove();
@@ -77,6 +106,31 @@ export default function Preferences() {
     }
   };
 
+  const handleBackgroundTaskIntervalChange = (value: string) => {
+    setTaskIntervalInput(value);
+    const numValue = parseInt(value, 10);
+    if (!isNaN(numValue) && numValue >= 1) {
+      dispatch(setBackgroundTaskIntervalMinutes(numValue));
+    }
+  };
+
+  const handleMinNotificationBufferChange = (value: string) => {
+    setNotificationBufferInput(value);
+    const numValue = parseInt(value, 10);
+    if (!isNaN(numValue) && numValue >= 1) {
+      dispatch(setMinNotificationBuffer(numValue));
+    }
+  };
+
+  const handleResetAdvancedSettings = () => {
+    dispatch(
+      setBackgroundTaskIntervalMinutes(BACKGROUND_TASK_INTERVAL_MINUTES),
+    );
+    dispatch(setMinNotificationBuffer(MIN_NOTIFICATION_BUFFER));
+    setTaskIntervalInput(BACKGROUND_TASK_INTERVAL_MINUTES.toString());
+    setNotificationBufferInput(MIN_NOTIFICATION_BUFFER.toString());
+  };
+
   async function handleNotificationPermission() {
     const granted = await isPermissionsGranted();
     if (granted) {
@@ -93,10 +147,10 @@ export default function Preferences() {
   }
 
   async function handleBatteryOptimization() {
-    if (Platform.OS !== 'android') {
+    if (Platform.OS !== "android") {
       Alert.alert(
-        'Not Available',
-        'Battery optimization settings are only available on Android devices.'
+        "Not Available",
+        "Battery optimization settings are only available on Android devices.",
       );
       return;
     }
@@ -111,11 +165,11 @@ export default function Preferences() {
       }, 1000);
     } catch (error) {
       Alert.alert(
-        'Error',
-        'Failed to open battery optimization settings. Please check your device settings manually.'
+        "Error",
+        "Failed to open battery optimization settings. Please check your device settings manually.",
       );
-      console.error('Failed to open battery optimization settings:', error);
-      debugLog('Failed to open battery optimization settings:', error);
+      console.error("Failed to open battery optimization settings:", error);
+      debugLog("Failed to open battery optimization settings:", error);
     }
   }
 
@@ -253,12 +307,16 @@ export default function Preferences() {
             )}
           />
           {preferences.notificationsGranted || (
-            <Button mode="contained" onPress={handleNotificationPermission} style={styles.actionButton}>
+            <Button
+              mode="contained"
+              onPress={handleNotificationPermission}
+              style={styles.actionButton}
+            >
               Request Notification Permissions
             </Button>
           )}
 
-          {Platform.OS === 'android' && (
+          {Platform.OS === "android" && (
             <>
               <List.Item
                 title="Battery Optimization"
@@ -266,8 +324,8 @@ export default function Preferences() {
                   batteryOptimizationDisabled === true
                     ? "Battery optimization is disabled - notifications should work reliably"
                     : batteryOptimizationDisabled === false
-                    ? "Battery optimization is enabled - this may affect background notifications"
-                    : "Checking battery optimization status..."
+                      ? "Battery optimization is enabled - this may affect background notifications"
+                      : "Checking battery optimization status..."
                 }
                 descriptionNumberOfLines={3}
                 left={(props) => (
@@ -277,14 +335,18 @@ export default function Preferences() {
                       batteryOptimizationDisabled === true
                         ? "check-circle"
                         : batteryOptimizationDisabled === false
-                        ? "alert-circle"
-                        : "battery-heart"
+                          ? "alert-circle"
+                          : "battery-heart"
                     }
                   />
                 )}
               />
               {batteryOptimizationDisabled === false && (
-                <Button mode="outlined" onPress={handleBatteryOptimization} style={styles.actionButton}>
+                <Button
+                  mode="outlined"
+                  onPress={handleBatteryOptimization}
+                  style={styles.actionButton}
+                >
                   Open Battery Settings
                 </Button>
               )}
@@ -305,6 +367,18 @@ export default function Preferences() {
               />
             )}
           />
+        </View>
+
+        <Divider style={styles.divider} />
+
+        {/* Advanced Section */}
+        <View style={styles.section}>
+          <Text variant="titleLarge" style={styles.sectionTitle}>
+            Advanced Settings
+          </Text>
+          <Text variant="bodyMedium" style={styles.sectionDescription}>
+            Configure advanced scheduling parameters. Use with caution.
+          </Text>
 
           <List.Item
             title="Debug Info"
@@ -321,6 +395,46 @@ export default function Preferences() {
               />
             )}
           />
+          <View style={[styles.subsection, { marginTop: 16 }]}>
+            <TextInput
+              label="Background Task Interval (minutes)"
+              value={taskIntervalInput}
+              onChangeText={handleBackgroundTaskIntervalChange}
+              keyboardType="numeric"
+              mode="outlined"
+              style={styles.input}
+              right={<TextInput.Affix text="min" />}
+            />
+            <Text variant="bodySmall" style={styles.helperText}>
+              How often the background task runs to schedule notifications.
+              Default: {BACKGROUND_TASK_INTERVAL_MINUTES} minutes. Android
+              minimum is 15 minutes.
+            </Text>
+          </View>
+
+          <View style={styles.subsection}>
+            <TextInput
+              label="Notification Buffer Size"
+              value={notificationBufferInput}
+              onChangeText={handleMinNotificationBufferChange}
+              keyboardType="numeric"
+              mode="outlined"
+              style={styles.input}
+            />
+            <Text variant="bodySmall" style={styles.helperText}>
+              Minimum number of notifications to maintain in the buffer.
+              Default: {MIN_NOTIFICATION_BUFFER} notifications.
+            </Text>
+          </View>
+
+          <Button
+            mode="outlined"
+            onPress={handleResetAdvancedSettings}
+            style={styles.actionButton}
+            icon="restore"
+          >
+            Reset to Defaults
+          </Button>
         </View>
       </Surface>
     </ScrollView>
@@ -368,5 +482,13 @@ const styles = StyleSheet.create({
   actionButton: {
     marginVertical: 8,
     marginHorizontal: 16,
+  },
+  input: {
+    marginBottom: 8,
+  },
+  helperText: {
+    opacity: 0.7,
+    marginBottom: 12,
+    marginHorizontal: 4,
   },
 });

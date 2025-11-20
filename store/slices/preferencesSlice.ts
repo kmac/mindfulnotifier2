@@ -1,4 +1,4 @@
-import { MAX_BACKGROUND_TASK_HISTORY, MAX_DEBUG_INFO } from '@/constants/scheduleConstants';
+import { MAX_BACKGROUND_TASK_HISTORY, MAX_DEBUG_INFO, BACKGROUND_TASK_INTERVAL_MINUTES, MIN_NOTIFICATION_BUFFER } from '@/constants/scheduleConstants';
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
 export type ColorScheme = 'light' | 'dark' | 'auto';
@@ -14,6 +14,8 @@ export interface PreferencesState {
   debugInfo: string[];
   lastBufferReplenishTime: number | null; // timestamp
   backgroundTaskRunHistory: number[]; // Array of timestamps when background task ran
+  backgroundTaskIntervalMinutes: number;
+  minNotificationBuffer: number;
 }
 
 const initialState: PreferencesState = {
@@ -27,6 +29,8 @@ const initialState: PreferencesState = {
   debugInfo: [],
   lastBufferReplenishTime: null,
   backgroundTaskRunHistory: [],
+  backgroundTaskIntervalMinutes: BACKGROUND_TASK_INTERVAL_MINUTES,
+  minNotificationBuffer: MIN_NOTIFICATION_BUFFER,
 };
 
 /**
@@ -88,6 +92,12 @@ const preferencesSlice = createSlice({
         state.backgroundTaskRunHistory = state.backgroundTaskRunHistory.slice(-MAX_BACKGROUND_TASK_HISTORY);
       }
     },
+    setBackgroundTaskIntervalMinutes: (state, action: PayloadAction<number>) => {
+      state.backgroundTaskIntervalMinutes = action.payload;
+    },
+    setMinNotificationBuffer: (state, action: PayloadAction<number>) => {
+      state.minNotificationBuffer = action.payload;
+    },
     resetPreferences: () => initialState,
   },
   extraReducers: (builder) => {
@@ -111,6 +121,8 @@ export const {
   clearDebugInfo,
   setLastBufferReplenishTime,
   addBackgroundTaskRun,
+  setBackgroundTaskIntervalMinutes,
+  setMinNotificationBuffer,
   resetPreferences,
 } = preferencesSlice.actions;
 
