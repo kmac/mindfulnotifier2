@@ -7,9 +7,9 @@ import {
 } from "react-native-paper";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { useAppSelector, useAppDispatch } from "@/store/store";
-import { clearDebugInfoAsync } from "@/store/slices/preferencesSlice";
+import { clearDebugInfoAsync, addBackgroundTaskRun } from "@/store/slices/preferencesSlice";
 import { Controller } from "@/services/notificationController";
-import { getBackgroundTaskStatus } from "@/services/backgroundTaskService";
+import { getBackgroundTaskStatus, getBackgroundTaskHistory } from "@/services/backgroundTaskService";
 import {
   debugNotificationChannels,
   getNotificationChannelId,
@@ -86,6 +86,20 @@ export default function Logs() {
           setBackgroundTaskStatus(status);
         } catch (error) {
           console.error("Failed to get background task status:", error);
+        }
+
+        // Update background task run history from AsyncStorage
+        try {
+          const taskHistory = await getBackgroundTaskHistory();
+          if (taskHistory.length > 0) {
+            // Sync the history to Redux state
+            // The addBackgroundTaskRun reducer will handle deduplication
+            taskHistory.forEach((timestamp) => {
+              dispatch(addBackgroundTaskRun(timestamp));
+            });
+          }
+        } catch (error) {
+          console.error("Failed to get background task history:", error);
         }
       }
     };

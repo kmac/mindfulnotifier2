@@ -93,9 +93,9 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
 
       // Debug: Log the first notification's trigger properties
       // Uncomment this to debug what properties are available in triggers
-      if (scheduled.length > 0) {
-        debugLogTrigger(scheduled[0]?.trigger);
-      }
+      // if (scheduled.length > 0) {
+      //   debugLogTrigger(scheduled[0]?.trigger);
+      // }
 
       // Find the last scheduled notification time to continue from there
       const lastScheduledTime = await getLastScheduledTime(

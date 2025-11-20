@@ -533,7 +533,7 @@ export class Controller {
       if (scheduled.length >= MIN_NOTIFICATION_BUFFER) {
         // Debug: Log the first notification's trigger properties
         // Uncomment this to debug what properties are available in triggers
-        debugLogTrigger(scheduled[0]?.trigger);
+        // debugLogTrigger(scheduled[0]?.trigger);
 
         console.log(
           debugLog(
