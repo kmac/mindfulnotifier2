@@ -141,7 +141,6 @@ export default function Index() {
       console.log(`[Test] Scheduling notification for ${testDate}`);
 
       await scheduleNotificationAt(
-        "test-notification",
         testDate,
         "Test Notification",
         reminderText,

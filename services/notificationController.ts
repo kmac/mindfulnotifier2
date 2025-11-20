@@ -410,10 +410,8 @@ export class Controller {
       // Clear existing scheduler to pick up new settings
       this.scheduler = undefined;
 
-      // Cancel all existing scheduled notifications
-      await this.cancelAllScheduled();
-
       // Schedule new notifications with updated settings
+      await this.cancelAllScheduled();
       await this.scheduleNextNotification();
 
       console.info(debugLog("Rescheduled successfully"));
@@ -450,7 +448,6 @@ export class Controller {
    * Works on both Android and Web
    */
   async scheduleNotificationAt(
-    id: string,
     date: Date,
     title: string,
     body: string,
@@ -460,27 +457,16 @@ export class Controller {
 
     if (Platform.OS === "web") {
       // On web, use setTimeout and call the callback
-      this.webNotificationService.scheduleAt(id, date, () => {
+      this.webNotificationService.scheduleAt('mindfulnotifier', date, () => {
         console.log(`Web notification triggered: ${title}`);
         if (callback) callback();
       });
     } else if (Platform.OS === "android") {
-      // On Android, schedule a real notification (id is ignored, kept for web compatibility)
+      // On Android, schedule a real notification
       await this.androidNotificationService.scheduleAt(date, title, body);
     } else {
       throw new Error(`Platform is not supported: ${Platform.OS}`);
     }
-  }
-
-  /**
-   * Cancel a scheduled notification by ID
-   * Only works on web - Android doesn't support canceling individual notifications by custom ID
-   */
-  async cancelScheduledNotification(id: string): Promise<void> {
-    if (Platform.OS === "web") {
-      this.webNotificationService.cancel(id);
-    }
-    // Android doesn't support canceling by custom ID - use cancelAll instead
   }
 
   /**
@@ -628,7 +614,6 @@ export class Controller {
 
       // Schedule the notification
       await this.scheduleNotificationAt(
-        "mindfulnotifier",
         nextFireDate.date,
         "Mindful Notifier",
         getRandomReminder(reminders.reminders),
@@ -774,23 +759,13 @@ export class Controller {
  * Wrapper function that delegates to the Controller singleton
  */
 export async function scheduleNotificationAt(
-  id: string,
   date: Date,
   title: string,
   body: string,
   callback?: Function,
 ): Promise<void> {
   const controller = Controller.getInstance();
-  return controller.scheduleNotificationAt(id, date, title, body, callback);
-}
-
-/**
- * Cancel a scheduled notification by ID
- * Wrapper function that delegates to the Controller singleton
- */
-export async function cancelScheduledNotification(id: string): Promise<void> {
-  const controller = Controller.getInstance();
-  return controller.cancelScheduledNotification(id);
+  return controller.scheduleNotificationAt(date, title, body, callback);
 }
 
 /**

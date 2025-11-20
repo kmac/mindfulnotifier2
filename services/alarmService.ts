@@ -78,7 +78,6 @@ export class WebAlarmService extends AlarmService {
     this.running = false;
 
     try {
-      // Cancel all pending timers
       await cancelAllScheduled();
     } catch (error) {
       console.error("[WebAlarmService] Failed to disable:", error);
@@ -93,7 +92,6 @@ export class WebAlarmService extends AlarmService {
     this.running = false;
 
     try {
-      // Cancel all pending timers
       await cancelAllScheduled();
     } catch (error) {
       console.error("[WebAlarmService] Failed to shutdown:", error);
@@ -157,7 +155,6 @@ export class AndroidAlarmService extends AlarmService {
     this.running = false;
 
     try {
-      // Cancel all scheduled notifications
       await cancelAllScheduled();
 
       // Unregister background tasks
@@ -177,7 +174,6 @@ export class AndroidAlarmService extends AlarmService {
     this.running = false;
 
     try {
-      // Cancel all scheduled notifications
       await cancelAllScheduled();
 
       // Unregister background tasks
