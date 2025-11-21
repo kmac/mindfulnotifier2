@@ -11,7 +11,6 @@ export interface PreferencesState {
   colorScheme: ColorScheme;
   backgroundImageEnabled: boolean;
   debugInfoEnabled: boolean;
-  lastBufferReplenishTime: number | null; // timestamp
   backgroundTaskRunHistory: number[]; // Array of timestamps when background task ran
   backgroundTaskIntervalMinutes: number;
   minNotificationBuffer: number;
@@ -25,7 +24,6 @@ const initialState: PreferencesState = {
   colorScheme: 'auto',
   backgroundImageEnabled: true,
   debugInfoEnabled: false,
-  lastBufferReplenishTime: null,
   backgroundTaskRunHistory: [],
   backgroundTaskIntervalMinutes: BACKGROUND_TASK_INTERVAL_MINUTES,
   minNotificationBuffer: MIN_NOTIFICATION_BUFFER,
@@ -76,9 +74,6 @@ const preferencesSlice = createSlice({
     clearDebugInfo: (state) => {
       state.backgroundTaskRunHistory = [];
     },
-    setLastBufferReplenishTime: (state, action: PayloadAction<number>) => {
-      state.lastBufferReplenishTime = action.payload;
-    },
     addBackgroundTaskRun: (state, action: PayloadAction<number>) => {
       // Only add if this timestamp doesn't already exist (deduplication)
       if (!state.backgroundTaskRunHistory.includes(action.payload)) {
@@ -114,7 +109,6 @@ export const {
   setBackgroundImageEnabled,
   setDebugInfoEnabled,
   clearDebugInfo,
-  setLastBufferReplenishTime,
   addBackgroundTaskRun,
   setBackgroundTaskIntervalMinutes,
   setMinNotificationBuffer,

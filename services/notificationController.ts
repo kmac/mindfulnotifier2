@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import type { RootState } from "@/store/store";
 import * as Notifications from "expo-notifications";
 import { getRandomReminder } from "@/lib/reminders";
 import {
@@ -20,15 +21,63 @@ import type { AlarmService } from "./alarmService";
 import { TimeOfDay } from "@/lib/timedate";
 import { store } from "@/store/store";
 import { setLastNotificationText } from "@/store/slices/remindersSlice";
-import {
-  setLastBufferReplenishTime,
-  setNotificationsGranted,
-} from "@/store/slices/preferencesSlice";
+import { setNotificationsGranted } from "@/store/slices/preferencesSlice";
 import { debugLog } from "@/utils/util";
 import { MIN_NOTIFICATION_BUFFER } from "@/constants/scheduleConstants";
 
 // AsyncStorage key for persisting the last scheduled notification time
 const LAST_SCHEDULED_TIME_KEY = "lastScheduledNotificationTime";
+const LAST_BUFFER_REPLENISH_TIME_KEY = "lastBufferReplenishTime";
+
+/**
+ * Get persisted Redux state from AsyncStorage
+ * This is necessary in headless background tasks where redux-persist hasn't hydrated the store
+ * @returns The persisted state or null if unable to retrieve
+ */
+async function getPersistedState(): Promise<RootState | null> {
+  try {
+    // Redux-persist stores state under separate keys for each slice
+    const [preferencesJson, scheduleJson, remindersJson, soundJson] =
+      await AsyncStorage.multiGet([
+        "persist:preferences",
+        "persist:schedule",
+        "persist:reminders",
+        "persist:sound",
+      ]);
+
+    // Parse each slice (redux-persist double-stringifies the data)
+    const preferences = preferencesJson[1]
+      ? JSON.parse(JSON.parse(preferencesJson[1]))
+      : null;
+    const schedule = scheduleJson[1]
+      ? JSON.parse(JSON.parse(scheduleJson[1]))
+      : null;
+    const reminders = remindersJson[1]
+      ? JSON.parse(JSON.parse(remindersJson[1]))
+      : null;
+    const sound = soundJson[1] ? JSON.parse(JSON.parse(soundJson[1])) : null;
+
+    if (!preferences || !schedule || !reminders || !sound) {
+      console.error(
+        "[Controller] Failed to load persisted state from AsyncStorage",
+      );
+      return null;
+    }
+
+    return {
+      preferences,
+      schedule,
+      reminders,
+      sound,
+    } as RootState;
+  } catch (error) {
+    console.error(
+      "[Controller] Error reading persisted state from AsyncStorage:",
+      error,
+    );
+    return null;
+  }
+}
 
 /**
  * Extract the absolute fire time from a notification trigger
@@ -697,7 +746,15 @@ export class Controller {
     );
 
     try {
-      const state = store.getState();
+      // Try to get persisted state first (works in headless background tasks)
+      // Fall back to store.getState() if we're in a foreground context
+      let state = await getPersistedState();
+      if (!state) {
+        console.warn(
+          "[Controller] Failed to get persisted state, falling back to store.getState()",
+        );
+        state = store.getState();
+      }
       const { schedule, reminders } = state;
 
       // Create a scheduler if we don't have one
@@ -773,8 +830,12 @@ export class Controller {
         ),
       );
 
-      // Update last buffer replenish time
-      store.dispatch(setLastBufferReplenishTime(Date.now()));
+      // Update last buffer replenish time to AsyncStorage (works in headless context)
+      const replenishTime = Date.now();
+      await AsyncStorage.setItem(
+        LAST_BUFFER_REPLENISH_TIME_KEY,
+        JSON.stringify(replenishTime),
+      );
 
       // Persist the last scheduled time to AsyncStorage for reliability
       // This ensures we can continue scheduling even if the notification list is empty

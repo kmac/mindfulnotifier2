@@ -9,6 +9,7 @@ import {
   IconButton,
 } from "react-native-paper";
 import { ScrollView, StyleSheet, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
   clearDebugInfoAsync,
@@ -46,6 +47,7 @@ export default function Logs() {
   const [backgroundTaskStatus, setBackgroundTaskStatus] = useState<string>("");
   const [channelDebugInfo, setChannelDebugInfo] = useState<string>("");
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
+  const [lastBufferReplenishTime, setLastBufferReplenishTime] = useState<number | null>(null);
   const [snackbarVisible, setSnackbarVisible] = useState<boolean>(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string>(
     "Logs copied to clipboard",
@@ -119,6 +121,19 @@ export default function Logs() {
           }
         } catch (error) {
           console.error("Failed to get background task history:", error);
+        }
+
+        // Load last buffer replenish time from AsyncStorage
+        try {
+          const replenishTimeJson = await AsyncStorage.getItem(
+            "lastBufferReplenishTime",
+          );
+          if (replenishTimeJson) {
+            const replenishTime = JSON.parse(replenishTimeJson);
+            setLastBufferReplenishTime(replenishTime);
+          }
+        } catch (error) {
+          console.error("Failed to get last buffer replenish time:", error);
         }
 
         // Load debug logs from AsyncStorage
@@ -273,7 +288,7 @@ export default function Logs() {
         logsText += `Last Scheduled: ${formatNotificationTime(lastScheduledTime)}\n`;
       }
       logsText += `Background Task Status: ${backgroundTaskStatus || "Loading..."}\n`;
-      logsText += `Last buffer audit: ${formatLastReplenishTime(preferences.lastBufferReplenishTime)}\n`;
+      logsText += `Last buffer audit: ${formatLastReplenishTime(lastBufferReplenishTime)}\n`;
       logsText += "\n";
     }
 
@@ -565,7 +580,7 @@ export default function Logs() {
               <List.Item
                 title="Last Notification Replenishment"
                 description={formatLastReplenishTime(
-                  preferences.lastBufferReplenishTime,
+                  lastBufferReplenishTime,
                 )}
                 left={(props) => <List.Icon {...props} icon="refresh" />}
               />
