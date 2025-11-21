@@ -423,16 +423,40 @@ export class Controller {
 
   /**
    * Get the next scheduled notification time
-   * Returns null if no scheduler exists or service is not running
+   * Returns null if service is not running or no notifications scheduled
    */
-  getNextNotificationTime(): Date | null {
-    if (!this.running || !this.scheduler) {
+  async getNextNotificationTime(): Promise<Date | null> {
+    if (!this.running) {
       return null;
     }
 
     try {
+      // On Android, query actual scheduled notifications
+      if (Platform.OS === "android") {
+        const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+        if (scheduled.length === 0) {
+          return null;
+        }
+
+        // Get the earliest trigger time from all scheduled notifications
+        const triggerTimes = scheduled
+          .map((notif) => extractTriggerTime(notif.trigger))
+          .filter((time): time is number => time !== null);
+
+        if (triggerTimes.length > 0) {
+          const earliestTime = Math.min(...triggerTimes);
+          return new Date(earliestTime);
+        }
+        return null;
+      }
+
+      // On web, use the scheduler
+      if (!this.scheduler) {
+        return null;
+      }
+
       const nextFireDate = this.scheduler.queryNext();
-      return nextFireDate?.date;
+      return nextFireDate?.date ?? null;
     } catch (error) {
       console.error("Failed to get next notification time:", error);
       return null;

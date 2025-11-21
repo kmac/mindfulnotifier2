@@ -45,7 +45,7 @@ export default function Logs() {
     // Update the next notification time and monitoring data
     const updateData = async () => {
       const controller = Controller.getInstance();
-      const nextTime = controller.getNextNotificationTime();
+      const nextTime = await controller.getNextNotificationTime();
       setNextNotificationTime(nextTime);
 
       // Update scheduled notification count (Android only)
@@ -284,6 +284,7 @@ export default function Logs() {
     } else {
       logsText += "No debug information available\n";
     }
+    logsText += "\n";
 
     // Scheduled Notifications Dump (Android only)
     if (Platform.OS === "android" && scheduledNotifications.length > 0) {
