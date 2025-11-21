@@ -1,20 +1,20 @@
-import {
-  Surface,
-  Text,
-  List,
-  Button,
-  Snackbar,
-} from "react-native-paper";
+import { Surface, Text, List, Button, Snackbar } from "react-native-paper";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { useAppSelector, useAppDispatch } from "@/store/store";
-import { clearDebugInfoAsync, addBackgroundTaskRun } from "@/store/slices/preferencesSlice";
-import { Controller } from "@/services/notificationController";
-import { getBackgroundTaskStatus, getBackgroundTaskHistory } from "@/services/backgroundTaskService";
 import {
-  debugNotificationChannels,
+  clearDebugInfoAsync,
+  addBackgroundTaskRun,
+} from "@/store/slices/preferencesSlice";
+import { Controller } from "@/services/notificationController";
+import {
+  getBackgroundTaskStatus,
+  getBackgroundTaskHistory,
+} from "@/services/backgroundTaskService";
+import {
   getNotificationChannelId,
   getScheduledNotifications,
 } from "@/lib/notifications";
+import * as Notifications from "expo-notifications";
 import { getSelectedSoundUri, isVibrationEnabled } from "@/lib/sound";
 import { useState, useEffect } from "react";
 import { Platform } from "react-native";
@@ -31,7 +31,11 @@ export default function Logs() {
   );
   const [scheduledCount, setScheduledCount] = useState<number>(0);
   const [lastScheduledTime, setLastScheduledTime] = useState<Date | null>(null);
+  const [scheduledNotifications, setScheduledNotifications] = useState<any[]>(
+    [],
+  );
   const [backgroundTaskStatus, setBackgroundTaskStatus] = useState<string>("");
+  const [channelDebugInfo, setChannelDebugInfo] = useState<string>("");
   const [snackbarVisible, setSnackbarVisible] = useState<boolean>(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string>(
     "Logs copied to clipboard",
@@ -49,6 +53,7 @@ export default function Logs() {
         try {
           const scheduled = await getScheduledNotifications();
           setScheduledCount(scheduled.length);
+          setScheduledNotifications(scheduled);
 
           // Find the last scheduled notification (furthest in the future)
           if (scheduled.length > 0) {
@@ -100,6 +105,40 @@ export default function Logs() {
           }
         } catch (error) {
           console.error("Failed to get background task history:", error);
+        }
+
+        // Update notification channel debug info
+        try {
+          let debugInfo = "";
+
+          // Get all notification channels
+          const channels = await Notifications.getNotificationChannelsAsync();
+          debugInfo += `Total channels: ${channels.length}\n`;
+
+          for (const channel of channels) {
+            debugInfo += `\nChannel: ${channel.id}\n`;
+            debugInfo += `  - Name: ${channel.name}\n`;
+            debugInfo += `  - Importance: ${channel.importance}\n`;
+            debugInfo += `  - Sound: ${channel.sound}\n`;
+            debugInfo += `  - Vibration: ${channel.vibrationPattern}\n`;
+            debugInfo += `  - Light Color: ${channel.lightColor}\n`;
+          }
+
+          // Get current settings info
+          const soundUri = getSelectedSoundUri();
+          const vibrationEnabled = isVibrationEnabled();
+          const channelId = getNotificationChannelId(
+            soundUri,
+            vibrationEnabled,
+          );
+          debugInfo += `\nCurrent Configuration:\n`;
+          debugInfo += `  - Sound: ${soundUri}\n`;
+          debugInfo += `  - Vibration: ${vibrationEnabled}\n`;
+          debugInfo += `  - Would use channel: ${channelId}\n`;
+
+          setChannelDebugInfo(debugInfo);
+        } catch (error) {
+          console.error("Failed to get channel debug info:", error);
         }
       }
     };
@@ -174,22 +213,6 @@ export default function Logs() {
     dispatch(clearDebugInfoAsync());
   };
 
-  const handleDebugChannels = async () => {
-    if (Platform.OS === "android") {
-      await debugNotificationChannels();
-
-      // Also log what channel would be used for current sound and vibration settings
-      const soundUri = getSelectedSoundUri();
-      const vibrationEnabled = isVibrationEnabled();
-      const channelId = getNotificationChannelId(soundUri, vibrationEnabled);
-      console.log(
-        debugLog(
-          `[Debug] Current sound: ${soundUri}, vibration: ${vibrationEnabled}, would use channel: ${channelId}`,
-        ),
-      );
-    }
-  };
-
   const buildLogsText = (): string => {
     // Build the logs text
     let logsText = "=== Mindful Notifier Debug Logs ===\n\n";
@@ -247,6 +270,62 @@ export default function Logs() {
     } else {
       logsText += "No debug information available\n";
     }
+
+    // Scheduled Notifications Dump (Android only)
+    if (Platform.OS === "android" && scheduledNotifications.length > 0) {
+      logsText += `SCHEDULED NOTIFICATIONS (${scheduledNotifications.length} total)\n`;
+
+      // Sort notifications by trigger time
+      const sortedNotifications = [...scheduledNotifications].sort((a, b) => {
+        const aTrigger = a.trigger as any;
+        const bTrigger = b.trigger as any;
+        const aDate = aTrigger?.value || aTrigger?.date;
+        const bDate = bTrigger?.value || bTrigger?.date;
+        if (!aDate || !bDate) return 0;
+        return new Date(aDate).getTime() - new Date(bDate).getTime();
+      });
+
+      sortedNotifications.forEach((notif, index) => {
+        logsText += `\n${index + 1}. Notification ID: ${notif.identifier}\n`;
+
+        // Extract trigger information
+        const trigger = notif.trigger as any;
+        const triggerDate = trigger?.value || trigger?.date;
+        if (triggerDate) {
+          const date = new Date(triggerDate);
+          logsText += `   Scheduled for: ${date.toLocaleString()}\n`;
+          logsText += `   Time until: ${formatNotificationTime(date).split("(")[1]?.replace(")", "") || "N/A"}\n`;
+        }
+
+        // Content
+        if (notif.content) {
+          if (notif.content.title) {
+            logsText += `   Title: ${notif.content.title}\n`;
+          }
+          if (notif.content.body) {
+            logsText += `   Body: ${notif.content.body}\n`;
+          }
+          if (notif.content.data) {
+            logsText += `   Data: ${JSON.stringify(notif.content.data)}\n`;
+          }
+        }
+
+        // Trigger details
+        logsText += `   Trigger type: ${trigger?.type || "unknown"}\n`;
+        if (trigger?.channelId) {
+          logsText += `   Channel ID: ${trigger.channelId}\n`;
+        }
+      });
+
+      logsText += "\n";
+    }
+
+    // Notification Channel Debug Info (Android only)
+    // if (Platform.OS === "android" && channelDebugInfo) {
+    //   logsText += "NOTIFICATION CHANNELS\n";
+    //   logsText += channelDebugInfo;
+    //   logsText += "\n";
+    // }
 
     return logsText;
   };
@@ -395,11 +474,6 @@ export default function Logs() {
                 icon="share-variant"
               >
                 Share
-              </Button>
-            )}
-            {Platform.OS === "android" && (
-              <Button mode="outlined" onPress={handleDebugChannels} compact>
-                Debug Channels
               </Button>
             )}
           </View>
