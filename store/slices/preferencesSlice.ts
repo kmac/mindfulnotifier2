@@ -11,7 +11,6 @@ export interface PreferencesState {
   colorScheme: ColorScheme;
   backgroundImageEnabled: boolean;
   debugInfoEnabled: boolean;
-  debugInfo: string[];
   lastBufferReplenishTime: number | null; // timestamp
   backgroundTaskRunHistory: number[]; // Array of timestamps when background task ran
   backgroundTaskIntervalMinutes: number;
@@ -26,7 +25,6 @@ const initialState: PreferencesState = {
   colorScheme: 'auto',
   backgroundImageEnabled: true,
   debugInfoEnabled: false,
-  debugInfo: [],
   lastBufferReplenishTime: null,
   backgroundTaskRunHistory: [],
   backgroundTaskIntervalMinutes: BACKGROUND_TASK_INTERVAL_MINUTES,
@@ -35,14 +33,18 @@ const initialState: PreferencesState = {
 
 /**
  * Async thunk to clear debug info and background task data
- * Clears both Redux state and AsyncStorage
+ * Clears AsyncStorage debug logs and background task history
  */
 export const clearDebugInfoAsync = createAsyncThunk(
   'preferences/clearDebugInfo',
   async () => {
     // Import here to avoid circular dependency
     const { clearBackgroundTaskData } = await import('@/services/backgroundTaskService');
-    await clearBackgroundTaskData();
+    const { clearDebugLogs } = await import('@/utils/util');
+    await Promise.all([
+      clearBackgroundTaskData(),
+      clearDebugLogs(),
+    ]);
   }
 );
 
@@ -71,15 +73,7 @@ const preferencesSlice = createSlice({
     setDebugInfoEnabled: (state, action: PayloadAction<boolean>) => {
       state.debugInfoEnabled = action.payload;
     },
-    addDebugInfo: (state, action: PayloadAction<string>) => {
-      // Keep only the last N debug messages to prevent unbounded growth
-      state.debugInfo.push(action.payload);
-      if (state.debugInfo.length > MAX_DEBUG_INFO) {
-        state.debugInfo = state.debugInfo.slice(-MAX_DEBUG_INFO);
-      }
-    },
     clearDebugInfo: (state) => {
-      state.debugInfo = [];
       state.backgroundTaskRunHistory = [];
     },
     setLastBufferReplenishTime: (state, action: PayloadAction<number>) => {
@@ -106,7 +100,6 @@ const preferencesSlice = createSlice({
   extraReducers: (builder) => {
     builder.addCase(clearDebugInfoAsync.fulfilled, (state) => {
       // Clear Redux state when AsyncStorage clear is complete
-      state.debugInfo = [];
       state.backgroundTaskRunHistory = [];
     });
   },
@@ -120,7 +113,6 @@ export const {
   setColorScheme,
   setBackgroundImageEnabled,
   setDebugInfoEnabled,
-  addDebugInfo,
   clearDebugInfo,
   setLastBufferReplenishTime,
   addBackgroundTaskRun,

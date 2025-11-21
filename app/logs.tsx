@@ -27,7 +27,7 @@ import * as Notifications from "expo-notifications";
 import { getSelectedSoundUri, isVibrationEnabled } from "@/lib/sound";
 import { useState, useEffect } from "react";
 import { Platform } from "react-native";
-import { debugLog } from "@/utils/util";
+import { debugLog, getDebugLogs } from "@/utils/util";
 import * as Clipboard from "expo-clipboard";
 import * as Sharing from "expo-sharing";
 import { File, Paths } from "expo-file-system";
@@ -45,6 +45,7 @@ export default function Logs() {
   );
   const [backgroundTaskStatus, setBackgroundTaskStatus] = useState<string>("");
   const [channelDebugInfo, setChannelDebugInfo] = useState<string>("");
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
   const [snackbarVisible, setSnackbarVisible] = useState<boolean>(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string>(
     "Logs copied to clipboard",
@@ -118,6 +119,14 @@ export default function Logs() {
           }
         } catch (error) {
           console.error("Failed to get background task history:", error);
+        }
+
+        // Load debug logs from AsyncStorage
+        try {
+          const logs = await getDebugLogs();
+          setDebugInfo(logs);
+        } catch (error) {
+          console.error("Failed to get debug logs:", error);
         }
 
         // Update notification channel debug info
@@ -291,10 +300,10 @@ export default function Logs() {
     // Debug Messages
     logsText += "DEBUG MESSAGES\n";
     if (
-      Array.isArray(preferences.debugInfo) &&
-      preferences.debugInfo.length > 0
+      Array.isArray(debugInfo) &&
+      debugInfo.length > 0
     ) {
-      preferences.debugInfo.forEach((info) => {
+      debugInfo.forEach((info) => {
         logsText += `${String(info)}\n`;
       });
     } else {
@@ -596,13 +605,13 @@ export default function Logs() {
             )}
 
           {/* Debug Info Messages */}
-          {Array.isArray(preferences.debugInfo) &&
-          preferences.debugInfo.length > 0 ? (
+          {Array.isArray(debugInfo) &&
+          debugInfo.length > 0 ? (
             <View style={styles.debugSubsection}>
               <Text variant="titleSmall" style={styles.debugSubtitle}>
                 Debug Messages
               </Text>
-              {preferences.debugInfo
+              {debugInfo
                 .slice()
                 // .reverse()
                 .map((info, index) => (

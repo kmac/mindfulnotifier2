@@ -21,7 +21,6 @@ import { TimeOfDay } from "@/lib/timedate";
 import { store } from "@/store/store";
 import { setLastNotificationText } from "@/store/slices/remindersSlice";
 import {
-  addDebugInfo,
   setLastBufferReplenishTime,
   setNotificationsGranted,
 } from "@/store/slices/preferencesSlice";
@@ -675,9 +674,7 @@ export class Controller {
       console.error("Failed to schedule next notification:", error);
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      store.dispatch(
-        addDebugInfo(`Failed to schedule next notification: ${errorMessage}`),
-      );
+      debugLog(`Failed to schedule next notification: ${errorMessage}`);
       throw error;
     }
   }
@@ -791,11 +788,7 @@ export class Controller {
       console.error("Failed to schedule multiple notifications:", error);
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      store.dispatch(
-        addDebugInfo(
-          `Failed to schedule multiple notifications: ${errorMessage}`,
-        ),
-      );
+      debugLog(`Failed to schedule multiple notifications: ${errorMessage}`);
       throw error;
     }
   }
