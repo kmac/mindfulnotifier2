@@ -1,4 +1,13 @@
-import { Surface, Text, List, Button, Snackbar, Modal, Portal, IconButton } from "react-native-paper";
+import {
+  Surface,
+  Text,
+  List,
+  Button,
+  Snackbar,
+  Modal,
+  Portal,
+  IconButton,
+} from "react-native-paper";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
@@ -42,6 +51,8 @@ export default function Logs() {
   );
   const [reportModalVisible, setReportModalVisible] = useState<boolean>(false);
   const [reportText, setReportText] = useState<string>("");
+
+  const INCLUDE_CHANNEL_DEBUG = false;
 
   useEffect(() => {
     // Update the next notification time and monitoring data
@@ -110,37 +121,39 @@ export default function Logs() {
         }
 
         // Update notification channel debug info
-        try {
-          let debugInfo = "";
+        if (INCLUDE_CHANNEL_DEBUG) {
+          try {
+            let debugInfo = "";
 
-          // Get all notification channels
-          const channels = await Notifications.getNotificationChannelsAsync();
-          debugInfo += `Total channels: ${channels.length}\n`;
+            // Get all notification channels
+            const channels = await Notifications.getNotificationChannelsAsync();
+            debugInfo += `Total channels: ${channels.length}\n`;
 
-          for (const channel of channels) {
-            debugInfo += `\nChannel: ${channel.id}\n`;
-            debugInfo += `  - Name: ${channel.name}\n`;
-            debugInfo += `  - Importance: ${channel.importance}\n`;
-            debugInfo += `  - Sound: ${channel.sound}\n`;
-            debugInfo += `  - Vibration: ${channel.vibrationPattern}\n`;
-            debugInfo += `  - Light Color: ${channel.lightColor}\n`;
+            for (const channel of channels) {
+              debugInfo += `\nChannel: ${channel.id}\n`;
+              debugInfo += `  - Name: ${channel.name}\n`;
+              debugInfo += `  - Importance: ${channel.importance}\n`;
+              debugInfo += `  - Sound: ${channel.sound}\n`;
+              debugInfo += `  - Vibration: ${channel.vibrationPattern}\n`;
+              debugInfo += `  - Light Color: ${channel.lightColor}\n`;
+            }
+
+            // Get current settings info
+            const soundUri = getSelectedSoundUri();
+            const vibrationEnabled = isVibrationEnabled();
+            const channelId = getNotificationChannelId(
+              soundUri,
+              vibrationEnabled,
+            );
+            debugInfo += `\nCurrent Configuration:\n`;
+            debugInfo += `  - Sound: ${soundUri}\n`;
+            debugInfo += `  - Vibration: ${vibrationEnabled}\n`;
+            debugInfo += `  - Would use channel: ${channelId}\n`;
+
+            setChannelDebugInfo(debugInfo);
+          } catch (error) {
+            console.error("Failed to get channel debug info:", error);
           }
-
-          // Get current settings info
-          const soundUri = getSelectedSoundUri();
-          const vibrationEnabled = isVibrationEnabled();
-          const channelId = getNotificationChannelId(
-            soundUri,
-            vibrationEnabled,
-          );
-          debugInfo += `\nCurrent Configuration:\n`;
-          debugInfo += `  - Sound: ${soundUri}\n`;
-          debugInfo += `  - Vibration: ${vibrationEnabled}\n`;
-          debugInfo += `  - Would use channel: ${channelId}\n`;
-
-          setChannelDebugInfo(debugInfo);
-        } catch (error) {
-          console.error("Failed to get channel debug info:", error);
         }
       }
     };
@@ -227,6 +240,8 @@ export default function Logs() {
 
   const handleClearDebugInfo = () => {
     dispatch(clearDebugInfoAsync());
+    setSnackbarMessage("Cleared debug logs");
+    setSnackbarVisible(true);
   };
 
   const buildLogsText = (): string => {
@@ -254,23 +269,22 @@ export default function Logs() {
     }
 
     // Background Task Run History
-    if (
-      Platform.OS === "android" &&
-      preferences.backgroundTaskRunHistory.length > 0
-    ) {
-      logsText += `BACKGROUND TASK RUN HISTORY (Last ${preferences.backgroundTaskRunHistory.length})\n`;
-      preferences.backgroundTaskRunHistory
-        .slice()
-        .forEach((timestamp, index) => {
-          const date = new Date(timestamp);
-          const timeStr = date.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
+    if (Platform.OS === "android") {
+      logsText += `BACKGROUND TASK RUN HISTORY (${preferences.backgroundTaskRunHistory.length} total)\n`;
+      if (preferences.backgroundTaskRunHistory.length > 0) {
+        preferences.backgroundTaskRunHistory
+          .slice()
+          .forEach((timestamp, index) => {
+            const date = new Date(timestamp);
+            const timeStr = date.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            });
+            const dateStr = date.toLocaleDateString();
+            logsText += `${index + 1}. ${dateStr} ${timeStr} (${formatLastReplenishTime(timestamp)})\n`;
           });
-          const dateStr = date.toLocaleDateString();
-          logsText += `${index + 1}. ${dateStr} ${timeStr} (${formatLastReplenishTime(timestamp)})\n`;
-        });
+      }
       logsText += "\n";
     }
 
@@ -289,60 +303,64 @@ export default function Logs() {
     logsText += "\n";
 
     // Scheduled Notifications Dump (Android only)
-    if (Platform.OS === "android" && scheduledNotifications.length > 0) {
+    if (Platform.OS === "android") {
       logsText += `SCHEDULED NOTIFICATIONS (${scheduledNotifications.length} total)\n`;
+      if (scheduledNotifications.length > 0) {
+        // Sort notifications by trigger time
+        const sortedNotifications = [...scheduledNotifications].sort((a, b) => {
+          const aTrigger = a.trigger as any;
+          const bTrigger = b.trigger as any;
+          const aDate = aTrigger?.value || aTrigger?.date;
+          const bDate = bTrigger?.value || bTrigger?.date;
+          if (!aDate || !bDate) return 0;
+          return new Date(aDate).getTime() - new Date(bDate).getTime();
+        });
 
-      // Sort notifications by trigger time
-      const sortedNotifications = [...scheduledNotifications].sort((a, b) => {
-        const aTrigger = a.trigger as any;
-        const bTrigger = b.trigger as any;
-        const aDate = aTrigger?.value || aTrigger?.date;
-        const bDate = bTrigger?.value || bTrigger?.date;
-        if (!aDate || !bDate) return 0;
-        return new Date(aDate).getTime() - new Date(bDate).getTime();
-      });
+        sortedNotifications.forEach((notif, index) => {
+          logsText += `\n${index + 1}. Notification ID: ${notif.identifier}\n`;
 
-      sortedNotifications.forEach((notif, index) => {
-        logsText += `\n${index + 1}. Notification ID: ${notif.identifier}\n`;
-
-        // Extract trigger information
-        const trigger = notif.trigger as any;
-        const triggerDate = trigger?.value || trigger?.date;
-        if (triggerDate) {
-          const date = new Date(triggerDate);
-          logsText += `   Scheduled for: ${date.toLocaleString()}\n`;
-          logsText += `   Time until: ${formatNotificationTime(date).split("(")[1]?.replace(")", "") || "N/A"}\n`;
-        }
-
-        // Content
-        if (notif.content) {
-          if (notif.content.title) {
-            logsText += `   Title: ${notif.content.title}\n`;
+          // Extract trigger information
+          const trigger = notif.trigger as any;
+          const triggerDate = trigger?.value || trigger?.date;
+          if (triggerDate) {
+            const date = new Date(triggerDate);
+            logsText += `   Scheduled for: ${date.toLocaleString()}\n`;
+            logsText += `   Time until: ${formatNotificationTime(date).split("(")[1]?.replace(")", "") || "N/A"}\n`;
           }
-          if (notif.content.body) {
-            logsText += `   Body: ${notif.content.body}\n`;
-          }
-          if (notif.content.data) {
-            logsText += `   Data: ${JSON.stringify(notif.content.data)}\n`;
-          }
-        }
 
-        // Trigger details
-        logsText += `   Trigger type: ${trigger?.type || "unknown"}\n`;
-        if (trigger?.channelId) {
-          logsText += `   Channel ID: ${trigger.channelId}\n`;
-        }
-      });
+          // Content
+          if (notif.content) {
+            if (notif.content.title) {
+              logsText += `   Title: ${notif.content.title}\n`;
+            }
+            if (notif.content.body) {
+              logsText += `   Body: ${notif.content.body}\n`;
+            }
+            if (notif.content.data) {
+              logsText += `   Data: ${JSON.stringify(notif.content.data)}\n`;
+            }
+          }
 
+          // Trigger details
+          logsText += `   Trigger type: ${trigger?.type || "unknown"}\n`;
+          if (trigger?.channelId) {
+            logsText += `   Channel ID: ${trigger.channelId}\n`;
+          }
+        });
+      }
       logsText += "\n";
     }
 
     // Notification Channel Debug Info (Android only)
-    // if (Platform.OS === "android" && channelDebugInfo) {
-    //   logsText += "NOTIFICATION CHANNELS\n";
-    //   logsText += channelDebugInfo;
-    //   logsText += "\n";
-    // }
+    if (
+      INCLUDE_CHANNEL_DEBUG &&
+      Platform.OS === "android" &&
+      channelDebugInfo
+    ) {
+      logsText += "NOTIFICATION CHANNELS\n";
+      logsText += channelDebugInfo;
+      logsText += "\n";
+    }
 
     return logsText;
   };
@@ -645,15 +663,17 @@ export default function Logs() {
                     Share
                   </Button>
                 )}
-                <Button
-                  mode="contained"
-                  onPress={() => setReportModalVisible(false)}
-                  compact
-                  icon="close"
-                  style={styles.modalButton}
-                >
-                  Close
-                </Button>
+                {false && (
+                  <Button
+                    mode="contained"
+                    onPress={() => setReportModalVisible(false)}
+                    compact
+                    icon="close"
+                    style={styles.modalButton}
+                  >
+                    Close
+                  </Button>
+                )}
               </View>
             </View>
             <ScrollView style={styles.modalScrollView}>

@@ -5,8 +5,6 @@ import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { debugLog } from "@/utils/util";
 import { Controller, getLastScheduledTime, debugLogTrigger} from "./notificationController";
-import { store } from "@/store/store";
-import { setLastBufferReplenishTime } from "@/store/slices/preferencesSlice";
 import {
   BACKGROUND_TASK_INTERVAL_MINUTES,
   MIN_NOTIFICATION_BUFFER,
@@ -19,6 +17,7 @@ export const BACKGROUND_CHECK_TASK = "BACKGROUND_CHECK_TASK";
 
 // AsyncStorage keys for background task data
 const BACKGROUND_TASK_HISTORY_KEY = "backgroundTaskHistory";
+const LAST_BUFFER_REPLENISH_TIME_KEY  = "lastBufferReplenishTime";
 const LAST_SCHEDULED_TIME_KEY = "lastScheduledNotificationTime";
 
 /**
@@ -113,10 +112,8 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
       );
 
       const replenishTime = Date.now();
-      store.dispatch(setLastBufferReplenishTime(replenishTime));
-      // Also persist to AsyncStorage
       await AsyncStorage.setItem(
-        "lastBufferReplenishTime",
+        LAST_BUFFER_REPLENISH_TIME_KEY,
         JSON.stringify(replenishTime),
       );
     } else {
@@ -158,7 +155,7 @@ export async function clearBackgroundTaskData(): Promise<void> {
   try {
     await AsyncStorage.multiRemove([
       BACKGROUND_TASK_HISTORY_KEY,
-      "lastBufferReplenishTime",
+      LAST_BUFFER_REPLENISH_TIME_KEY,
     ]);
   } catch (error) {
     console.error("[BackgroundTask] Failed to clear task data:", error);
