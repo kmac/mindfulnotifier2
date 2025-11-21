@@ -502,6 +502,19 @@ export class Controller {
     } else if (Platform.OS === "android") {
       await this.androidNotificationService.cancelAll();
     }
+
+    // Clear the persisted last scheduled time since we've cancelled everything
+    try {
+      await AsyncStorage.removeItem(LAST_SCHEDULED_TIME_KEY);
+      console.log(
+        debugLog("[Controller] Cleared last scheduled time from AsyncStorage"),
+      );
+    } catch (error) {
+      console.error(
+        "[Controller] Failed to clear last scheduled time from AsyncStorage:",
+        error,
+      );
+    }
   }
 
   /**
