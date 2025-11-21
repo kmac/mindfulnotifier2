@@ -177,7 +177,21 @@ export default function Logs() {
       minute: "2-digit",
     });
 
-    return `${timeStr} (${timeUntil})`;
+    const isToday =
+      date.getDate() === now.getDate() &&
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear();
+
+    if (isToday) {
+      return `${timeStr} (${timeUntil})`;
+    } else {
+      const dateStr = date.toLocaleDateString([], {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      });
+      return `${dateStr} ${timeStr} (${timeUntil})`;
+    }
   };
 
   const formatLastReplenishTime = (timestamp: number | null): string => {
@@ -233,7 +247,7 @@ export default function Logs() {
         logsText += `Last Scheduled: ${formatNotificationTime(lastScheduledTime)}\n`;
       }
       logsText += `Background Task Status: ${backgroundTaskStatus || "Loading..."}\n`;
-      logsText += `Last Notification Replenishment: ${formatLastReplenishTime(preferences.lastBufferReplenishTime)}\n`;
+      logsText += `Last buffer audit: ${formatLastReplenishTime(preferences.lastBufferReplenishTime)}\n`;
       logsText += "\n";
     }
 
