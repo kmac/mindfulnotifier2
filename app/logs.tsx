@@ -1,4 +1,4 @@
-import { Surface, Text, List, Button, Snackbar } from "react-native-paper";
+import { Surface, Text, List, Button, Snackbar, Modal, Portal, IconButton } from "react-native-paper";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
@@ -40,6 +40,8 @@ export default function Logs() {
   const [snackbarMessage, setSnackbarMessage] = useState<string>(
     "Logs copied to clipboard",
   );
+  const [reportModalVisible, setReportModalVisible] = useState<boolean>(false);
+  const [reportText, setReportText] = useState<string>("");
 
   useEffect(() => {
     // Update the next notification time and monitoring data
@@ -424,6 +426,12 @@ export default function Logs() {
     }
   };
 
+  const handleShowReport = () => {
+    const logsText = buildLogsText();
+    setReportText(logsText);
+    setReportModalVisible(true);
+  };
+
   return (
     <ScrollView
       style={styles.scrollView}
@@ -481,26 +489,16 @@ export default function Logs() {
               onPress={handleClearDebugInfo}
               compact
             >
-              Clear
+              Clear Logs
             </Button>
             <Button
               mode="outlined"
-              onPress={handleCopyLogs}
+              onPress={handleShowReport}
               compact
-              icon="content-copy"
+              icon="file-document-outline"
             >
-              Copy Logs
+              Show Report
             </Button>
-            {Platform.OS !== "web" && (
-              <Button
-                mode="outlined"
-                onPress={handleShareLogs}
-                compact
-                icon="share-variant"
-              >
-                Share
-              </Button>
-            )}
           </View>
 
           {/* Monitoring Dashboard Section (Android only) */}
@@ -509,16 +507,6 @@ export default function Logs() {
               <Text variant="titleSmall" style={styles.debugSubtitle}>
                 Monitoring Dashboard
               </Text>
-
-              <List.Item
-                title="Scheduled Notifications"
-                description={
-                  lastScheduledTime
-                    ? `${scheduledCount} android notifications scheduled\nLast scheduled: ${formatNotificationTime(lastScheduledTime)}`
-                    : `${scheduledCount} android notifications scheduled`
-                }
-                left={(props) => <List.Icon {...props} icon="calendar-clock" />}
-              />
 
               <List.Item
                 title="Background Task Status"
@@ -535,6 +523,16 @@ export default function Logs() {
                     }
                   />
                 )}
+              />
+
+              <List.Item
+                title="Scheduled Notifications"
+                description={
+                  lastScheduledTime
+                    ? `${scheduledCount} android notifications scheduled\nLast scheduled: ${formatNotificationTime(lastScheduledTime)}`
+                    : `${scheduledCount} android notifications scheduled`
+                }
+                left={(props) => <List.Icon {...props} icon="calendar-clock" />}
               />
 
               <List.Item
@@ -606,6 +604,67 @@ export default function Logs() {
           )}
         </View>
       </Surface>
+
+      <Portal>
+        <Modal
+          visible={reportModalVisible}
+          onDismiss={() => setReportModalVisible(false)}
+          contentContainerStyle={styles.modalContainer}
+        >
+          <Surface style={styles.modalSurface}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderTop}>
+                <IconButton
+                  icon="close"
+                  onPress={() => setReportModalVisible(false)}
+                  size={24}
+                  style={styles.closeButton}
+                />
+                <Text variant="titleLarge" style={styles.modalTitle}>
+                  Debug Report
+                </Text>
+              </View>
+              <View style={styles.modalButtons}>
+                <Button
+                  mode="outlined"
+                  onPress={handleCopyLogs}
+                  compact
+                  icon="content-copy"
+                  style={styles.modalButton}
+                >
+                  Copy
+                </Button>
+                {Platform.OS !== "web" && (
+                  <Button
+                    mode="outlined"
+                    onPress={handleShareLogs}
+                    compact
+                    icon="share-variant"
+                    style={styles.modalButton}
+                  >
+                    Share
+                  </Button>
+                )}
+                <Button
+                  mode="contained"
+                  onPress={() => setReportModalVisible(false)}
+                  compact
+                  icon="close"
+                  style={styles.modalButton}
+                >
+                  Close
+                </Button>
+              </View>
+            </View>
+            <ScrollView style={styles.modalScrollView}>
+              <Text variant="bodySmall" style={styles.reportText}>
+                {reportText}
+              </Text>
+            </ScrollView>
+          </Surface>
+        </Modal>
+      </Portal>
+
       <Snackbar
         visible={snackbarVisible}
         onDismiss={() => setSnackbarVisible(false)}
@@ -655,5 +714,49 @@ const styles = StyleSheet.create({
     fontFamily: "monospace",
     opacity: 0.7,
     marginBottom: 4,
+  },
+  modalContainer: {
+    margin: 20,
+    // borderStyle: "solid",
+    // borderRadius: 8,
+    maxHeight: "90%",
+  },
+  modalSurface: {
+    padding: 20,
+    borderRadius: 8,
+    maxHeight: "100%",
+  },
+  modalHeader: {
+    marginBottom: 16,
+  },
+  modalHeaderTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  closeButton: {
+    margin: 0,
+    marginLeft: -12,
+    marginRight: 4,
+  },
+  modalTitle: {
+    fontWeight: "600",
+    flex: 1,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  modalButton: {
+    flex: 0,
+  },
+  modalScrollView: {
+    maxHeight: "100%",
+  },
+  reportText: {
+    fontFamily: "monospace",
+    fontSize: 12,
+    lineHeight: 18,
   },
 });
