@@ -448,6 +448,16 @@ export default function Logs() {
                 left={(props) => <List.Icon {...props} icon="bell-outline" />}
               />
             )}
+
+            {Platform.OS === "android" &&
+              preferences.isEnabled &&
+              lastScheduledTime && (
+                <List.Item
+                  title="Last Scheduled Notification"
+                  description={formatNotificationTime(lastScheduledTime)}
+                  left={(props) => <List.Icon {...props} icon="calendar-end" />}
+                />
+              )}
           </View>
           <View style={styles.debugButtons}>
             <Button

@@ -411,21 +411,19 @@ export async function scheduleNotification(
     let triggerLog: string;
     let triggerInput: Notifications.NotificationTriggerInput;
     if (typeof trigger === "number") {
-      triggerLog = `${trigger} seconds`;
+      // Convert seconds to absolute date
+      const triggerDate = new Date(Date.now() + trigger * 1000);
+      triggerLog = `${triggerDate}`;
       triggerInput = {
-        seconds: trigger,
-        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        date: triggerDate,
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
       };
     } else {
-      // Convert Date to seconds from now
-      const delaySeconds = Math.max(
-        1,
-        Math.floor((trigger.getTime() - Date.now()) / 1000),
-      );
+      // Use the Date directly
       triggerLog = `${trigger}`;
       triggerInput = {
-        seconds: delaySeconds,
-        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        date: trigger,
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
       };
     }
 
