@@ -38,7 +38,7 @@ export const clearDebugInfoAsync = createAsyncThunk(
   async () => {
     // Import here to avoid circular dependency
     const { clearBackgroundTaskData } = await import('@/services/backgroundTaskService');
-    const { clearDebugLogs } = await import('@/utils/util');
+    const { clearDebugLogs } = await import('@/utils/debug');
     await Promise.all([
       clearBackgroundTaskData(),
       clearDebugLogs(),

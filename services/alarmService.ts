@@ -5,7 +5,7 @@ import {
   getBackgroundTaskStatus,
 } from "./backgroundTaskService";
 import { cancelAllScheduled } from "./notificationController";
-import { debugLog } from "@/utils/util";
+import { debugLog } from "@/utils/debug";
 
 export function getAlarmService(): AlarmService {
   if (Platform.OS === "web") {

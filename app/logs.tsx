@@ -28,7 +28,7 @@ import * as Notifications from "expo-notifications";
 import { getSelectedSoundUri, isVibrationEnabled } from "@/lib/sound";
 import { useState, useEffect } from "react";
 import { Platform } from "react-native";
-import { debugLog, getDebugLogs } from "@/utils/util";
+import { getDebugLogs } from "@/utils/debug";
 import * as Clipboard from "expo-clipboard";
 import * as Sharing from "expo-sharing";
 import { File, Paths } from "expo-file-system";

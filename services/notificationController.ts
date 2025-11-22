@@ -22,7 +22,7 @@ import { TimeOfDay } from "@/lib/timedate";
 import { store } from "@/store/store";
 import { setLastNotificationText } from "@/store/slices/remindersSlice";
 import { setNotificationsGranted } from "@/store/slices/preferencesSlice";
-import { debugLog } from "@/utils/util";
+import { debugLog } from "@/utils/debug";
 import { MIN_NOTIFICATION_BUFFER } from "@/constants/scheduleConstants";
 
 // AsyncStorage key for persisting the last scheduled notification time

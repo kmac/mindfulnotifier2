@@ -3,7 +3,7 @@ import * as BackgroundTask from "expo-background-task";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { debugLog } from "@/utils/util";
+import { debugLog } from "@/utils/debug";
 import { Controller, getLastScheduledTime, debugLogTrigger} from "./notificationController";
 import {
   BACKGROUND_TASK_INTERVAL_MINUTES,

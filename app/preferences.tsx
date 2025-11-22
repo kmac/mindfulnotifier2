@@ -38,7 +38,7 @@ import {
   openBatteryOptimizationSettings,
   isBatteryOptimizationDisabled,
 } from "@/lib/batteryOptimization";
-import { debugLog } from "@/utils/util";
+import { debugLog } from "@/utils/debug";
 import { useEffect, useState } from "react";
 
 export default function Preferences() {
