@@ -14,7 +14,6 @@ import { QuietHours } from "@/lib/quietHours";
 import {
   RandomScheduler,
   PeriodicScheduler,
-  ScheduleType,
 } from "@/lib/scheduler";
 import { getAlarmService } from "./alarmService";
 import type { AlarmService } from "./alarmService";
@@ -36,33 +35,46 @@ const LAST_BUFFER_REPLENISH_TIME_KEY = "lastBufferReplenishTime";
  */
 async function getPersistedState(): Promise<RootState | null> {
   try {
-    // Redux-persist stores state under separate keys for each slice
-    const [preferencesJson, scheduleJson, remindersJson, soundJson] =
-      await AsyncStorage.multiGet([
-        "persist:preferences",
-        "persist:schedule",
-        "persist:reminders",
-        "persist:sound",
-      ]);
+    // Redux-persist stores state under the key 'persist:root' (based on persistConfig.key)
+    const persistedJson = await AsyncStorage.getItem("persist:root");
 
-    // Parse each slice (redux-persist double-stringifies the data)
-    const preferences = preferencesJson[1]
-      ? JSON.parse(JSON.parse(preferencesJson[1]))
-      : null;
-    const schedule = scheduleJson[1]
-      ? JSON.parse(JSON.parse(scheduleJson[1]))
-      : null;
-    const reminders = remindersJson[1]
-      ? JSON.parse(JSON.parse(remindersJson[1]))
-      : null;
-    const sound = soundJson[1] ? JSON.parse(JSON.parse(soundJson[1])) : null;
-
-    if (!preferences || !schedule || !reminders || !sound) {
+    if (!persistedJson) {
       console.error(
-        "[Controller] Failed to load persisted state from AsyncStorage",
+        "[Controller] No persisted state found in AsyncStorage at persist:root",
       );
       return null;
     }
+
+    // Parse the persisted state (first parse)
+    const persistedState = JSON.parse(persistedJson);
+
+    // Redux-persist double-stringifies each slice, so parse each one individually
+    const preferences = persistedState.preferences
+      ? JSON.parse(persistedState.preferences)
+      : null;
+    const schedule = persistedState.schedule
+      ? JSON.parse(persistedState.schedule)
+      : null;
+    const reminders = persistedState.reminders
+      ? JSON.parse(persistedState.reminders)
+      : null;
+    const sound = persistedState.sound
+      ? JSON.parse(persistedState.sound)
+      : null;
+
+    if (!preferences || !schedule || !reminders || !sound) {
+      console.error(
+        "[Controller] Failed to parse all slices from persisted state. Found:",
+        Object.keys(persistedState),
+      );
+      return null;
+    }
+
+    console.log(
+      debugLog(
+        "[Controller] Successfully loaded persisted state from AsyncStorage",
+      ),
+    );
 
     return {
       preferences,
