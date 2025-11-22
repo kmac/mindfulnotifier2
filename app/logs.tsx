@@ -13,7 +13,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
   clearDebugInfoAsync,
-  addBackgroundTaskRun,
 } from "@/store/slices/preferencesSlice";
 import { Controller } from "@/services/notificationController";
 import {
@@ -48,6 +47,7 @@ export default function Logs() {
   const [channelDebugInfo, setChannelDebugInfo] = useState<string>("");
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
   const [lastBufferReplenishTime, setLastBufferReplenishTime] = useState<number | null>(null);
+  const [backgroundTaskHistory, setBackgroundTaskHistory] = useState<number[]>([]);
   const [snackbarVisible, setSnackbarVisible] = useState<boolean>(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string>(
     "Logs copied to clipboard",
@@ -112,13 +112,7 @@ export default function Logs() {
         // Update background task run history from AsyncStorage
         try {
           const taskHistory = await getBackgroundTaskHistory();
-          if (taskHistory.length > 0) {
-            // Sync the history to Redux state
-            // The addBackgroundTaskRun reducer will handle deduplication
-            taskHistory.forEach((timestamp) => {
-              dispatch(addBackgroundTaskRun(timestamp));
-            });
-          }
+          setBackgroundTaskHistory(taskHistory);
         } catch (error) {
           console.error("Failed to get background task history:", error);
         }
@@ -294,9 +288,9 @@ export default function Logs() {
 
     // Background Task Run History
     if (Platform.OS === "android") {
-      logsText += `BACKGROUND TASK RUN HISTORY (${preferences.backgroundTaskRunHistory.length} total)\n`;
-      if (preferences.backgroundTaskRunHistory.length > 0) {
-        preferences.backgroundTaskRunHistory
+      logsText += `BACKGROUND TASK RUN HISTORY (${backgroundTaskHistory.length} total)\n`;
+      if (backgroundTaskHistory.length > 0) {
+        backgroundTaskHistory
           .slice()
           .forEach((timestamp, index) => {
             const date = new Date(timestamp);
@@ -589,13 +583,13 @@ export default function Logs() {
 
           {/* Background Task Run History */}
           {Platform.OS === "android" &&
-            preferences.backgroundTaskRunHistory.length > 0 && (
+            backgroundTaskHistory.length > 0 && (
               <View style={styles.debugSubsection}>
                 <Text variant="titleSmall" style={styles.debugSubtitle}>
                   Background Task Run History (Last{" "}
-                  {preferences.backgroundTaskRunHistory.length})
+                  {backgroundTaskHistory.length})
                 </Text>
-                {preferences.backgroundTaskRunHistory
+                {backgroundTaskHistory
                   .slice()
                   .map((timestamp, index) => {
                     const date = new Date(timestamp);

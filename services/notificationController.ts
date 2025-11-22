@@ -11,10 +11,7 @@ import {
   isPermissionsGranted,
 } from "@/lib/notifications";
 import { QuietHours } from "@/lib/quietHours";
-import {
-  RandomScheduler,
-  PeriodicScheduler,
-} from "@/lib/scheduler";
+import { RandomScheduler, PeriodicScheduler } from "@/lib/scheduler";
 import { getAlarmService } from "./alarmService";
 import type { AlarmService } from "./alarmService";
 import { TimeOfDay } from "@/lib/timedate";
@@ -33,7 +30,7 @@ const LAST_BUFFER_REPLENISH_TIME_KEY = "lastBufferReplenishTime";
  * This is necessary in headless background tasks where redux-persist hasn't hydrated the store
  * @returns The persisted state or null if unable to retrieve
  */
-async function getPersistedState(): Promise<RootState | null> {
+export async function getPersistedState(): Promise<RootState | null> {
   try {
     // Redux-persist stores state under the key 'persist:root' (based on persistConfig.key)
     const persistedJson = await AsyncStorage.getItem("persist:root");
@@ -132,7 +129,9 @@ export function extractTriggerTime(
  * Debug helper to log trigger properties
  * Useful for understanding what properties are available in notification triggers
  */
-export function debugLogTrigger(trigger: Notifications.NotificationTrigger): void {
+export function debugLogTrigger(
+  trigger: Notifications.NotificationTrigger,
+): void {
   if (!trigger) {
     console.log(debugLog("[BackgroundTask] Trigger is null/undefined"));
     return;
@@ -493,7 +492,8 @@ export class Controller {
     try {
       // On Android, query actual scheduled notifications
       if (Platform.OS === "android") {
-        const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+        const scheduled =
+          await Notifications.getAllScheduledNotificationsAsync();
         if (scheduled.length === 0) {
           return null;
         }
@@ -541,7 +541,7 @@ export class Controller {
 
     if (Platform.OS === "web") {
       // On web, use setTimeout and call the callback
-      this.webNotificationService.scheduleAt('mindfulnotifier', date, () => {
+      this.webNotificationService.scheduleAt("mindfulnotifier", date, () => {
         console.log(`Web notification triggered: ${title}`);
         if (callback) callback();
       });
@@ -616,6 +616,21 @@ export class Controller {
    */
   async scheduleNextNotification() {
     if (Platform.OS === "android") {
+      // Get state to access minNotificationBuffer preference
+      // Use getPersistedState() to work in background task contexts
+      let state = await getPersistedState();
+      if (!state) {
+        console.warn(
+          debugLog(
+            "[Controller] Failed to get persisted state, falling back to store.getState()",
+          ),
+        );
+        state = store.getState();
+      }
+      const minNotificationBuffer = state
+        ? state.preferences.minNotificationBuffer
+        : MIN_NOTIFICATION_BUFFER;
+
       // On Android, check existing notification buffer before scheduling
       const scheduled: Notifications.NotificationRequest[] =
         await Notifications.getAllScheduledNotificationsAsync();
@@ -627,24 +642,23 @@ export class Controller {
       );
 
       // If buffer is healthy, no need to schedule more
-      if (scheduled.length >= MIN_NOTIFICATION_BUFFER) {
+      if (scheduled.length >= minNotificationBuffer) {
         // Debug: Log the first notification's trigger properties
         // Uncomment this to debug what properties are available in triggers
         // debugLogTrigger(scheduled[0]?.trigger);
 
         console.log(
           debugLog(
-            `[Controller] Notification buffer healthy (${scheduled.length}/${MIN_NOTIFICATION_BUFFER}), skipping scheduling`,
+            `[Controller] Notification buffer healthy (${scheduled.length}/${minNotificationBuffer}), skipping scheduling`,
           ),
         );
         return;
       }
 
-
       // Buffer is low, need to replenish
       console.log(
         debugLog(
-          `[Controller] Notification buffer low (${scheduled.length}/${MIN_NOTIFICATION_BUFFER}), replenishing`,
+          `[Controller] Notification buffer low (${scheduled.length}/${minNotificationBuffer}), replenishing`,
         ),
       );
 
@@ -662,12 +676,14 @@ export class Controller {
             `[Controller] Cannot determine lastScheduledTime, scheduling full buffer`,
           ),
         );
-        return this.scheduleMultipleNotifications(MIN_NOTIFICATION_BUFFER, undefined);
+        return this.scheduleMultipleNotifications(
+          minNotificationBuffer,
+          undefined,
+        );
       }
 
       // Calculate how many notifications to schedule to fill the gap
-      const notificationsToSchedule =
-        MIN_NOTIFICATION_BUFFER - scheduled.length;
+      const notificationsToSchedule = minNotificationBuffer - scheduled.length;
 
       // Schedule notifications to replenish the buffer
       return this.scheduleMultipleNotifications(
@@ -678,7 +694,16 @@ export class Controller {
 
     console.info("Controller scheduleNextNotification");
     try {
-      const state = store.getState();
+      // Get state with fallback pattern for consistency
+      let state = await getPersistedState();
+      if (!state) {
+        console.warn(
+          debugLog(
+            "[Controller] Failed to get persisted state, falling back to store.getState()",
+          ),
+        );
+        state = store.getState();
+      }
       const { schedule, reminders } = state;
 
       // Create a scheduler if we don't have one, or recreate if settings changed
@@ -744,19 +769,10 @@ export class Controller {
    * Schedule multiple notifications ahead of time (Android only)
    * This ensures notifications continue even when the app is backgrounded/killed
    * The scheduler respects quiet hours automatically
-   * @param count Number of notifications to schedule
+   * @param count Number of notifications to schedule (defaults to minNotificationBuffer from preferences)
    * @param fromTime Optional time to start scheduling from (uses last scheduled notification time to avoid canceling)
    */
-  async scheduleMultipleNotifications(
-    count: number = MIN_NOTIFICATION_BUFFER,
-    fromTime?: Date,
-  ) {
-    console.info(
-      debugLog(
-        `Controller scheduleMultipleNotifications (count=${count}, fromTime=${fromTime})`,
-      ),
-    );
-
+  async scheduleMultipleNotifications(count?: number, fromTime?: Date) {
     try {
       // Try to get persisted state first (works in headless background tasks)
       // Fall back to store.getState() if we're in a foreground context
@@ -767,7 +783,16 @@ export class Controller {
         );
         state = store.getState();
       }
-      const { schedule, reminders } = state;
+      const { schedule, reminders, preferences } = state;
+
+      // Use provided count or default to minNotificationBuffer from preferences
+      const notificationCount = count ?? preferences.minNotificationBuffer;
+
+      console.info(
+        debugLog(
+          `Controller scheduleMultipleNotifications (count=${notificationCount}, fromTime=${fromTime})`,
+        ),
+      );
 
       // Create a scheduler if we don't have one
       if (!this.scheduler) {
@@ -809,7 +834,7 @@ export class Controller {
       // Schedule multiple notifications
       let scheduleFromTime: Date | undefined = fromTime;
 
-      for (let i = 0; i < count; i++) {
+      for (let i = 0; i < notificationCount; i++) {
         // Get the next fire date from the scheduler
         // The scheduler automatically handles quiet hours
         const nextFireDate = this.scheduler.getNextFireDate(scheduleFromTime);
@@ -820,7 +845,7 @@ export class Controller {
         false &&
           console.log(
             debugLog(
-              `Scheduling notification ${i + 1}/${count} for ${nextFireDate.date}${nextFireDate.postQuiet ? " (after quiet hours)" : ""}`,
+              `Scheduling notification ${i + 1}/${notificationCount} for ${nextFireDate.date}${nextFireDate.postQuiet ? " (after quiet hours)" : ""}`,
             ),
           );
 
@@ -837,7 +862,7 @@ export class Controller {
 
       console.info(
         debugLog(
-          `Successfully scheduled ${count} notifications. ` +
+          `Successfully scheduled ${notificationCount} notifications. ` +
             `Last notification at: ${scheduleFromTime?.toLocaleString()}`,
         ),
       );

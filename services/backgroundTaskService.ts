@@ -4,11 +4,16 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { debugLog } from "@/utils/debug";
-import { Controller, getLastScheduledTime, debugLogTrigger} from "./notificationController";
+import {
+  Controller,
+  getLastScheduledTime,
+  debugLogTrigger,
+  getPersistedState,
+} from "./notificationController";
 import {
   BACKGROUND_TASK_INTERVAL_MINUTES,
-  MIN_NOTIFICATION_BUFFER,
   MAX_BACKGROUND_TASK_HISTORY,
+  MIN_NOTIFICATION_BUFFER,
 } from "@/constants/scheduleConstants";
 
 // Task name constants
@@ -17,7 +22,7 @@ export const BACKGROUND_CHECK_TASK = "BACKGROUND_CHECK_TASK";
 
 // AsyncStorage keys for background task data
 const BACKGROUND_TASK_HISTORY_KEY = "backgroundTaskHistory";
-const LAST_BUFFER_REPLENISH_TIME_KEY  = "lastBufferReplenishTime";
+const LAST_BUFFER_REPLENISH_TIME_KEY = "lastBufferReplenishTime";
 const LAST_SCHEDULED_TIME_KEY = "lastScheduledNotificationTime";
 
 /**
@@ -78,14 +83,27 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
     // Persist task run to AsyncStorage (Redux store is not hydrated in headless context)
     await persistBackgroundTaskRun(runTimestamp);
 
+    // Get persisted state to access minNotificationBuffer preference
+    const state = await getPersistedState();
+    if (!state) {
+      console.error(
+        debugLog(
+          "[BackgroundTask] Failed to get persisted state, cannot continue",
+        ),
+      );
+    }
+    const minNotificationBuffer = state
+      ? state.preferences.minNotificationBuffer
+      : MIN_NOTIFICATION_BUFFER;
+
     // Check if we need to schedule notifications
     const scheduled: Notifications.NotificationRequest[] =
       await Notifications.getAllScheduledNotificationsAsync();
 
-    if (scheduled.length < MIN_NOTIFICATION_BUFFER) {
+    if (scheduled.length < minNotificationBuffer) {
       console.log(
         debugLog(
-          `[BackgroundTask] Notification buffer low: (${scheduled.length}/${MIN_NOTIFICATION_BUFFER})`,
+          `[BackgroundTask] Notification buffer low: (${scheduled.length}/${minNotificationBuffer})`,
         ),
       );
       const controller = Controller.getInstance();
@@ -104,8 +122,7 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
 
       // Schedule next notifications to replenish the buffer
       // Starting from the last scheduled time to avoid gaps or duplicates
-      const notificationsToSchedule =
-        MIN_NOTIFICATION_BUFFER - scheduled.length;
+      const notificationsToSchedule = minNotificationBuffer - scheduled.length;
       await controller.scheduleMultipleNotifications(
         notificationsToSchedule,
         lastScheduledTime,
@@ -120,7 +137,7 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
       console.log(
         debugLog(
           "[BackgroundTask] Notification buffer healthy: " +
-            `(${scheduled.length}/${MIN_NOTIFICATION_BUFFER} notifications)`,
+            `(${scheduled.length}/${minNotificationBuffer} notifications)`,
         ),
       );
     }
