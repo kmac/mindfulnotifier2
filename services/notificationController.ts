@@ -300,6 +300,146 @@ class AndroidNotificationService {
   }
 }
 
+/**
+ * Schedule multiple notifications ahead of time (Android only)
+   * This ensures notifications continue even when the app is backgrounded/killed
+ * This is a stateless function that can be called from any context (foreground or background)
+ * The scheduler respects quiet hours automatically
+ *
+ * @param count Number of notifications to schedule (defaults to minNotificationBuffer from preferences)
+ * @param fromTime Optional time to start scheduling from (uses last scheduled notification time to avoid canceling)
+ * @param logPrefix Optional prefix for log messages (e.g., "[Controller]" or "[BackgroundTask]")
+ * @returns The last scheduled notification time, or undefined if none were scheduled
+ */
+export async function scheduleMultipleNotifications(
+  count?: number,
+  fromTime?: Date,
+  logPrefix: string = "[scheduleMultipleNotifications]",
+): Promise<Date | undefined> {
+  try {
+    // Try to get persisted state first (works in headless background tasks)
+    // Fall back to store.getState() if we're in a foreground context
+    let state = await getPersistedState();
+    if (!state) {
+      console.warn(
+        `${logPrefix} Failed to get persisted state, falling back to store.getState()`,
+      );
+      state = store.getState();
+    }
+    const { schedule, reminders, preferences } = state;
+
+    // Use provided count or default to minNotificationBuffer from preferences
+    const notificationCount = count ?? preferences.minNotificationBuffer;
+
+    console.info(
+      debugLog(
+        `${logPrefix} Scheduling multiple notifications (count=${notificationCount}, fromTime=${fromTime})`,
+      ),
+    );
+
+    // Create a scheduler based on current settings
+    const quietHours = new QuietHours(
+      new TimeOfDay(
+        schedule.quietHours.startHour,
+        schedule.quietHours.startMinute,
+      ),
+      new TimeOfDay(schedule.quietHours.endHour, schedule.quietHours.endMinute),
+      schedule.quietHours.notifyQuietHours,
+    );
+
+    let scheduler: RandomScheduler | PeriodicScheduler;
+    if (schedule.scheduleType === "periodic") {
+      scheduler = new PeriodicScheduler(
+        quietHours,
+        schedule.periodicConfig.durationHours,
+        schedule.periodicConfig.durationMinutes,
+      );
+    } else {
+      scheduler = new RandomScheduler(
+        quietHours,
+        schedule.randomConfig.minMinutes,
+        schedule.randomConfig.maxMinutes,
+      );
+    }
+
+    console.info(
+      debugLog(`${logPrefix} Using ${schedule.scheduleType} scheduler`),
+    );
+
+    // Only cancel existing notifications if we're not continuing from a specific time
+    if (!fromTime) {
+      await cancelAllNotifications();
+      console.log(
+        debugLog(`${logPrefix} Cancelled all existing notifications`),
+      );
+    }
+
+    // Schedule multiple notifications
+    let scheduleFromTime: Date | undefined = fromTime;
+
+    for (let i = 0; i < notificationCount; i++) {
+      // Get the next fire date from the scheduler
+      // The scheduler automatically handles quiet hours
+      const nextFireDate = scheduler.getNextFireDate(scheduleFromTime);
+
+      // Get a random reminder for this notification
+      const reminderText = getRandomReminder(reminders.reminders);
+
+      false &&
+        console.log(
+          debugLog(
+            `${logPrefix} Scheduling notification ${i + 1}/${notificationCount} for ${nextFireDate.date}${nextFireDate.postQuiet ? " (after quiet hours)" : ""}`,
+          ),
+        );
+
+      // Schedule the notification
+      await scheduleNotification(
+        "Mindful Notifier",
+        reminderText,
+        nextFireDate.date,
+      );
+
+      // Use this scheduled time as the base for the next one
+      scheduleFromTime = nextFireDate.date;
+    }
+
+    console.info(
+      debugLog(
+        `${logPrefix} Successfully scheduled ${notificationCount} notifications. ` +
+          `Last notification at: ${scheduleFromTime?.toLocaleString()}`,
+      ),
+    );
+
+    // Update last buffer replenish time to AsyncStorage (works in headless context)
+    const replenishTime = Date.now();
+    await AsyncStorage.setItem(
+      LAST_BUFFER_REPLENISH_TIME_KEY,
+      JSON.stringify(replenishTime),
+    );
+
+    // Persist the last scheduled time to AsyncStorage for reliability
+    // This ensures we can continue scheduling even if the notification list is empty
+    if (scheduleFromTime) {
+      await AsyncStorage.setItem(
+        LAST_SCHEDULED_TIME_KEY,
+        scheduleFromTime.getTime().toString(),
+      );
+    }
+
+    return scheduleFromTime;
+  } catch (error) {
+    console.error(
+      `${logPrefix} Failed to schedule multiple notifications:`,
+      error,
+    );
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    debugLog(
+      `${logPrefix} Failed to schedule multiple notifications: ${errorMessage}`,
+    );
+    throw error;
+  }
+}
+
 export class Controller {
   private static instance: Controller;
   private alarmService?: AlarmService;
@@ -677,9 +817,10 @@ export class Controller {
             `[Controller] Cannot determine lastScheduledTime, scheduling full buffer`,
           ),
         );
-        return this.scheduleMultipleNotifications(
+        return scheduleMultipleNotifications(
           minNotificationBuffer,
           undefined,
+          "[Controller]",
         );
       }
 
@@ -687,9 +828,10 @@ export class Controller {
       const notificationsToSchedule = minNotificationBuffer - scheduled.length;
 
       // Schedule notifications to replenish the buffer
-      return this.scheduleMultipleNotifications(
+      return scheduleMultipleNotifications(
         notificationsToSchedule,
         lastScheduledTime,
+        "[Controller]",
       );
     }
 
@@ -762,132 +904,6 @@ export class Controller {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       debugLog(`Failed to schedule next notification: ${errorMessage}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Schedule multiple notifications ahead of time (Android only)
-   * This ensures notifications continue even when the app is backgrounded/killed
-   * The scheduler respects quiet hours automatically
-   * @param count Number of notifications to schedule (defaults to minNotificationBuffer from preferences)
-   * @param fromTime Optional time to start scheduling from (uses last scheduled notification time to avoid canceling)
-   */
-  async scheduleMultipleNotifications(count?: number, fromTime?: Date) {
-    try {
-      // Try to get persisted state first (works in headless background tasks)
-      // Fall back to store.getState() if we're in a foreground context
-      let state = await getPersistedState();
-      if (!state) {
-        console.warn(
-          "[Controller] Failed to get persisted state, falling back to store.getState()",
-        );
-        state = store.getState();
-      }
-      const { schedule, reminders, preferences } = state;
-
-      // Use provided count or default to minNotificationBuffer from preferences
-      const notificationCount = count ?? preferences.minNotificationBuffer;
-
-      console.info(
-        debugLog(
-          `Controller scheduleMultipleNotifications (count=${notificationCount}, fromTime=${fromTime})`,
-        ),
-      );
-
-      // Create a scheduler if we don't have one
-      if (!this.scheduler) {
-        const quietHours = new QuietHours(
-          new TimeOfDay(
-            schedule.quietHours.startHour,
-            schedule.quietHours.startMinute,
-          ),
-          new TimeOfDay(
-            schedule.quietHours.endHour,
-            schedule.quietHours.endMinute,
-          ),
-          schedule.quietHours.notifyQuietHours,
-        );
-
-        // Create scheduler based on Redux schedule type
-        if (schedule.scheduleType === "periodic") {
-          this.scheduler = new PeriodicScheduler(
-            quietHours,
-            schedule.periodicConfig.durationHours,
-            schedule.periodicConfig.durationMinutes,
-          );
-        } else {
-          this.scheduler = new RandomScheduler(
-            quietHours,
-            schedule.randomConfig.minMinutes,
-            schedule.randomConfig.maxMinutes,
-          );
-        }
-
-        console.info(`Created ${schedule.scheduleType} scheduler`);
-      }
-
-      // Only cancel existing notifications if we're not continuing from a specific time
-      if (!fromTime) {
-        await this.androidNotificationService.cancelAll();
-      }
-
-      // Schedule multiple notifications
-      let scheduleFromTime: Date | undefined = fromTime;
-
-      for (let i = 0; i < notificationCount; i++) {
-        // Get the next fire date from the scheduler
-        // The scheduler automatically handles quiet hours
-        const nextFireDate = this.scheduler.getNextFireDate(scheduleFromTime);
-
-        // Get a random reminder for this notification
-        const reminderText = getRandomReminder(reminders.reminders);
-
-        false &&
-          console.log(
-            debugLog(
-              `Scheduling notification ${i + 1}/${notificationCount} for ${nextFireDate.date}${nextFireDate.postQuiet ? " (after quiet hours)" : ""}`,
-            ),
-          );
-
-        // Schedule the notification
-        await this.androidNotificationService.scheduleAt(
-          nextFireDate.date,
-          "Mindful Notifier",
-          reminderText,
-        );
-
-        // Use this scheduled time as the base for the next one
-        scheduleFromTime = nextFireDate.date;
-      }
-
-      console.info(
-        debugLog(
-          `Successfully scheduled ${notificationCount} notifications. ` +
-            `Last notification at: ${scheduleFromTime?.toLocaleString()}`,
-        ),
-      );
-
-      // Update last buffer replenish time to AsyncStorage (works in headless context)
-      const replenishTime = Date.now();
-      await AsyncStorage.setItem(
-        LAST_BUFFER_REPLENISH_TIME_KEY,
-        JSON.stringify(replenishTime),
-      );
-
-      // Persist the last scheduled time to AsyncStorage for reliability
-      // This ensures we can continue scheduling even if the notification list is empty
-      if (scheduleFromTime) {
-        await AsyncStorage.setItem(
-          LAST_SCHEDULED_TIME_KEY,
-          scheduleFromTime.getTime().toString(),
-        );
-      }
-    } catch (error) {
-      console.error("Failed to schedule multiple notifications:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      debugLog(`Failed to schedule multiple notifications: ${errorMessage}`);
       throw error;
     }
   }

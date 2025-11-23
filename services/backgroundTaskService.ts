@@ -5,10 +5,10 @@ import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { debugLog } from "@/utils/debug";
 import {
-  Controller,
   getLastScheduledTime,
   debugLogTrigger,
   getPersistedState,
+  scheduleMultipleNotifications,
 } from "./notificationController";
 import {
   BACKGROUND_TASK_INTERVAL_MINUTES,
@@ -107,7 +107,6 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
           `[BackgroundTask] Notification buffer low: (${scheduled.length}/${minNotificationBuffer})`,
         ),
       );
-      const controller = Controller.getInstance();
 
       // Debug: Log the first notification's trigger properties
       // Uncomment this to debug what properties are available in triggers
@@ -124,15 +123,10 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
       // Schedule next notifications to replenish the buffer
       // Starting from the last scheduled time to avoid gaps or duplicates
       const notificationsToSchedule = minNotificationBuffer - scheduled.length;
-      await controller.scheduleMultipleNotifications(
+      await scheduleMultipleNotifications(
         notificationsToSchedule,
         lastScheduledTime,
-      );
-
-      const replenishTime = Date.now();
-      await AsyncStorage.setItem(
-        LAST_BUFFER_REPLENISH_TIME_KEY,
-        JSON.stringify(replenishTime),
+        "[BackgroundTask]",
       );
     } else {
       console.log(
