@@ -14,7 +14,7 @@ import { PersistGate } from "redux-persist/integration/react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import CustomDrawer from "@/components/CustomDrawer";
 
-import { Controller } from "@/services/notificationController";
+import { enableNotifications } from "@/services/notificationController";
 import {
   initializeNotifications,
   addNotificationReceivedListener,
@@ -117,14 +117,12 @@ function AppContent() {
         // Note: We continue even if permissions not granted - user can enable later
         await initializeNotifications();
 
-        // Start the notification controller if enabled
+        // Start notifications if enabled
         if (isEnabled) {
-          const controller = Controller.getInstance();
-          await controller.initialize(); // sets up alarm service
-          await controller.enable(); // starts scheduling
-          console.log("[App] Controller enabled");
+          await enableNotifications();
+          console.log("[App] Notifications enabled");
         } else {
-          console.log("[App] Controller not enabled (isEnabled=false)");
+          console.log("[App] Notifications not enabled (isEnabled=false)");
         }
 
         if (isMounted) {

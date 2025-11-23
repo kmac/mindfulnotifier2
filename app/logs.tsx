@@ -14,7 +14,7 @@ import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
   clearDebugInfoAsync,
 } from "@/store/slices/preferencesSlice";
-import { Controller } from "@/services/notificationController";
+import { getNextNotificationTime } from "@/services/notificationController";
 import {
   getBackgroundTaskStatus,
   getBackgroundTaskHistory,
@@ -60,9 +60,16 @@ export default function Logs() {
   useEffect(() => {
     // Update the next notification time and monitoring data
     const updateData = async () => {
-      const controller = Controller.getInstance();
-      const nextTime = await controller.getNextNotificationTime();
+      const nextTime = await getNextNotificationTime();
       setNextNotificationTime(nextTime);
+
+      // Load debug logs from AsyncStorage (all platforms)
+      try {
+        const logs = await getDebugLogs();
+        setDebugInfo(logs);
+      } catch (error) {
+        console.error("Failed to get debug logs:", error);
+      }
 
       // Update scheduled notification count (Android only)
       if (Platform.OS === "android") {
@@ -128,14 +135,6 @@ export default function Logs() {
           }
         } catch (error) {
           console.error("Failed to get last buffer replenish time:", error);
-        }
-
-        // Load debug logs from AsyncStorage
-        try {
-          const logs = await getDebugLogs();
-          setDebugInfo(logs);
-        } catch (error) {
-          console.error("Failed to get debug logs:", error);
         }
 
         // Update notification channel debug info

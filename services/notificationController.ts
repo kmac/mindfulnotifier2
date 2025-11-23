@@ -12,8 +12,11 @@ import {
 } from "@/lib/notifications";
 import { QuietHours } from "@/lib/quietHours";
 import { RandomScheduler, PeriodicScheduler } from "@/lib/scheduler";
-import { getAlarmService } from "./alarmService";
-import type { AlarmService } from "./alarmService";
+import {
+  WebAlarmService,
+  AndroidAlarmService,
+  type AlarmService,
+} from "./alarmService";
 import { TimeOfDay } from "@/lib/timedate";
 import { store } from "@/store/store";
 import { setLastNotificationText } from "@/store/slices/remindersSlice";
@@ -21,9 +24,10 @@ import { setNotificationsGranted } from "@/store/slices/preferencesSlice";
 import { debugLog } from "@/utils/debug";
 import { MIN_NOTIFICATION_BUFFER } from "@/constants/scheduleConstants";
 
-// AsyncStorage key for persisting the last scheduled notification time
+// AsyncStorage keys for persisting notification state
 const LAST_SCHEDULED_TIME_KEY = "lastScheduledNotificationTime";
 const LAST_BUFFER_REPLENISH_TIME_KEY = "lastBufferReplenishTime";
+const NOTIFICATIONS_ENABLED_KEY = "notificationsEnabled";
 
 // Debounce configuration to prevent concurrent scheduling across contexts
 const LAST_SCHEDULE_ATTEMPT_KEY = "lastScheduleAttemptTime";
@@ -90,6 +94,23 @@ export async function getPersistedState(): Promise<RootState | null> {
     );
     return null;
   }
+}
+
+/**
+ * Get the appropriate alarm service for the current platform
+ * @returns AlarmService instance for the current platform
+ */
+function getAlarmService(): AlarmService {
+  if (Platform.OS === "web") {
+    return new WebAlarmService();
+  } else if (Platform.OS === "android") {
+    return new AndroidAlarmService();
+  } else if (Platform.OS === "ios") {
+    console.error("ios is not supported");
+  } else {
+    console.error(`Platform is not supported: ${Platform.OS}`);
+  }
+  throw new Error(`Platform is not supported: ${Platform.OS}`);
 }
 
 /**
@@ -279,30 +300,11 @@ class WebNotificationService {
   }
 }
 
-/**
- * Android-based notification service using Expo Notifications
- * Schedules actual notifications instead of callbacks
- */
-class AndroidNotificationService {
-  async scheduleAt(date: Date, title: string, body: string): Promise<string> {
-    const delayMS = date.getTime() - Date.now();
-
-    if (delayMS <= 0) {
-      throw new Error(`scheduleAt: date is not in the future: ${date}`);
-    }
-
-    // Schedule notification and return the Expo-generated ID
-    const notificationId = await scheduleNotification(title, body, date);
-    return notificationId;
-  }
-
-  async cancelAll(): Promise<void> {
-    await cancelAllNotifications();
-    console.log(
-      debugLog(`[AndroidNotificationService] Cancelled all notifications`),
-    );
-  }
-}
+// Module-level singletons for Web
+// These persist across the web session but are not needed for Android
+const webNotificationService =
+  Platform.OS === "web" ? new WebNotificationService() : null;
+let webScheduler: RandomScheduler | PeriodicScheduler | null = null;
 
 /**
  * Check if enough time has passed since the last scheduling attempt
@@ -315,7 +317,9 @@ async function shouldProceedWithScheduling(
   logPrefix: string,
 ): Promise<boolean> {
   try {
-    const lastAttemptStr = await AsyncStorage.getItem(LAST_SCHEDULE_ATTEMPT_KEY);
+    const lastAttemptStr = await AsyncStorage.getItem(
+      LAST_SCHEDULE_ATTEMPT_KEY,
+    );
 
     if (lastAttemptStr) {
       const lastAttempt = parseInt(lastAttemptStr, 10);
@@ -337,7 +341,9 @@ async function shouldProceedWithScheduling(
         ),
       );
     } else {
-      console.log(debugLog(`${logPrefix} Proceeding: no previous attempt found`));
+      console.log(
+        debugLog(`${logPrefix} Proceeding: no previous attempt found`),
+      );
     }
 
     // Record this attempt
@@ -347,7 +353,10 @@ async function shouldProceedWithScheduling(
     );
     return true;
   } catch (error) {
-    console.error(`${logPrefix} Error checking debounce, proceeding anyway:`, error);
+    console.error(
+      `${logPrefix} Error checking debounce, proceeding anyway:`,
+      error,
+    );
     // On error, proceed to avoid blocking scheduling
     return true;
   }
@@ -355,7 +364,7 @@ async function shouldProceedWithScheduling(
 
 /**
  * Schedule multiple notifications ahead of time (Android only)
-   * This ensures notifications continue even when the app is backgrounded/killed
+ * This ensures notifications continue even when the app is backgrounded/killed
  * This is a stateless function that can be called from any context (foreground or background)
  * The scheduler respects quiet hours automatically
  *
@@ -372,9 +381,7 @@ export async function scheduleMultipleNotifications(
   // Check debounce to prevent concurrent scheduling across contexts
   const shouldProceed = await shouldProceedWithScheduling(logPrefix);
   if (!shouldProceed) {
-    console.log(
-      debugLog(`${logPrefix} Skipping scheduling due to debounce`),
-    );
+    console.log(debugLog(`${logPrefix} Skipping scheduling due to debounce`));
     return undefined;
   }
 
@@ -503,511 +510,423 @@ export async function scheduleMultipleNotifications(
 }
 
 /**
- * Controller for managing notification scheduling
- *
- * IMPORTANT: This is NOT a true singleton across React Native execution contexts.
- *
- * React Native runs separate JavaScript contexts for:
- * - Foreground (main app): Has its own Controller.instance
- * - Background (headless tasks): Has a completely separate Controller.instance
- *
- * This means:
- * - Instance state (running, scheduler, alarmService) is NOT shared between contexts
- * - Each context creates its own singleton instance in its own memory space
- * - The background context's instance will always have running=false, scheduler=undefined, etc.
- *
- * Cross-context coordination is achieved through:
- * - AsyncStorage: Persisted state accessible from all contexts
- * - Expo Notifications API: Shared notification queue
- * - Debouncing: Prevents concurrent scheduling (via AsyncStorage timestamps)
- *
- * For scheduling operations that need to work across contexts, use the standalone
- * scheduleMultipleNotifications() function instead of Controller instance methods.
+ * Check if notifications are enabled
+ * Reads from AsyncStorage to work across all contexts
+ * @returns true if enabled, false otherwise
  */
-export class Controller {
-  private static instance: Controller;
-  private alarmService?: AlarmService;
-  private scheduler?: RandomScheduler | PeriodicScheduler;
-  private webNotificationService: WebNotificationService;
-  private androidNotificationService: AndroidNotificationService;
-
-  running: boolean = false;
-
-  private constructor() {
-    // Private constructor to prevent direct instantiation
-    this.webNotificationService = new WebNotificationService();
-    this.androidNotificationService = new AndroidNotificationService();
+export async function isNotificationsEnabled(): Promise<boolean> {
+  try {
+    const enabled = await AsyncStorage.getItem(NOTIFICATIONS_ENABLED_KEY);
+    return enabled === "true";
+  } catch (error) {
+    console.error(
+      "[NotificationController] Failed to read enabled state:",
+      error,
+    );
+    return false;
   }
+}
 
-  public static getInstance(): Controller {
-    if (Controller.instance) {
-      return Controller.instance;
-    }
-    Controller.instance = new Controller();
-    return Controller.instance;
-    // throw new Error("getInstance: no scheduler exists");
-  }
+/**
+ * Enable notifications and start scheduling
+ * This replaces Controller.enable() with a stateless function-based approach
+ * @param restart If true, clears existing scheduler state (for settings changes)
+ */
+export async function enableNotifications(
+  restart: boolean = false,
+): Promise<void> {
+  console.info(
+    `[NotificationController] enableNotifications, restart=${restart}`,
+  );
 
-  // public static setInstance(newInstance: Controller) {
-  //   if (Controller.instance) {
-  //     if (Controller.instance.running) {
-  //       throw new Error("setInstance: existing scheduler is still running");
-  //     }
-  //   }
-  //   Controller.instance = newInstance;
-  // }
+  try {
+    // Check notification permissions before enabling
+    const hasPermissions = await isPermissionsGranted();
 
-  /**
-   * Initialize the controller with alarm service
-   */
-  async initialize() {
-    console.info("Controller initialize");
-    try {
-      // Check and update permission status on initialization
-      const notifPermissions = await this.updatePermissionStatus();
+    if (!hasPermissions) {
       console.info(
+        "[NotificationController] Notification permissions not granted, requesting...",
+      );
+      const granted = await requestPermissions();
+
+      if (!granted) {
+        // Update Redux state to reflect denied permissions
+        store.dispatch(setNotificationsGranted(false));
+        const error = new Error(
+          "Notification permissions are required to enable notifications",
+        );
+        console.error(error.message);
+        throw error;
+      }
+
+      console.info("[NotificationController] Notification permissions granted");
+    }
+
+    // Update Redux state to reflect granted permissions
+    store.dispatch(setNotificationsGranted(true));
+
+    // Persist enabled state to AsyncStorage (works across all contexts)
+    await AsyncStorage.setItem(NOTIFICATIONS_ENABLED_KEY, "true");
+
+    // If restarting, clear the scheduler to pick up new settings (web only)
+    if (restart && Platform.OS === "web") {
+      console.info(
+        "[NotificationController] Restarting: clearing existing web scheduler",
+      );
+      webScheduler = null;
+    }
+
+    // Schedule notifications FIRST (single for web, multiple for Android)
+    // This ensures the initial notification buffer is created before the background task runs
+    await scheduleNextNotificationInternal();
+
+    // THEN enable the alarm service (registers background task on Android)
+    // By scheduling first, we avoid race conditions where the background task
+    // tries to schedule notifications at the same time as the foreground
+    const alarmService = getAlarmService();
+    await alarmService.enable();
+
+    console.info("[NotificationController] Notifications enabled successfully");
+  } catch (error) {
+    console.error(
+      "[NotificationController] Failed to enable notifications:",
+      error,
+    );
+    throw error;
+  }
+}
+
+/**
+ * Disable notifications and stop scheduling
+ * This replaces Controller.disable() with a stateless function-based approach
+ */
+export async function disableNotifications(): Promise<void> {
+  console.info("[NotificationController] disableNotifications");
+
+  try {
+    await cancelAllScheduled();
+
+    // Disable alarm service (unregisters background task on Android)
+    const alarmService = getAlarmService();
+    await alarmService.disable();
+
+    // Persist disabled state to AsyncStorage (works across all contexts)
+    await AsyncStorage.setItem(NOTIFICATIONS_ENABLED_KEY, "false");
+
+    console.info(
+      "[NotificationController] Notifications disabled successfully",
+    );
+  } catch (error) {
+    console.error(
+      "[NotificationController] Failed to disable notifications:",
+      error,
+    );
+    throw error;
+  }
+}
+
+/**
+ * Reschedule notifications (useful when settings change)
+ * This replaces Controller.reschedule() with a stateless function-based approach
+ */
+export async function rescheduleNotifications(): Promise<void> {
+  console.info("[NotificationController] rescheduleNotifications");
+
+  const enabled = await isNotificationsEnabled();
+  if (!enabled) {
+    console.warn(
+      "[NotificationController] Cannot reschedule: notifications are not enabled",
+    );
+    return;
+  }
+
+  try {
+    // Clear existing scheduler (web only)
+    if (Platform.OS === "web") {
+      webScheduler = null;
+    }
+
+    // Cancel and reschedule
+    await cancelAllScheduled();
+    await scheduleNextNotificationInternal();
+
+    console.info(debugLog("[NotificationController] Rescheduled successfully"));
+  } catch (error) {
+    console.error("[NotificationController] Failed to reschedule:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get the next scheduled notification time
+ * Returns null if notifications are not enabled or no notifications scheduled
+ */
+export async function getNextNotificationTime(): Promise<Date | null> {
+  const enabled = await isNotificationsEnabled();
+  if (!enabled) {
+    return null;
+  }
+
+  try {
+    // On Android, query actual scheduled notifications
+    if (Platform.OS === "android") {
+      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      if (scheduled.length === 0) {
+        return null;
+      }
+
+      // Get the earliest trigger time from all scheduled notifications
+      const triggerTimes = scheduled
+        .map((notif) => extractTriggerTime(notif.trigger))
+        .filter((time): time is number => time !== null);
+
+      if (triggerTimes.length > 0) {
+        const earliestTime = Math.min(...triggerTimes);
+        return new Date(earliestTime);
+      }
+      return null;
+    }
+
+    // On web, use the scheduler
+    if (!webScheduler) {
+      return null;
+    }
+
+    const nextFireDate = webScheduler.queryNext();
+    return nextFireDate?.date ?? null;
+  } catch (error) {
+    console.error(
+      "[NotificationController] Failed to get next notification time:",
+      error,
+    );
+    return null;
+  }
+}
+
+/**
+ * Internal helper: Schedule the next notification
+ * Used by enableNotifications() and rescheduleNotifications()
+ */
+async function scheduleNextNotificationInternal(): Promise<void> {
+  if (Platform.OS === "android") {
+    // Android: Use buffer-based scheduling
+    let state = await getPersistedState();
+    if (!state) {
+      console.warn(
         debugLog(
-          `Controller initialized successfully, has notification permissions: ${notifPermissions}`,
+          "[NotificationController] Failed to get persisted state, falling back to store.getState()",
         ),
       );
-    } catch (error) {
-      console.error("Failed to initialize controller:", error);
-      debugLog("Failed to initialize controller:", error);
-      throw error;
+      state = store.getState();
     }
-  }
+    const minNotificationBuffer = state
+      ? state.preferences.minNotificationBuffer
+      : MIN_NOTIFICATION_BUFFER;
 
-  /**
-   * Check notification permission status and update Redux store
-   */
-  async updatePermissionStatus(): Promise<boolean> {
-    const hasPermissions = await isPermissionsGranted();
-    store.dispatch(setNotificationsGranted(hasPermissions));
-    return hasPermissions;
-  }
+    const scheduled: Notifications.NotificationRequest[] =
+      await Notifications.getAllScheduledNotificationsAsync();
 
-  /**
-   * Enable the controller and start scheduling
-   */
-  async enable(restart: boolean = false) {
-    console.info(`Controller enable, restart=${restart}`);
+    console.log(
+      debugLog(
+        `[NotificationController] scheduleNextNotification: ${scheduled.length} notifications already scheduled`,
+      ),
+    );
 
-    try {
-      // Check notification permissions before enabling
-      const hasPermissions = await isPermissionsGranted();
-
-      if (!hasPermissions) {
-        console.info("Notification permissions not granted, requesting...");
-        const granted = await requestPermissions();
-
-        if (!granted) {
-          // Update Redux state to reflect denied permissions
-          store.dispatch(setNotificationsGranted(false));
-          const error = new Error(
-            "Notification permissions are required to enable notifications",
-          );
-          console.error(error.message);
-          throw error;
-        }
-
-        console.info("Notification permissions granted");
-      }
-
-      // Update Redux state to reflect granted permissions
-      store.dispatch(setNotificationsGranted(true));
-
-      // Initialize alarm service (but don't enable yet to avoid background task running before initial scheduling)
-      if (!this.alarmService) {
-        this.alarmService = getAlarmService();
-        this.alarmService.initialize();
-      }
-
-      this.running = true;
-
-      // If restarting, clear the scheduler to pick up new settings
-      if (restart) {
-        console.info("Restarting: clearing existing scheduler");
-        this.scheduler = undefined;
-      }
-
-      // Schedule notifications FIRST (single for web, multiple for Android)
-      // This ensures the initial notification buffer is created before the background task runs
-      await this.scheduleNextNotification();
-
-      // THEN enable the alarm service (registers background task on Android)
-      // By scheduling first, we avoid race conditions where the background task
-      // tries to schedule notifications at the same time as the foreground
-      if (this.alarmService) {
-        await this.alarmService.enable();
-      }
-
-      console.info("Controller enabled successfully");
-    } catch (error) {
-      console.error("Failed to enable controller:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Disable the controller and stop scheduling
-   */
-  async disable() {
-    console.info("Controller disable");
-
-    try {
-      // Cancel all scheduled notifications/timers
-      await this.cancelAllScheduled();
-
-      if (this.alarmService) {
-        await this.alarmService.disable();
-      }
-
-      // Clear the scheduler so settings changes are picked up on next enable
-      this.scheduler = undefined;
-
-      this.running = false;
-
-      console.info("Controller disabled successfully");
-    } catch (error) {
-      console.error("Failed to disable controller:", error);
-      throw error;
-    }
-  }
-
-  shutdown() {
-    console.info("Controller shutdown");
-
-    if (this.alarmService) {
-      this.alarmService.shutdown();
-    }
-
-    this.running = false;
-  }
-
-  /**
-   * Reschedule notifications (useful when settings change)
-   * Clears existing scheduler and schedules fresh notifications
-   */
-  async reschedule() {
-    console.info("Controller reschedule");
-
-    if (!this.running) {
-      console.warn("Cannot reschedule: controller is not running");
+    // If buffer is healthy, no need to schedule more
+    if (scheduled.length >= minNotificationBuffer) {
+      console.log(
+        debugLog(
+          `[NotificationController] Notification buffer healthy (${scheduled.length}/${minNotificationBuffer}), skipping scheduling`,
+        ),
+      );
       return;
     }
 
-    try {
-      // Clear existing scheduler to pick up new settings
-      this.scheduler = undefined;
+    // Buffer is low, need to replenish
+    console.log(
+      debugLog(
+        `[NotificationController] Notification buffer low (${scheduled.length}/${minNotificationBuffer}), replenishing`,
+      ),
+    );
 
-      // Schedule new notifications with updated settings
-      await this.cancelAllScheduled();
-      await this.scheduleNextNotification();
+    const lastScheduledTime = await getLastScheduledTime(
+      scheduled,
+      "[NotificationController]",
+    );
 
-      console.info(debugLog("Rescheduled successfully"));
-    } catch (error) {
-      console.error("Failed to reschedule:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get the next scheduled notification time
-   * Returns null if service is not running or no notifications scheduled
-   */
-  async getNextNotificationTime(): Promise<Date | null> {
-    if (!this.running) {
-      return null;
-    }
-
-    try {
-      // On Android, query actual scheduled notifications
-      if (Platform.OS === "android") {
-        const scheduled =
-          await Notifications.getAllScheduledNotificationsAsync();
-        if (scheduled.length === 0) {
-          return null;
-        }
-
-        // Get the earliest trigger time from all scheduled notifications
-        const triggerTimes = scheduled
-          .map((notif) => extractTriggerTime(notif.trigger))
-          .filter((time): time is number => time !== null);
-
-        if (triggerTimes.length > 0) {
-          const earliestTime = Math.min(...triggerTimes);
-          return new Date(earliestTime);
-        }
-        return null;
-      }
-
-      // On web, use the scheduler
-      if (!this.scheduler) {
-        return null;
-      }
-
-      const nextFireDate = this.scheduler.queryNext();
-      return nextFireDate?.date ?? null;
-    } catch (error) {
-      console.error("Failed to get next notification time:", error);
-      return null;
-    }
-  }
-
-  initialScheduleComplete() {
-    console.info("Controller initialScheduleComplete");
-  }
-
-  /**
-   * Schedule a notification at a specific date/time
-   * Works on both Android and Web
-   */
-  async scheduleNotificationAt(
-    date: Date,
-    title: string,
-    body: string,
-    callback?: Function,
-  ): Promise<void> {
-    console.log(`scheduleNotificationAt: ${date}, platform: ${Platform.OS}`);
-
-    if (Platform.OS === "web") {
-      // On web, use setTimeout and call the callback
-      this.webNotificationService.scheduleAt("mindfulnotifier", date, () => {
-        console.log(`Web notification triggered: ${title}`);
-        if (callback) callback();
-      });
-    } else if (Platform.OS === "android") {
-      // On Android, schedule a real notification
-      await this.androidNotificationService.scheduleAt(date, title, body);
-    } else {
-      throw new Error(`Platform is not supported: ${Platform.OS}`);
-    }
-  }
-
-  /**
-   * Cancel all scheduled notifications/timers
-   */
-  async cancelAllScheduled(): Promise<void> {
-    if (Platform.OS === "web") {
-      this.webNotificationService.cancelAll();
-    } else if (Platform.OS === "android") {
-      await this.androidNotificationService.cancelAll();
-    }
-
-    // Clear persisted scheduling state since we've cancelled everything
-    try {
-      await AsyncStorage.multiRemove([
-        LAST_SCHEDULED_TIME_KEY,
-        LAST_SCHEDULE_ATTEMPT_KEY,
-      ]);
+    if (!lastScheduledTime) {
       console.log(
         debugLog(
-          "[Controller] Cleared scheduling state from AsyncStorage (last scheduled time, debounce timestamp)",
+          `[NotificationController] Cannot determine lastScheduledTime, scheduling full buffer`,
         ),
       );
-    } catch (error) {
-      console.error(
-        "[Controller] Failed to clear scheduling state from AsyncStorage:",
-        error,
+      await scheduleMultipleNotifications(
+        minNotificationBuffer,
+        undefined,
+        "[NotificationController]",
       );
+      return;
     }
+
+    const notificationsToSchedule = minNotificationBuffer - scheduled.length;
+    await scheduleMultipleNotifications(
+      notificationsToSchedule,
+      lastScheduledTime,
+      "[NotificationController]",
+    );
   }
 
-  /**
-   * Trigger a notification
-   * This is called by the scheduler when it's time to show a notification
-   */
-  async triggerNotification() {
-    console.info("Controller triggerNotification");
-
-    try {
-      // Get Redux state
-      const state = store.getState();
-      const { reminders } = state;
-
-      const reminderText = getRandomReminder(reminders.reminders);
-
-      await showLocalNotification({
-        title: "Mindful Reminder",
-        body: reminderText,
-        data: { timestamp: Date.now() },
-        sound: true, // Sound will be controlled by preferences in showLocalNotification
-      });
-
-      store.dispatch(setLastNotificationText(reminderText));
-
-      console.log(
-        debugLog("Notification triggered successfully, scheduling next"),
+  // Web: Use scheduler-based approach
+  console.info("[NotificationController] scheduleNextNotification (web)");
+  try {
+    let state = await getPersistedState();
+    if (!state) {
+      console.warn(
+        debugLog(
+          "[NotificationController] Failed to get persisted state, falling back to store.getState()",
+        ),
       );
-      await this.scheduleNextNotification();
-    } catch (error) {
-      console.error("Failed to trigger notification:", error);
-      debugLog("Failed to trigger notification:", error);
+      state = store.getState();
     }
-  }
+    const { schedule, reminders } = state;
 
-  /**
-   * Schedule the next notification
-   * This is the main method that creates and schedules notifications
-   */
-  async scheduleNextNotification() {
-    if (Platform.OS === "android") {
-      // Get state to access minNotificationBuffer preference
-      // Use getPersistedState() to work in background task contexts
-      let state = await getPersistedState();
-      if (!state) {
-        console.warn(
-          debugLog(
-            "[Controller] Failed to get persisted state, falling back to store.getState()",
-          ),
-        );
-        state = store.getState();
-      }
-      const minNotificationBuffer = state
-        ? state.preferences.minNotificationBuffer
-        : MIN_NOTIFICATION_BUFFER;
-
-      // On Android, check existing notification buffer before scheduling
-      const scheduled: Notifications.NotificationRequest[] =
-        await Notifications.getAllScheduledNotificationsAsync();
-
-      console.log(
-        debugLog(
-          `[Controller] scheduleNextNotification: ${scheduled.length} notifications already scheduled`,
+    // Create a scheduler if we don't have one
+    if (!webScheduler) {
+      const quietHours = new QuietHours(
+        new TimeOfDay(
+          schedule.quietHours.startHour,
+          schedule.quietHours.startMinute,
         ),
-      );
-
-      // If buffer is healthy, no need to schedule more
-      if (scheduled.length >= minNotificationBuffer) {
-        // Debug: Log the first notification's trigger properties
-        // Uncomment this to debug what properties are available in triggers
-        // debugLogTrigger(scheduled[0]?.trigger);
-
-        console.log(
-          debugLog(
-            `[Controller] Notification buffer healthy (${scheduled.length}/${minNotificationBuffer}), skipping scheduling`,
-          ),
-        );
-        return;
-      }
-
-      // Buffer is low, need to replenish
-      console.log(
-        debugLog(
-          `[Controller] Notification buffer low (${scheduled.length}/${minNotificationBuffer}), replenishing`,
+        new TimeOfDay(
+          schedule.quietHours.endHour,
+          schedule.quietHours.endMinute,
         ),
+        schedule.quietHours.notifyQuietHours,
       );
 
-      // Find the last scheduled notification time to continue from there
-      const lastScheduledTime = await getLastScheduledTime(
-        scheduled,
-        "[Controller]",
-      );
-
-      // If we can't determine lastScheduledTime, we need to do a full refresh
-      // This prevents canceling existing notifications and only scheduling the gap
-      if (!lastScheduledTime) {
-        console.log(
-          debugLog(
-            `[Controller] Cannot determine lastScheduledTime, scheduling full buffer`,
-          ),
+      if (schedule.scheduleType === "periodic") {
+        webScheduler = new PeriodicScheduler(
+          quietHours,
+          schedule.periodicConfig.durationHours,
+          schedule.periodicConfig.durationMinutes,
         );
-        return scheduleMultipleNotifications(
-          minNotificationBuffer,
-          undefined,
-          "[Controller]",
+      } else {
+        webScheduler = new RandomScheduler(
+          quietHours,
+          schedule.randomConfig.minMinutes,
+          schedule.randomConfig.maxMinutes,
         );
       }
 
-      // Calculate how many notifications to schedule to fill the gap
-      const notificationsToSchedule = minNotificationBuffer - scheduled.length;
-
-      // Schedule notifications to replenish the buffer
-      return scheduleMultipleNotifications(
-        notificationsToSchedule,
-        lastScheduledTime,
-        "[Controller]",
+      console.info(
+        `[NotificationController] Created ${schedule.scheduleType} scheduler`,
       );
     }
 
-    console.info("Controller scheduleNextNotification");
-    try {
-      // Get state with fallback pattern for consistency
-      let state = await getPersistedState();
-      if (!state) {
-        console.warn(
-          debugLog(
-            "[Controller] Failed to get persisted state, falling back to store.getState()",
-          ),
-        );
-        state = store.getState();
-      }
-      const { schedule, reminders } = state;
+    // Get the next fire date from the scheduler
+    const nextFireDate = webScheduler.getNextFireDate();
 
-      // Create a scheduler if we don't have one, or recreate if settings changed
-      if (!this.scheduler) {
-        const quietHours = new QuietHours(
-          new TimeOfDay(
-            schedule.quietHours.startHour,
-            schedule.quietHours.startMinute,
-          ),
-          new TimeOfDay(
-            schedule.quietHours.endHour,
-            schedule.quietHours.endMinute,
-          ),
-          schedule.quietHours.notifyQuietHours,
-        );
+    console.info(
+      `[NotificationController] Scheduling notification for ${nextFireDate.date}`,
+    );
 
-        // Create scheduler based on Redux schedule type
-        if (schedule.scheduleType === "periodic") {
-          this.scheduler = new PeriodicScheduler(
-            quietHours,
-            schedule.periodicConfig.durationHours,
-            schedule.periodicConfig.durationMinutes,
-          );
-        } else {
-          this.scheduler = new RandomScheduler(
-            quietHours,
-            schedule.randomConfig.minMinutes,
-            schedule.randomConfig.maxMinutes,
-          );
-        }
-
-        console.info(
-          `Created ${schedule.scheduleType} scheduler with Redux configuration`,
-        );
-      }
-
-      // Get the next fire date from the scheduler
-      const nextFireDate = this.scheduler.getNextFireDate();
-
-      console.info(`Scheduling notification for ${nextFireDate.date}`);
-
-      // Schedule the notification
-      await this.scheduleNotificationAt(
+    // Schedule the notification (web uses setTimeout)
+    if (webNotificationService) {
+      webNotificationService.scheduleAt(
+        "mindfulnotifier",
         nextFireDate.date,
-        "Mindful Notifier",
-        getRandomReminder(reminders.reminders),
         () => {
-          // This callback is only used on web
-          this.triggerNotification();
+          triggerNotificationInternal();
         },
       );
-      console.info("Notification scheduled successfully");
-    } catch (error) {
-      console.error("Failed to schedule next notification:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      debugLog(`Failed to schedule next notification: ${errorMessage}`);
-      throw error;
     }
+
+    console.info(
+      "[NotificationController] Notification scheduled successfully",
+    );
+  } catch (error) {
+    console.error(
+      "[NotificationController] Failed to schedule next notification:",
+      error,
+    );
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    debugLog(
+      `[NotificationController] Failed to schedule next notification: ${errorMessage}`,
+    );
+    throw error;
+  }
+}
+
+/**
+ * Cancel all scheduled notifications/timers
+ * Used by disableNotifications() and rescheduleNotifications()
+ */
+export async function cancelAllScheduled(): Promise<void> {
+  if (Platform.OS === "web") {
+    webNotificationService?.cancelAll();
+  } else if (Platform.OS === "android") {
+    await cancelAllNotifications();
+  }
+
+  // Clear persisted scheduling state
+  try {
+    await AsyncStorage.multiRemove([
+      LAST_SCHEDULED_TIME_KEY,
+      LAST_SCHEDULE_ATTEMPT_KEY,
+    ]);
+    console.log(
+      debugLog(
+        "[NotificationController] Cleared scheduling state from AsyncStorage",
+      ),
+    );
+  } catch (error) {
+    console.error(
+      "[NotificationController] Failed to clear scheduling state from AsyncStorage:",
+      error,
+    );
+  }
+}
+
+/**
+ * Internal helper: Trigger a notification
+ * Used by web scheduler when it's time to show a notification
+ */
+async function triggerNotificationInternal(): Promise<void> {
+  console.info("[NotificationController] triggerNotification");
+
+  try {
+    const state = store.getState();
+    const { reminders } = state;
+
+    const reminderText = getRandomReminder(reminders.reminders);
+
+    await showLocalNotification({
+      title: "Mindful Reminder",
+      body: reminderText,
+      data: { timestamp: Date.now() },
+      sound: true,
+    });
+
+    store.dispatch(setLastNotificationText(reminderText));
+
+    console.log(
+      debugLog(
+        "[NotificationController] Notification triggered successfully, scheduling next",
+      ),
+    );
+    await scheduleNextNotificationInternal();
+  } catch (error) {
+    console.error(
+      "[NotificationController] Failed to trigger notification:",
+      error,
+    );
+    debugLog("[NotificationController] Failed to trigger notification:", error);
   }
 }
 
 /**
  * Schedule a notification at a specific date/time
  * Works on both Android and Web
- * Wrapper function that delegates to the Controller singleton
  */
 export async function scheduleNotificationAt(
   date: Date,
@@ -1015,15 +934,20 @@ export async function scheduleNotificationAt(
   body: string,
   callback?: Function,
 ): Promise<void> {
-  const controller = Controller.getInstance();
-  return controller.scheduleNotificationAt(date, title, body, callback);
-}
+  console.log(`[scheduleNotificationAt] ${date}, platform: ${Platform.OS}`);
 
-/**
- * Cancel all scheduled notifications/timers
- * Wrapper function that delegates to the Controller singleton
- */
-export async function cancelAllScheduled(): Promise<void> {
-  const controller = Controller.getInstance();
-  return controller.cancelAllScheduled();
+  if (Platform.OS === "web") {
+    // On web, use setTimeout and call the callback
+    if (webNotificationService) {
+      webNotificationService.scheduleAt("mindfulnotifier", date, () => {
+        console.log(`Web notification triggered: ${title}`);
+        if (callback) callback();
+      });
+    }
+  } else if (Platform.OS === "android") {
+    // On Android, schedule a real notification
+    await scheduleNotification(title, body, date);
+  } else {
+    throw new Error(`Platform is not supported: ${Platform.OS}`);
+  }
 }

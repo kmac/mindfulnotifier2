@@ -23,7 +23,6 @@ export const BACKGROUND_CHECK_TASK = "BACKGROUND_CHECK_TASK";
 // AsyncStorage keys for background task data
 const BACKGROUND_TASK_HISTORY_KEY = "backgroundTaskHistory";
 const LAST_BUFFER_REPLENISH_TIME_KEY = "lastBufferReplenishTime";
-const LAST_SCHEDULED_TIME_KEY = "lastScheduledNotificationTime";
 
 /**
  * Persist background task run timestamp directly to AsyncStorage
@@ -47,29 +46,6 @@ async function persistBackgroundTaskRun(timestamp: number): Promise<void> {
     debugLog("[BackgroundTask] Failed to persist task run:", error);
   }
 }
-
-/**
- * Background task that schedules the next notification
- * This runs when the app is in the background or killed
- */
-// TaskManager.defineTask(NOTIFICATION_TASK_NAME, async () => {
-//   try {
-//     console.log("[BackgroundTask] Running notification scheduling task");
-//
-//     // Schedule the next notification
-//     const controller = Controller.getInstance();
-//     await controller.scheduleNextNotification();
-//
-//     console.log(
-//       debugLog("[BackgroundTask] Successfully scheduled next notification"),
-//     );
-//     return BackgroundTask.BackgroundTaskResult.Success;
-//   } catch (error) {
-//     console.error("[BackgroundTask] Error in background task:", error);
-//     debugLog("[BackgroundTask] Error in background task:", error);
-//     return BackgroundTask.BackgroundTaskResult.Failed;
-//   }
-// });
 
 /**
  * Periodic background check task

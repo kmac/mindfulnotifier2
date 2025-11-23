@@ -18,7 +18,7 @@ import {
   ScheduleType,
 } from "@/store/slices/scheduleSlice";
 import { useState } from "react";
-import { Controller } from "@/services/notificationController";
+import { rescheduleNotifications } from "@/services/notificationController";
 import {
   getMinIntervalMinutes,
   isValidPeriodicInterval,
@@ -77,8 +77,7 @@ export default function Schedule() {
   const rescheduleIfEnabled = async () => {
     if (isEnabled) {
       try {
-        const controller = Controller.getInstance();
-        await controller.reschedule();
+        await rescheduleNotifications();
         console.log("[Schedule] Rescheduled notifications with new settings");
       } catch (error) {
         console.error("[Schedule] Failed to reschedule:", error);

@@ -13,7 +13,7 @@ import { useAudioPlayer } from "expo-audio";
 import { useState } from "react";
 import * as DocumentPicker from "expo-document-picker";
 import { playSound, stopSound } from "@/lib/sound";
-import { Controller } from "@/services/notificationController";
+import { rescheduleNotifications } from "@/services/notificationController";
 
 const AVAILABLE_SOUNDS = [
   { name: "bell_inside.mp3", label: "Bell Inside" },
@@ -39,8 +39,7 @@ export default function Sound() {
     // This ensures new notifications use the correct channel for the selected sound
     if (isEnabled) {
       try {
-        const controller = Controller.getInstance();
-        await controller.reschedule();
+        await rescheduleNotifications();
         console.log(`[Sound] Rescheduled notifications for sound: ${soundName}`);
       } catch (error) {
         console.error("[Sound] Failed to reschedule notifications:", error);
@@ -65,8 +64,7 @@ export default function Sound() {
         // If the service is running, reschedule notifications with the new custom sound
         if (isEnabled) {
           try {
-            const controller = Controller.getInstance();
-            await controller.reschedule();
+            await rescheduleNotifications();
             console.log(`[Sound] Rescheduled notifications for custom sound`);
           } catch (error) {
             console.error("[Sound] Failed to reschedule notifications:", error);

@@ -4,21 +4,7 @@ import {
   unregisterBackgroundTasks,
   getBackgroundTaskStatus,
 } from "./backgroundTaskService";
-import { cancelAllScheduled } from "./notificationController";
 import { debugLog } from "@/utils/debug";
-
-export function getAlarmService(): AlarmService {
-  if (Platform.OS === "web") {
-    return new WebAlarmService();
-  } else if (Platform.OS === "android") {
-    return new AndroidAlarmService();
-  } else if (Platform.OS === "ios") {
-    console.error("ios is not supported");
-  } else {
-    console.error(`Platform is not supported: ${Platform.OS}`);
-  }
-  throw new Error(`Platform is not supported: ${Platform.OS}`);
-}
 
 export abstract class AlarmService {
   running: boolean = false;
@@ -85,13 +71,8 @@ export class WebAlarmService extends AlarmService {
     console.log("[WebAlarmService] Shutting down");
 
     // Ensure running is false even if cleanup fails
+    // Note: Notification cancellation should be handled by the caller
     this.running = false;
-
-    try {
-      await cancelAllScheduled();
-    } catch (error) {
-      console.error("[WebAlarmService] Failed to shutdown:", error);
-    }
   }
 
   async getStatus(): Promise<string> {
@@ -181,9 +162,8 @@ export class AndroidAlarmService extends AlarmService {
     this.running = false;
 
     try {
-      await cancelAllScheduled();
-
       // Unregister background tasks
+      // Note: Notification cancellation should be handled by the caller
       await unregisterBackgroundTasks();
     } catch (error) {
       console.error("[AndroidAlarmService] Failed to shutdown:", error);

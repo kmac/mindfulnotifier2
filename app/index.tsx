@@ -17,7 +17,9 @@ import {
   setVibrationEnabled,
 } from "@/store/slices/preferencesSlice";
 import {
-  Controller,
+  enableNotifications,
+  disableNotifications,
+  rescheduleNotifications,
   scheduleNotificationAt,
 } from "@/services/notificationController";
 
@@ -61,17 +63,14 @@ export default function Index() {
     setIsInitializing(true);
 
     try {
-      const controller = Controller.getInstance();
-
       if (newIsEnabledState) {
         // Enable the service
-        await controller.initialize();
-        await controller.enable();
-        console.info("Alarm service enabled");
+        await enableNotifications();
+        console.info("Notifications enabled");
       } else {
         // Disable the service
-        await controller.disable();
-        console.info("Alarm service disabled");
+        await disableNotifications();
+        console.info("Notifications disabled");
       }
 
       // Update Redux state
@@ -95,8 +94,7 @@ export default function Index() {
     // notification channels are immutable and sound is baked into the channel
     if (preferences.isEnabled && Platform.OS === "android") {
       try {
-        const controller = Controller.getInstance();
-        await controller.reschedule();
+        await rescheduleNotifications();
         console.log(
           "[Index] Rescheduled notifications with new sound settings",
         );
@@ -116,8 +114,7 @@ export default function Index() {
     // notification channels are immutable and vibration is baked into the channel
     if (preferences.isEnabled && Platform.OS === "android") {
       try {
-        const controller = Controller.getInstance();
-        await controller.reschedule();
+        await rescheduleNotifications();
         console.log(
           "[Index] Rescheduled notifications with new vibration settings",
         );
@@ -144,10 +141,6 @@ export default function Index() {
         testDate,
         "Test Notification",
         reminderText,
-        () => {
-          Controller.getInstance().triggerNotification();
-          console.log("[Test] Test notification triggered!");
-        },
       );
       console.log("[Test] Test notification scheduled successfully");
     } catch (error) {
