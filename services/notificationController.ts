@@ -25,6 +25,10 @@ import { MIN_NOTIFICATION_BUFFER } from "@/constants/scheduleConstants";
 const LAST_SCHEDULED_TIME_KEY = "lastScheduledNotificationTime";
 const LAST_BUFFER_REPLENISH_TIME_KEY = "lastBufferReplenishTime";
 
+// Debounce configuration to prevent concurrent scheduling across contexts
+const LAST_SCHEDULE_ATTEMPT_KEY = "lastScheduleAttemptTime";
+const MIN_SCHEDULE_INTERVAL_MS = 5000; // 5 seconds minimum between scheduling attempts
+
 /**
  * Get persisted Redux state from AsyncStorage
  * This is necessary in headless background tasks where redux-persist hasn't hydrated the store
@@ -301,6 +305,55 @@ class AndroidNotificationService {
 }
 
 /**
+ * Check if enough time has passed since the last scheduling attempt
+ * This prevents concurrent scheduling across foreground and background contexts
+ *
+ * @param logPrefix Prefix for log messages
+ * @returns true if scheduling should proceed, false if debounced
+ */
+async function shouldProceedWithScheduling(
+  logPrefix: string,
+): Promise<boolean> {
+  try {
+    const lastAttemptStr = await AsyncStorage.getItem(LAST_SCHEDULE_ATTEMPT_KEY);
+
+    if (lastAttemptStr) {
+      const lastAttempt = parseInt(lastAttemptStr, 10);
+      const timeSinceLastAttempt = Date.now() - lastAttempt;
+
+      if (timeSinceLastAttempt < MIN_SCHEDULE_INTERVAL_MS) {
+        console.log(
+          debugLog(
+            `${logPrefix} Debounced: scheduling attempted ${timeSinceLastAttempt}ms ago ` +
+              `(minimum interval: ${MIN_SCHEDULE_INTERVAL_MS}ms)`,
+          ),
+        );
+        return false;
+      }
+
+      console.log(
+        debugLog(
+          `${logPrefix} Proceeding: ${timeSinceLastAttempt}ms since last attempt`,
+        ),
+      );
+    } else {
+      console.log(debugLog(`${logPrefix} Proceeding: no previous attempt found`));
+    }
+
+    // Record this attempt
+    await AsyncStorage.setItem(
+      LAST_SCHEDULE_ATTEMPT_KEY,
+      Date.now().toString(),
+    );
+    return true;
+  } catch (error) {
+    console.error(`${logPrefix} Error checking debounce, proceeding anyway:`, error);
+    // On error, proceed to avoid blocking scheduling
+    return true;
+  }
+}
+
+/**
  * Schedule multiple notifications ahead of time (Android only)
    * This ensures notifications continue even when the app is backgrounded/killed
  * This is a stateless function that can be called from any context (foreground or background)
@@ -316,6 +369,15 @@ export async function scheduleMultipleNotifications(
   fromTime?: Date,
   logPrefix: string = "[scheduleMultipleNotifications]",
 ): Promise<Date | undefined> {
+  // Check debounce to prevent concurrent scheduling across contexts
+  const shouldProceed = await shouldProceedWithScheduling(logPrefix);
+  if (!shouldProceed) {
+    console.log(
+      debugLog(`${logPrefix} Skipping scheduling due to debounce`),
+    );
+    return undefined;
+  }
+
   try {
     // Try to get persisted state first (works in headless background tasks)
     // Fall back to store.getState() if we're in a foreground context
@@ -440,6 +502,28 @@ export async function scheduleMultipleNotifications(
   }
 }
 
+/**
+ * Controller for managing notification scheduling
+ *
+ * IMPORTANT: This is NOT a true singleton across React Native execution contexts.
+ *
+ * React Native runs separate JavaScript contexts for:
+ * - Foreground (main app): Has its own Controller.instance
+ * - Background (headless tasks): Has a completely separate Controller.instance
+ *
+ * This means:
+ * - Instance state (running, scheduler, alarmService) is NOT shared between contexts
+ * - Each context creates its own singleton instance in its own memory space
+ * - The background context's instance will always have running=false, scheduler=undefined, etc.
+ *
+ * Cross-context coordination is achieved through:
+ * - AsyncStorage: Persisted state accessible from all contexts
+ * - Expo Notifications API: Shared notification queue
+ * - Debouncing: Prevents concurrent scheduling (via AsyncStorage timestamps)
+ *
+ * For scheduling operations that need to work across contexts, use the standalone
+ * scheduleMultipleNotifications() function instead of Controller instance methods.
+ */
 export class Controller {
   private static instance: Controller;
   private alarmService?: AlarmService;
@@ -532,12 +616,10 @@ export class Controller {
       // Update Redux state to reflect granted permissions
       store.dispatch(setNotificationsGranted(true));
 
+      // Initialize alarm service (but don't enable yet to avoid background task running before initial scheduling)
       if (!this.alarmService) {
         this.alarmService = getAlarmService();
         this.alarmService.initialize();
-      }
-      if (this.alarmService) {
-        await this.alarmService.enable();
       }
 
       this.running = true;
@@ -548,8 +630,16 @@ export class Controller {
         this.scheduler = undefined;
       }
 
-      // Schedule notifications (single for web, multiple for Android)
+      // Schedule notifications FIRST (single for web, multiple for Android)
+      // This ensures the initial notification buffer is created before the background task runs
       await this.scheduleNextNotification();
+
+      // THEN enable the alarm service (registers background task on Android)
+      // By scheduling first, we avoid race conditions where the background task
+      // tries to schedule notifications at the same time as the foreground
+      if (this.alarmService) {
+        await this.alarmService.enable();
+      }
 
       console.info("Controller enabled successfully");
     } catch (error) {
@@ -704,15 +794,20 @@ export class Controller {
       await this.androidNotificationService.cancelAll();
     }
 
-    // Clear the persisted last scheduled time since we've cancelled everything
+    // Clear persisted scheduling state since we've cancelled everything
     try {
-      await AsyncStorage.removeItem(LAST_SCHEDULED_TIME_KEY);
+      await AsyncStorage.multiRemove([
+        LAST_SCHEDULED_TIME_KEY,
+        LAST_SCHEDULE_ATTEMPT_KEY,
+      ]);
       console.log(
-        debugLog("[Controller] Cleared last scheduled time from AsyncStorage"),
+        debugLog(
+          "[Controller] Cleared scheduling state from AsyncStorage (last scheduled time, debounce timestamp)",
+        ),
       );
     } catch (error) {
       console.error(
-        "[Controller] Failed to clear last scheduled time from AsyncStorage:",
+        "[Controller] Failed to clear scheduling state from AsyncStorage:",
         error,
       );
     }
