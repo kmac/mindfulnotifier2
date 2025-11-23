@@ -31,6 +31,7 @@ const LAST_SCHEDULED_TIME_KEY = "lastScheduledNotificationTime";
  */
 async function persistBackgroundTaskRun(timestamp: number): Promise<void> {
   try {
+    debugLog("[BackgroundTask] persisting task run");
     const historyJson = await AsyncStorage.getItem(BACKGROUND_TASK_HISTORY_KEY);
     const history: number[] = historyJson ? JSON.parse(historyJson) : [];
     history.push(timestamp);

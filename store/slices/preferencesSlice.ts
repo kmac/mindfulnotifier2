@@ -74,16 +74,6 @@ const preferencesSlice = createSlice({
     clearDebugInfo: (state) => {
       state.backgroundTaskRunHistory = [];
     },
-    addBackgroundTaskRun: (state, action: PayloadAction<number>) => {
-      // Only add if this timestamp doesn't already exist (deduplication)
-      if (!state.backgroundTaskRunHistory.includes(action.payload)) {
-        state.backgroundTaskRunHistory.push(action.payload);
-        // Keep only the last N run timestamps
-        if (state.backgroundTaskRunHistory.length > MAX_BACKGROUND_TASK_HISTORY) {
-          state.backgroundTaskRunHistory = state.backgroundTaskRunHistory.slice(-MAX_BACKGROUND_TASK_HISTORY);
-        }
-      }
-    },
     setBackgroundTaskIntervalMinutes: (state, action: PayloadAction<number>) => {
       state.backgroundTaskIntervalMinutes = action.payload;
     },
@@ -109,7 +99,6 @@ export const {
   setBackgroundImageEnabled,
   setDebugInfoEnabled,
   clearDebugInfo,
-  addBackgroundTaskRun,
   setBackgroundTaskIntervalMinutes,
   setMinNotificationBuffer,
   resetPreferences,

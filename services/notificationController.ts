@@ -307,6 +307,8 @@ export class Controller {
   private webNotificationService: WebNotificationService;
   private androidNotificationService: AndroidNotificationService;
 
+  running: boolean = false;
+
   private constructor() {
     // Private constructor to prevent direct instantiation
     this.webNotificationService = new WebNotificationService();
@@ -331,17 +333,12 @@ export class Controller {
   //   Controller.instance = newInstance;
   // }
 
-  running: boolean = false;
-
   /**
    * Initialize the controller with alarm service
    */
   async initialize() {
     console.info("Controller initialize");
     try {
-      this.alarmService = getAlarmService();
-      await this.alarmService.initialize();
-
       // Check and update permission status on initialization
       const notifPermissions = await this.updatePermissionStatus();
       console.info(
@@ -395,6 +392,10 @@ export class Controller {
       // Update Redux state to reflect granted permissions
       store.dispatch(setNotificationsGranted(true));
 
+      if (!this.alarmService) {
+        this.alarmService = getAlarmService();
+        this.alarmService.initialize();
+      }
       if (this.alarmService) {
         await this.alarmService.enable();
       }

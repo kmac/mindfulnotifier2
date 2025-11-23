@@ -29,7 +29,10 @@ export abstract class AlarmService {
    * Initialize the alarm service
    * Called when the app starts
    */
-  abstract initialize(): Promise<void>;
+  initialize() {
+    // TODO this might be a problem, do we even need it?  It should go into AsyncStorage?
+    this.running = false;
+   }
 
   /**
    * Enable the alarm service
@@ -60,10 +63,10 @@ export class WebAlarmService extends AlarmService {
     super();
   }
 
-  async initialize(): Promise<void> {
-    console.log("[WebAlarmService] Initializing");
-    this.running = false;
-  }
+  // async initialize(): Promise<void> {
+  //   console.log("[WebAlarmService] Initializing");
+  //   this.running = false;
+  // }
 
   async enable(): Promise<void> {
     console.log("[WebAlarmService] Enabling");
@@ -101,14 +104,37 @@ export class AndroidAlarmService extends AlarmService {
     super();
   }
 
-  async initialize(): Promise<void> {
-    console.log("[AndroidAlarmService] Initializing");
+  // async initialize(): Promise<void> {
+  //   console.log("[AndroidAlarmService] Initializing");
+  //
+  //   // TODO this might be a problem, do we even need it?  It should go into AsyncStorage?
+  //   this.running = false;
+  //   // try {
+  //   //   // Register background tasks on initialization
+  //   //   await registerBackgroundTasks();
+  //   //
+  //   //   const status: string = await getBackgroundTaskStatus();
+  //   //   console.log(
+  //   //     debugLog(`[AndroidAlarmService] Background task status: ${status}`),
+  //   //   );
+  //   //   if (status !== "Available") {
+  //   //     console.warn(
+  //   //       debugLog("[AndroidAlarmService] Background task is not available"),
+  //   //     );
+  //   //   }
+  //   // } catch (error) {
+  //   //   console.error("[AndroidAlarmService] Initialization failed:", error);
+  //   //   debugLog("[AndroidAlarmService] Initialization failed:", error);
+  //   //   throw error;
+  //   // }
+  // }
 
-    this.running = false;
+  async enable(): Promise<void> {
+    console.log("[AndroidAlarmService] Enabling");
+
     try {
-      // Register background tasks on initialization
+      // Ensure background tasks are registered
       await registerBackgroundTasks();
-
       const status: string = await getBackgroundTaskStatus();
       console.log(
         debugLog(`[AndroidAlarmService] Background task status: ${status}`),
@@ -118,19 +144,7 @@ export class AndroidAlarmService extends AlarmService {
           debugLog("[AndroidAlarmService] Background task is not available"),
         );
       }
-    } catch (error) {
-      console.error("[AndroidAlarmService] Initialization failed:", error);
-      debugLog("[AndroidAlarmService] Initialization failed:", error);
-      throw error;
-    }
-  }
-
-  async enable(): Promise<void> {
-    console.log("[AndroidAlarmService] Enabling");
-
-    try {
-      // Ensure background tasks are registered
-      await registerBackgroundTasks();
+      // TODO persist in AsyncStorage
       this.running = true;
 
       console.log("[AndroidAlarmService] Background tasks enabled");
@@ -145,6 +159,7 @@ export class AndroidAlarmService extends AlarmService {
     console.log("[AndroidAlarmService] Disabling");
 
     // Set running to false immediately to ensure consistent state
+    // TODO persist in AsyncStorage
     this.running = false;
 
     try {
@@ -162,6 +177,7 @@ export class AndroidAlarmService extends AlarmService {
     console.log("[AndroidAlarmService] Shutting down");
 
     // Ensure running is false even if disable fails
+    // TODO persist in AsyncStorage
     this.running = false;
 
     try {

@@ -1,4 +1,4 @@
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import {
   PaperProvider,
   MD3LightTheme,
@@ -23,13 +23,13 @@ import {
 import * as Notifications from "expo-notifications";
 import { store, persistor, RootState } from "@/store/store";
 import { setLastNotificationText } from "@/store/slices/remindersSlice";
-import { addBackgroundTaskRun } from "@/store/slices/preferencesSlice";
 import { useFlutterMigration } from "@/hooks/useFlutterMigration";
-import { getBackgroundTaskHistory } from "@/services/backgroundTaskService";
+
+const DO_FLUTTER_MIGRATION = false;
 
 function AppContent() {
   // Perform Flutter migration if needed (runs once on first launch after update)
-  const migrationStatus = useFlutterMigration();
+  const migrationStatus = DO_FLUTTER_MIGRATION ? useFlutterMigration() : undefined;
   const systemColorScheme = useColorScheme();
   const userColorScheme = useSelector(
     (state: RootState) => state.preferences.colorScheme,
@@ -44,8 +44,6 @@ function AppContent() {
   const theme = effectiveColorScheme === "dark" ? MD3DarkTheme : MD3LightTheme;
 
   const router = useRouter();
-  const segments = useSegments();
-  const [isInitialized, setIsInitialized] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
 
   // Custom drawer toggle button that respects theme
@@ -106,6 +104,7 @@ function AppContent() {
 
         const reminderText = response.notification.request.content.body;
         if (reminderText) {
+          // TODO if app is in background this will not have any effect (?)
           store.dispatch(setLastNotificationText(reminderText));
         }
       },
@@ -114,17 +113,6 @@ function AppContent() {
     // Perform async initialization tasks
     async function initializeAsync() {
       try {
-        // Load background task history from AsyncStorage and sync to Redux
-        const taskHistory = await getBackgroundTaskHistory();
-        if (taskHistory.length > 0) {
-          console.log(
-            `[App] Found ${taskHistory.length} background task runs in storage`,
-          );
-          taskHistory.forEach((timestamp) => {
-            store.dispatch(addBackgroundTaskRun(timestamp));
-          });
-        }
-
         // Initialize notification channels (Android) and request permissions
         // Note: We continue even if permissions not granted - user can enable later
         await initializeNotifications();
@@ -140,7 +128,6 @@ function AppContent() {
         }
 
         if (isMounted) {
-          setIsInitialized(true);
           console.log("[App] App initialized successfully");
         }
       } catch (error) {
