@@ -105,6 +105,8 @@ function AppContent() {
         const reminderText = response.notification.request.content.body;
         if (reminderText) {
           // TODO if app is in background this will not have any effect (?)
+          // can we handle this in index.ts via:
+          // const lastNotificationResponse = Notifications.useLastNotificationResponse(); ??
           store.dispatch(setLastNotificationText(reminderText));
         }
       },

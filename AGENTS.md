@@ -12,6 +12,11 @@ This is an Expo react native TypeScript project using redux for storage, and tes
 - **Test**: `npm run test` (all tests), `npm run test:watch` (watch mode), `npm run test:coverage` (with coverage)
 - **Test single file**: `npm test -- src/services/__tests__/sessionService.test.ts`
 
+### Source Code Control
+
+We are using `jujutsu` for source code control. Git is available if needed but the primary source-code control is jujutsu.
+
+
 ## Commands
 
 ### Code Style

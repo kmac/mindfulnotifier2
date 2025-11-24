@@ -8,6 +8,7 @@ import {
   Text,
   useTheme,
 } from "react-native-paper";
+import * as Notifications from "expo-notifications";
 import { getRandomReminder } from "@/lib/reminders";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/store";
@@ -147,6 +148,22 @@ export default function Index() {
       console.error("[Test] Failed to schedule test notification:", error);
     }
   };
+
+  // const getLastNotificationText = () => {
+  //     const lastNotificationResponse = Notifications.useLastNotificationResponse();
+  // React.useEffect(() => {
+  //   if (
+  //     lastNotificationResponse &&
+  //     lastNotificationResponse.notification.request.content.data.url &&
+  //     lastNotificationResponse.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER
+  //   ) {
+  //     Linking.openURL(lastNotificationResponse.notification.request.content.data.url);
+  //   }
+  // }, [lastNotificationResponse]);
+  // return (
+  //   // Your app content
+  // );
+  // }
 
   return (
     <View

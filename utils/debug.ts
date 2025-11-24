@@ -61,7 +61,7 @@ export function debugLog(logtext: string, error?: any): string {
   });
   let logmsg = `[${timestamp}] ${logtext}`;
   if (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
     logmsg = `[${timestamp}] ${logtext}: ${errorMessage}`;
   }
 

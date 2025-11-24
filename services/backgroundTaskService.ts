@@ -30,7 +30,7 @@ const LAST_BUFFER_REPLENISH_TIME_KEY = "lastBufferReplenishTime";
  */
 async function persistBackgroundTaskRun(timestamp: number): Promise<void> {
   try {
-    debugLog("[BackgroundTask] persisting task run");
+    console.log(debugLog("[BackgroundTask] persisting task run"));
     const historyJson = await AsyncStorage.getItem(BACKGROUND_TASK_HISTORY_KEY);
     const history: number[] = historyJson ? JSON.parse(historyJson) : [];
     history.push(timestamp);
@@ -53,11 +53,12 @@ async function persistBackgroundTaskRun(timestamp: number): Promise<void> {
  * Maintains a buffer of upcoming notifications
  */
 TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
+  // This runs in its own javascript context - different from the foreground app
+  // Any code in this context cannot use redux (store is not hydrated in headless context)
   try {
     const runTimestamp = Date.now();
     console.log(debugLog("[BackgroundTask] Running periodic background check"));
 
-    // Persist task run to AsyncStorage (Redux store is not hydrated in headless context)
     await persistBackgroundTaskRun(runTimestamp);
 
     // Get persisted state to access minNotificationBuffer preference

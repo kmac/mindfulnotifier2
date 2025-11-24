@@ -11,9 +11,7 @@ import {
 import { ScrollView, StyleSheet, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAppSelector, useAppDispatch } from "@/store/store";
-import {
-  clearDebugInfoAsync,
-} from "@/store/slices/preferencesSlice";
+import { clearDebugInfoAsync } from "@/store/slices/preferencesSlice";
 import { getNextNotificationTime } from "@/services/notificationController";
 import {
   getBackgroundTaskStatus,
@@ -28,6 +26,7 @@ import { getSelectedSoundUri, isVibrationEnabled } from "@/lib/sound";
 import { useState, useEffect } from "react";
 import { Platform } from "react-native";
 import { getDebugLogs } from "@/utils/debug";
+import * as BackgroundTask from "expo-background-task";
 import * as Clipboard from "expo-clipboard";
 import * as Sharing from "expo-sharing";
 import { File, Paths } from "expo-file-system";
@@ -46,8 +45,12 @@ export default function Logs() {
   const [backgroundTaskStatus, setBackgroundTaskStatus] = useState<string>("");
   const [channelDebugInfo, setChannelDebugInfo] = useState<string>("");
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
-  const [lastBufferReplenishTime, setLastBufferReplenishTime] = useState<number | null>(null);
-  const [backgroundTaskHistory, setBackgroundTaskHistory] = useState<number[]>([]);
+  const [lastBufferReplenishTime, setLastBufferReplenishTime] = useState<
+    number | null
+  >(null);
+  const [backgroundTaskHistory, setBackgroundTaskHistory] = useState<number[]>(
+    [],
+  );
   const [snackbarVisible, setSnackbarVisible] = useState<boolean>(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string>(
     "Logs copied to clipboard",
@@ -289,28 +292,23 @@ export default function Logs() {
     if (Platform.OS === "android") {
       logsText += `BACKGROUND TASK RUN HISTORY (${backgroundTaskHistory.length} total)\n`;
       if (backgroundTaskHistory.length > 0) {
-        backgroundTaskHistory
-          .slice()
-          .forEach((timestamp, index) => {
-            const date = new Date(timestamp);
-            const timeStr = date.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-            });
-            const dateStr = date.toLocaleDateString();
-            logsText += `${index + 1}. ${dateStr} ${timeStr} (${formatLastReplenishTime(timestamp)})\n`;
+        backgroundTaskHistory.slice().forEach((timestamp, index) => {
+          const date = new Date(timestamp);
+          const timeStr = date.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
           });
+          const dateStr = date.toLocaleDateString();
+          logsText += `${index + 1}. ${dateStr} ${timeStr} (${formatLastReplenishTime(timestamp)})\n`;
+        });
       }
       logsText += "\n";
     }
 
     // Debug Messages
     logsText += "DEBUG MESSAGES\n";
-    if (
-      Array.isArray(debugInfo) &&
-      debugInfo.length > 0
-    ) {
+    if (Array.isArray(debugInfo) && debugInfo.length > 0) {
       debugInfo.forEach((info) => {
         logsText += `${String(info)}\n`;
       });
@@ -467,6 +465,14 @@ export default function Logs() {
     setReportModalVisible(true);
   };
 
+  // Check with:
+  // adb shell dumpsys jobscheduler | grep -A 40 -m 1 -E "JOB #.* mindfulnotifier"
+  // Force to run with (must be backgrounded):
+  // adb shell cmd jobscheduler run -f <package-name> <JOB_ID>
+  async function handleTriggerTask() {
+    await BackgroundTask.triggerTaskWorkerForTestingAsync();
+  }
+
   return (
     <ScrollView
       style={styles.scrollView}
@@ -534,6 +540,14 @@ export default function Logs() {
             >
               Show Report
             </Button>
+            {(true || __DEV__) && (
+              <Button
+                mode="outlined"
+                onPress={handleTriggerTask}
+                compact>
+                Trigger Background
+              </Button>
+            )}
           </View>
 
           {/* Monitoring Dashboard Section (Android only) */}
@@ -572,49 +586,43 @@ export default function Logs() {
 
               <List.Item
                 title="Last Notification Replenishment"
-                description={formatLastReplenishTime(
-                  lastBufferReplenishTime,
-                )}
+                description={formatLastReplenishTime(lastBufferReplenishTime)}
                 left={(props) => <List.Icon {...props} icon="refresh" />}
               />
             </View>
           )}
 
           {/* Background Task Run History */}
-          {Platform.OS === "android" &&
-            backgroundTaskHistory.length > 0 && (
-              <View style={styles.debugSubsection}>
-                <Text variant="titleSmall" style={styles.debugSubtitle}>
-                  Background Task Run History (Last{" "}
-                  {backgroundTaskHistory.length})
-                </Text>
-                {backgroundTaskHistory
-                  .slice()
-                  .map((timestamp, index) => {
-                    const date = new Date(timestamp);
-                    const timeStr = date.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      second: "2-digit",
-                    });
-                    const dateStr = date.toLocaleDateString();
-                    return (
-                      <Text
-                        key={`run-${timestamp}-${index}`}
-                        variant="bodySmall"
-                        style={styles.debugText}
-                      >
-                        {index + 1}. {dateStr} {timeStr} (
-                        {formatLastReplenishTime(timestamp)})
-                      </Text>
-                    );
-                  })}
-              </View>
-            )}
+          {Platform.OS === "android" && backgroundTaskHistory.length > 0 && (
+            <View style={styles.debugSubsection}>
+              <Text variant="titleSmall" style={styles.debugSubtitle}>
+                Background Task Run History (Last {backgroundTaskHistory.length}
+                )
+              </Text>
+              {backgroundTaskHistory.slice().map((timestamp, index) => {
+                const date = new Date(timestamp);
+                const timeStr = date.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                });
+                const dateStr = date.toLocaleDateString();
+                return (
+                  <Text
+                    key={`run-${timestamp}-${index}`}
+                    variant="bodySmall"
+                    style={styles.debugText}
+                  >
+                    {index + 1}. {dateStr} {timeStr} (
+                    {formatLastReplenishTime(timestamp)})
+                  </Text>
+                );
+              })}
+            </View>
+          )}
 
           {/* Debug Info Messages */}
-          {Array.isArray(debugInfo) &&
-          debugInfo.length > 0 ? (
+          {Array.isArray(debugInfo) && debugInfo.length > 0 ? (
             <View style={styles.debugSubsection}>
               <Text variant="titleSmall" style={styles.debugSubtitle}>
                 Debug Messages
