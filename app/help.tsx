@@ -223,13 +223,18 @@ export default function Help() {
             will usually cover multiple days in advance.
           </Text>
           <Text variant="bodyMedium" style={styles.bodyText}>
-            Tip: Click on at least one notification per day.
+            Tip: Click on at least one reminder notification per day.
 
             Notifications will still fire even if the foreground app has been
             killed. Therefore, if you click on one notification per
             day, the app restarts if necessary, and a new batch of
             notifications is scheduled. This also helps keep you engaged with
             your practice :-)
+          </Text>
+          <Text variant="bodyMedium" style={styles.bodyText}>
+            As a final fallback, the last scheduled notification will prompt
+            you to open the app, which will cause another round of reminders to
+            be scheduled.
           </Text>
         </View>
 

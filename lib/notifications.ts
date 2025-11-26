@@ -406,6 +406,7 @@ export async function scheduleNotification(
   title: string,
   body: string,
   trigger: Date | number,
+  data?: Record<string, any>,
 ): Promise<string> {
   try {
     let triggerLog: string;
@@ -442,6 +443,7 @@ export async function scheduleNotification(
       content: {
         title: title,
         body: body,
+        data: data || {}, // Include optional data for notification context
         vibrate: vibrationEnabled ? [0, 250, 250, 250] : undefined,
         priority: Notifications.AndroidNotificationPriority.HIGH,
         // Note: sound and vibration are controlled by the channel, not per-notification

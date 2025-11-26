@@ -28,6 +28,7 @@ import { MIN_NOTIFICATION_BUFFER } from "@/constants/scheduleConstants";
 const LAST_SCHEDULED_TIME_KEY = "lastScheduledNotificationTime";
 const LAST_BUFFER_REPLENISH_TIME_KEY = "lastBufferReplenishTime";
 const NOTIFICATIONS_ENABLED_KEY = "notificationsEnabled";
+const WARNING_NOTIFICATION_ID_KEY = "warningNotificationId";
 
 // Debounce configuration to prevent concurrent scheduling across contexts
 const LAST_SCHEDULE_ATTEMPT_KEY = "lastScheduleAttemptTime";
@@ -444,12 +445,12 @@ export async function scheduleMultipleNotifications(
     }
 
     // Schedule multiple notifications
-    let scheduleFromTime: Date | undefined = fromTime;
+    let scheduledNextFireDate: Date | undefined = fromTime;
 
     for (let i = 0; i < notificationCount; i++) {
       // Get the next fire date from the scheduler
       // The scheduler automatically handles quiet hours
-      const nextFireDate = scheduler.getNextFireDate(scheduleFromTime);
+      const nextFireDate = scheduler.getNextFireDate(scheduledNextFireDate);
 
       // Get a random reminder for this notification
       const reminderText = getRandomReminder(reminders.reminders);
@@ -469,13 +470,13 @@ export async function scheduleMultipleNotifications(
       );
 
       // Use this scheduled time as the base for the next one
-      scheduleFromTime = nextFireDate.date;
+      scheduledNextFireDate = nextFireDate.date;
     }
 
     console.info(
       debugLog(
         `${logPrefix} Successfully scheduled ${notificationCount} notifications. ` +
-          `Last notification at: ${scheduleFromTime?.toLocaleString()}`,
+          `Last notification at: ${scheduledNextFireDate?.toLocaleString()}`,
       ),
     );
 
@@ -488,14 +489,14 @@ export async function scheduleMultipleNotifications(
 
     // Persist the last scheduled time to AsyncStorage for reliability
     // This ensures we can continue scheduling even if the notification list is empty
-    if (scheduleFromTime) {
+    if (scheduledNextFireDate) {
       await AsyncStorage.setItem(
         LAST_SCHEDULED_TIME_KEY,
-        scheduleFromTime.getTime().toString(),
+        scheduledNextFireDate.getTime().toString(),
       );
     }
 
-    return scheduleFromTime;
+    return scheduledNextFireDate;
   } catch (error) {
     console.error(
       `${logPrefix} Failed to schedule multiple notifications:`,
@@ -506,6 +507,68 @@ export async function scheduleMultipleNotifications(
       `${logPrefix} Failed to schedule multiple notifications: ${errorMessage}`,
     );
     throw error;
+  }
+}
+
+export async function scheduleWarningNotification(
+  lastScheduled: Date,
+  logPrefix: string = "[scheduleWarningNotification]",
+): Promise<void> {
+  try {
+    // Cancel any existing warning notification
+    const existingWarningId = await AsyncStorage.getItem(
+      WARNING_NOTIFICATION_ID_KEY,
+    );
+
+    if (existingWarningId) {
+      console.log(
+        debugLog(
+          `${logPrefix} Canceling existing warning notification with ID: ${existingWarningId}`,
+        ),
+      );
+      await Notifications.cancelScheduledNotificationAsync(existingWarningId);
+    } else {
+      console.log(
+        debugLog(`${logPrefix} No existing warning notification to cancel`),
+      );
+    }
+
+    // Schedule the new warning notification 20 seconds after the last scheduled notification
+    const warningTime = new Date(lastScheduled.getTime() + 20000);
+    console.log(
+      debugLog(
+        `${logPrefix} Scheduling warning notification for ${warningTime} (20s after last scheduled)`,
+      ),
+    );
+
+    const warningNotificationId = await scheduleNotification(
+      "Mindful Notifier",
+      "Please tap to open the app to continue scheduling mindfulness reminders",
+      warningTime,
+      // {
+      //   type: "warning",
+      //   action: "openApp",
+      //   timestamp: Date.now(),
+      // },
+    );
+
+    // Persist the notification ID to AsyncStorage
+    await AsyncStorage.setItem(
+      WARNING_NOTIFICATION_ID_KEY,
+      warningNotificationId,
+    );
+
+    console.log(
+      debugLog(
+        `${logPrefix} Warning notification scheduled successfully with ID: ${warningNotificationId}`,
+      ),
+    );
+  } catch (error) {
+    console.error(
+      `${logPrefix} Failed to schedule warning notification:`,
+      error,
+    );
+    // Don't throw - this is not critical enough to fail the entire scheduling operation
   }
 }
 
@@ -760,20 +823,26 @@ async function scheduleNextNotificationInternal(): Promise<void> {
           `[NotificationController] Cannot determine lastScheduledTime, scheduling full buffer`,
         ),
       );
-      await scheduleMultipleNotifications(
+      const lastFireDate = await scheduleMultipleNotifications(
         minNotificationBuffer,
         undefined,
         "[NotificationController]",
       );
+      if (lastFireDate) {
+        await scheduleWarningNotification(lastFireDate);
+      }
       return;
     }
 
     const notificationsToSchedule = minNotificationBuffer - scheduled.length;
-    await scheduleMultipleNotifications(
+    const lastFireDate = await scheduleMultipleNotifications(
       notificationsToSchedule,
       lastScheduledTime,
       "[NotificationController]",
     );
+    if (lastFireDate) {
+      await scheduleWarningNotification(lastFireDate);
+    }
   }
 
   // Web: Use scheduler-based approach
@@ -873,6 +942,7 @@ export async function cancelAllScheduled(): Promise<void> {
     await AsyncStorage.multiRemove([
       LAST_SCHEDULED_TIME_KEY,
       LAST_SCHEDULE_ATTEMPT_KEY,
+      WARNING_NOTIFICATION_ID_KEY,
     ]);
     console.log(
       debugLog(

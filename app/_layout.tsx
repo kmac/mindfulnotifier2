@@ -6,7 +6,7 @@ import {
   IconButton,
   useTheme,
 } from "react-native-paper";
-import { useColorScheme, BackHandler } from "react-native";
+import { useColorScheme, AppState, BackHandler } from "react-native";
 import { useEffect, useState } from "react";
 import { Provider, useSelector } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
@@ -29,7 +29,9 @@ const DO_FLUTTER_MIGRATION = false;
 
 function AppContent() {
   // Perform Flutter migration if needed (runs once on first launch after update)
-  const migrationStatus = DO_FLUTTER_MIGRATION ? useFlutterMigration() : undefined;
+  const migrationStatus = DO_FLUTTER_MIGRATION
+    ? useFlutterMigration()
+    : undefined;
   const systemColorScheme = useColorScheme();
   const userColorScheme = useSelector(
     (state: RootState) => state.preferences.colorScheme,
@@ -92,6 +94,20 @@ function AppContent() {
     const responseListener = addNotificationResponseListener(
       async (response) => {
         console.log("[App] Notification response received:", response);
+
+        // Check if this is a warning notification that should open the app
+        const notificationData = response.notification.request.content.data;
+        const isWarningNotification =
+          notificationData?.type === "warning" &&
+          notificationData?.action === "openApp";
+
+        if (isWarningNotification) {
+          console.log(
+            "[App] Warning notification tapped - opening app to home screen",
+          );
+          // Navigate to home screen
+          router.push("/");
+        }
 
         // Dismiss all presented notifications when user taps any notification
         // This clears the notification tray of accumulated notifications
@@ -162,11 +178,13 @@ function AppContent() {
   }, []);
 
   const BackButton = () => (
-    <IconButton
-      icon="arrow-left"
-      onPress={() => router.back()}
-    />
+    <IconButton icon="arrow-left" onPress={() => router.back()} />
   );
+
+  // Listen for app state changes
+  AppState.addEventListener("change", async (nextAppState) => {
+    console.log("App state changed:", nextAppState);
+  });
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
