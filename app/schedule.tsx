@@ -87,28 +87,28 @@ export default function Schedule() {
 
   // Local state for text inputs (to handle temporary invalid states)
   const [periodicHours, setPeriodicHours] = useState(
-    scheduleState.periodicConfig.durationHours.toString()
+    scheduleState.periodicConfig.durationHours.toString(),
   );
   const [periodicMinutes, setPeriodicMinutes] = useState(
-    scheduleState.periodicConfig.durationMinutes.toString()
+    scheduleState.periodicConfig.durationMinutes.toString(),
   );
   const [randomMin, setRandomMin] = useState(
-    scheduleState.randomConfig.minMinutes.toString()
+    scheduleState.randomConfig.minMinutes.toString(),
   );
   const [randomMax, setRandomMax] = useState(
-    scheduleState.randomConfig.maxMinutes.toString()
+    scheduleState.randomConfig.maxMinutes.toString(),
   );
   const [quietStartHour, setQuietStartHour] = useState(
-    scheduleState.quietHours.startHour.toString()
+    scheduleState.quietHours.startHour.toString(),
   );
   const [quietStartMinute, setQuietStartMinute] = useState(
-    scheduleState.quietHours.startMinute.toString()
+    scheduleState.quietHours.startMinute.toString(),
   );
   const [quietEndHour, setQuietEndHour] = useState(
-    scheduleState.quietHours.endHour.toString()
+    scheduleState.quietHours.endHour.toString(),
   );
   const [quietEndMinute, setQuietEndMinute] = useState(
-    scheduleState.quietHours.endMinute.toString()
+    scheduleState.quietHours.endMinute.toString(),
   );
 
   const handleScheduleTypeChange = (value: string) => {
@@ -127,7 +127,7 @@ export default function Schedule() {
         setPeriodicConfig({
           durationHours: num,
           durationMinutes: scheduleState.periodicConfig.durationMinutes,
-        })
+        }),
       );
       rescheduleIfEnabled();
     } else {
@@ -147,12 +147,14 @@ export default function Schedule() {
         setPeriodicConfig({
           durationHours: scheduleState.periodicConfig.durationHours,
           durationMinutes: num,
-        })
+        }),
       );
       rescheduleIfEnabled();
     } else {
       // Reset to current redux value if invalid
-      setPeriodicMinutes(scheduleState.periodicConfig.durationMinutes.toString());
+      setPeriodicMinutes(
+        scheduleState.periodicConfig.durationMinutes.toString(),
+      );
     }
   };
 
@@ -168,7 +170,7 @@ export default function Schedule() {
         setRandomConfig({
           minMinutes: num,
           maxMinutes: scheduleState.randomConfig.maxMinutes,
-        })
+        }),
       );
       rescheduleIfEnabled();
     } else {
@@ -189,7 +191,7 @@ export default function Schedule() {
         setRandomConfig({
           minMinutes: scheduleState.randomConfig.minMinutes,
           maxMinutes: num,
-        })
+        }),
       );
       rescheduleIfEnabled();
     } else {
@@ -209,7 +211,7 @@ export default function Schedule() {
         setQuietHours({
           ...scheduleState.quietHours,
           startHour: num,
-        })
+        }),
       );
       rescheduleIfEnabled();
     } else {
@@ -229,7 +231,7 @@ export default function Schedule() {
         setQuietHours({
           ...scheduleState.quietHours,
           startMinute: num,
-        })
+        }),
       );
       rescheduleIfEnabled();
     } else {
@@ -249,7 +251,7 @@ export default function Schedule() {
         setQuietHours({
           ...scheduleState.quietHours,
           endHour: num,
-        })
+        }),
       );
       rescheduleIfEnabled();
     } else {
@@ -269,7 +271,7 @@ export default function Schedule() {
         setQuietHours({
           ...scheduleState.quietHours,
           endMinute: num,
-        })
+        }),
       );
       rescheduleIfEnabled();
     } else {
@@ -283,7 +285,7 @@ export default function Schedule() {
       setQuietHours({
         ...scheduleState.quietHours,
         notifyQuietHours: value,
-      })
+      }),
     );
     rescheduleIfEnabled();
   };
@@ -352,8 +354,9 @@ export default function Schedule() {
                     dispatch(
                       setPeriodicConfig({
                         durationHours: num + 1,
-                        durationMinutes: scheduleState.periodicConfig.durationMinutes,
-                      })
+                        durationMinutes:
+                          scheduleState.periodicConfig.durationMinutes,
+                      }),
                     );
                     rescheduleIfEnabled();
                   }
@@ -366,8 +369,9 @@ export default function Schedule() {
                     dispatch(
                       setPeriodicConfig({
                         durationHours: num - 1,
-                        durationMinutes: scheduleState.periodicConfig.durationMinutes,
-                      })
+                        durationMinutes:
+                          scheduleState.periodicConfig.durationMinutes,
+                      }),
                     );
                     rescheduleIfEnabled();
                   }
@@ -385,9 +389,10 @@ export default function Schedule() {
                     setPeriodicMinutes(newVal);
                     dispatch(
                       setPeriodicConfig({
-                        durationHours: scheduleState.periodicConfig.durationHours,
+                        durationHours:
+                          scheduleState.periodicConfig.durationHours,
                         durationMinutes: num + 1,
-                      })
+                      }),
                     );
                     rescheduleIfEnabled();
                   }
@@ -399,9 +404,10 @@ export default function Schedule() {
                     setPeriodicMinutes(newVal);
                     dispatch(
                       setPeriodicConfig({
-                        durationHours: scheduleState.periodicConfig.durationHours,
+                        durationHours:
+                          scheduleState.periodicConfig.durationHours,
                         durationMinutes: num - 1,
-                      })
+                      }),
                     );
                     rescheduleIfEnabled();
                   }
@@ -410,7 +416,7 @@ export default function Schedule() {
             </View>
             {!isValidPeriodicInterval(
               scheduleState.periodicConfig.durationHours,
-              scheduleState.periodicConfig.durationMinutes
+              scheduleState.periodicConfig.durationMinutes,
             ) && (
               <HelperText type="error" visible={true}>
                 Minimum interval is {getMinIntervalMinutes()} minutes on this
@@ -447,7 +453,7 @@ export default function Schedule() {
                     setRandomConfig({
                       minMinutes: num + 1,
                       maxMinutes: scheduleState.randomConfig.maxMinutes,
-                    })
+                    }),
                   );
                   rescheduleIfEnabled();
                 }}
@@ -461,7 +467,7 @@ export default function Schedule() {
                       setRandomConfig({
                         minMinutes: num - 1,
                         maxMinutes: scheduleState.randomConfig.maxMinutes,
-                      })
+                      }),
                     );
                     rescheduleIfEnabled();
                   }
@@ -480,7 +486,7 @@ export default function Schedule() {
                     setRandomConfig({
                       minMinutes: scheduleState.randomConfig.minMinutes,
                       maxMinutes: num + 1,
-                    })
+                    }),
                   );
                   rescheduleIfEnabled();
                 }}
@@ -494,7 +500,7 @@ export default function Schedule() {
                       setRandomConfig({
                         minMinutes: scheduleState.randomConfig.minMinutes,
                         maxMinutes: num - 1,
-                      })
+                      }),
                     );
                     rescheduleIfEnabled();
                   }
@@ -503,7 +509,7 @@ export default function Schedule() {
             </View>
             {!isValidRandomInterval(
               scheduleState.randomConfig.minMinutes,
-              scheduleState.randomConfig.maxMinutes
+              scheduleState.randomConfig.maxMinutes,
             ) && (
               <HelperText type="error" visible={true}>
                 Minimum interval is {getMinIntervalMinutes()} minutes on this
@@ -547,7 +553,7 @@ export default function Schedule() {
                       setQuietHours({
                         ...scheduleState.quietHours,
                         startHour: num + 1,
-                      })
+                      }),
                     );
                     rescheduleIfEnabled();
                   }
@@ -561,7 +567,7 @@ export default function Schedule() {
                       setQuietHours({
                         ...scheduleState.quietHours,
                         startHour: num - 1,
-                      })
+                      }),
                     );
                     rescheduleIfEnabled();
                   }
@@ -581,7 +587,7 @@ export default function Schedule() {
                       setQuietHours({
                         ...scheduleState.quietHours,
                         startMinute: num + 1,
-                      })
+                      }),
                     );
                     rescheduleIfEnabled();
                   }
@@ -595,7 +601,7 @@ export default function Schedule() {
                       setQuietHours({
                         ...scheduleState.quietHours,
                         startMinute: num - 1,
-                      })
+                      }),
                     );
                     rescheduleIfEnabled();
                   }
@@ -623,7 +629,7 @@ export default function Schedule() {
                       setQuietHours({
                         ...scheduleState.quietHours,
                         endHour: num + 1,
-                      })
+                      }),
                     );
                     rescheduleIfEnabled();
                   }
@@ -637,7 +643,7 @@ export default function Schedule() {
                       setQuietHours({
                         ...scheduleState.quietHours,
                         endHour: num - 1,
-                      })
+                      }),
                     );
                     rescheduleIfEnabled();
                   }
@@ -657,7 +663,7 @@ export default function Schedule() {
                       setQuietHours({
                         ...scheduleState.quietHours,
                         endMinute: num + 1,
-                      })
+                      }),
                     );
                     rescheduleIfEnabled();
                   }
@@ -671,7 +677,7 @@ export default function Schedule() {
                       setQuietHours({
                         ...scheduleState.quietHours,
                         endMinute: num - 1,
-                      })
+                      }),
                     );
                     rescheduleIfEnabled();
                   }
@@ -680,25 +686,26 @@ export default function Schedule() {
             </View>
           </View>
 
-          <View style={styles.switchRow}>
-            <View style={styles.switchLabel}>
-              <Text variant="bodyMedium">Notify when quiet hours end</Text>
-              <Text variant="bodySmall" style={styles.switchDescription}>
-                Send a notification when quiet hours are over
-              </Text>
+          // Not supported
+          {false && (
+            <View style={styles.switchRow}>
+              <View style={styles.switchLabel}>
+                <Text variant="bodyMedium">Notify when quiet hours end</Text>
+                <Text variant="bodySmall" style={styles.switchDescription}>
+                  Send a notification when quiet hours are over
+                </Text>
+              </View>
+              <Switch
+                value={scheduleState.quietHours.notifyQuietHours}
+                onValueChange={handleNotifyQuietHoursChange}
+              />
             </View>
-            <Switch
-              value={scheduleState.quietHours.notifyQuietHours}
-              onValueChange={handleNotifyQuietHoursChange}
-            />
-          </View>
+          )}
 
           <HelperText type="info">
             Quiet hours: {scheduleState.quietHours.startHour}:
-            {scheduleState.quietHours.startMinute
-              .toString()
-              .padStart(2, "0")}{" "}
-            - {scheduleState.quietHours.endHour}:
+            {scheduleState.quietHours.startMinute.toString().padStart(2, "0")} -{" "}
+            {scheduleState.quietHours.endHour}:
             {scheduleState.quietHours.endMinute.toString().padStart(2, "0")}
           </HelperText>
         </View>
