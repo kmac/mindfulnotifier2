@@ -1,4 +1,4 @@
-import { MAX_BACKGROUND_TASK_HISTORY, MAX_DEBUG_INFO, BACKGROUND_TASK_INTERVAL_MINUTES, MIN_NOTIFICATION_BUFFER } from '@/constants/scheduleConstants';
+import { MAX_BACKGROUND_TASK_HISTORY, MAX_DEBUG_INFO, BACKGROUND_TASK_INTERVAL_MINUTES, MIN_NOTIFICATION_BUFFER } from '@/src/constants/scheduleConstants';
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
 export type ColorScheme = 'light' | 'dark' | 'auto';
@@ -37,8 +37,8 @@ export const clearDebugInfoAsync = createAsyncThunk(
   'preferences/clearDebugInfo',
   async () => {
     // Import here to avoid circular dependency
-    const { clearBackgroundTaskData } = await import('@/services/backgroundTaskService');
-    const { clearDebugLogs } = await import('@/utils/debug');
+    const { clearBackgroundTaskData } = await import('@/src/services/backgroundTaskService');
+    const { clearDebugLogs } = await import('@/src/utils/debug');
     await Promise.all([
       clearBackgroundTaskData(),
       clearDebugLogs(),

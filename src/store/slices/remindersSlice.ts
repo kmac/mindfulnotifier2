@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { defaultJsonReminderMap, JsonReminder } from '@/constants/Reminders';
+import { defaultJsonReminderMap, JsonReminder } from '@/src/constants/Reminders';
 
 export interface RemindersState {
   reminders: JsonReminder[];

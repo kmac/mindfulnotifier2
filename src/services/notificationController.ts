@@ -1,28 +1,28 @@
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { RootState } from "@/store/store";
+import type { RootState } from "@/src/store/store";
 import * as Notifications from "expo-notifications";
-import { getRandomReminder } from "@/lib/reminders";
+import { getRandomReminder } from "@/src/lib/reminders";
 import {
   scheduleNotification,
   cancelAllNotifications,
   showLocalNotification,
   requestPermissions,
   isPermissionsGranted,
-} from "@/lib/notifications";
-import { QuietHours } from "@/lib/quietHours";
-import { RandomScheduler, PeriodicScheduler } from "@/lib/scheduler";
+} from "@/src/lib/notifications";
+import { QuietHours } from "@/src/lib/quietHours";
+import { RandomScheduler, PeriodicScheduler } from "@/src/lib/scheduler";
 import {
   WebAlarmService,
   AndroidAlarmService,
   type AlarmService,
 } from "./alarmService";
-import { TimeOfDay } from "@/lib/timedate";
-import { store } from "@/store/store";
-import { setLastNotificationText } from "@/store/slices/remindersSlice";
-import { setNotificationsGranted } from "@/store/slices/preferencesSlice";
-import { debugLog } from "@/utils/debug";
-import { MIN_NOTIFICATION_BUFFER } from "@/constants/scheduleConstants";
+import { TimeOfDay } from "@/src/lib/timedate";
+import { store } from "@/src/store/store";
+import { setLastNotificationText } from "@/src/store/slices/remindersSlice";
+import { setNotificationsGranted } from "@/src/store/slices/preferencesSlice";
+import { debugLog } from "@/src/utils/debug";
+import { MIN_NOTIFICATION_BUFFER } from "@/src/constants/scheduleConstants";
 
 // AsyncStorage keys for persisting notification state
 const LAST_SCHEDULED_TIME_KEY = "lastScheduledNotificationTime";

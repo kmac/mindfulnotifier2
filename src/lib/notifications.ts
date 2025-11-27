@@ -9,7 +9,7 @@ import {
   isVibrationEnabled,
   playSelectedSound,
 } from "./sound";
-import { debugLog } from "@/utils/debug";
+import { debugLog } from "@/src/utils/debug";
 
 // Re-export the type
 export type { NotificationConfig };

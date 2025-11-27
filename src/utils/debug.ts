@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { MAX_DEBUG_INFO } from "@/constants/scheduleConstants";
+import { MAX_DEBUG_INFO } from "@/src/constants/scheduleConstants";
 
 // AsyncStorage key for debug logs
 const DEBUG_INFO_KEY = "debugInfo";

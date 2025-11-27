@@ -10,22 +10,22 @@ import {
 } from "react-native-paper";
 import { ScrollView, StyleSheet, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useAppSelector, useAppDispatch } from "@/store/store";
-import { clearDebugInfoAsync } from "@/store/slices/preferencesSlice";
-import { getNextNotificationTime } from "@/services/notificationController";
+import { useAppSelector, useAppDispatch } from "@/src/store/store";
+import { clearDebugInfoAsync } from "@/src/store/slices/preferencesSlice";
+import { getNextNotificationTime } from "@/src/services/notificationController";
 import {
   getBackgroundTaskStatus,
   getBackgroundTaskHistory,
-} from "@/services/backgroundTaskService";
+} from "@/src/services/backgroundTaskService";
 import {
   getNotificationChannelId,
   getScheduledNotifications,
-} from "@/lib/notifications";
+} from "@/src/lib/notifications";
 import * as Notifications from "expo-notifications";
-import { getSelectedSoundUri, isVibrationEnabled } from "@/lib/sound";
+import { getSelectedSoundUri, isVibrationEnabled } from "@/src/lib/sound";
 import { useState, useEffect } from "react";
 import { Platform } from "react-native";
-import { getDebugLogs } from "@/utils/debug";
+import { getDebugLogs } from "@/src/utils/debug";
 import * as BackgroundTask from "expo-background-task";
 import * as Clipboard from "expo-clipboard";
 import * as Sharing from "expo-sharing";

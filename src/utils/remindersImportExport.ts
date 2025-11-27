@@ -2,7 +2,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
-import { JsonReminder } from '@/constants/Reminders';
+import { JsonReminder } from '@/src/constants/Reminders';
 
 /**
  * Export reminders to a JSON file (web implementation)

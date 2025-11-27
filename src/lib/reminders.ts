@@ -1,4 +1,4 @@
-import { defaultJsonReminderMap, JsonReminder } from "@/constants/Reminders";
+import { defaultJsonReminderMap, JsonReminder } from "@/src/constants/Reminders";
 
 export function getRandomReminder(reminders?: JsonReminder[]): string {
   // Use provided reminders or fall back to default

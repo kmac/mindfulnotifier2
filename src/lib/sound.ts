@@ -1,4 +1,4 @@
-import { store } from '@/store/store';
+import { store } from '@/src/store/store';
 import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 import { Platform } from 'react-native';
 

@@ -16,7 +16,7 @@ import {
   Switch,
   TextInput,
 } from "react-native-paper";
-import { useAppDispatch, useAppSelector } from "@/store/store";
+import { useAppDispatch, useAppSelector } from "@/src/store/store";
 import {
   setColorScheme,
   setSoundEnabled,
@@ -28,17 +28,17 @@ import {
   clearDebugInfoAsync,
   setBackgroundTaskIntervalMinutes,
   setMinNotificationBuffer,
-} from "@/store/slices/preferencesSlice";
+} from "@/src/store/slices/preferencesSlice";
 import {
   BACKGROUND_TASK_INTERVAL_MINUTES,
   MIN_NOTIFICATION_BUFFER,
-} from "@/constants/scheduleConstants";
-import { isPermissionsGranted, requestPermissions } from "@/lib/notifications";
+} from "@/src/constants/scheduleConstants";
+import { isPermissionsGranted, requestPermissions } from "@/src/lib/notifications";
 import {
   openBatteryOptimizationSettings,
   isBatteryOptimizationDisabled,
-} from "@/lib/batteryOptimization";
-import { debugLog } from "@/utils/debug";
+} from "@/src/lib/batteryOptimization";
+import { debugLog } from "@/src/utils/debug";
 import { useEffect, useState } from "react";
 
 export default function Preferences() {

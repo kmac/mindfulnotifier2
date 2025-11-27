@@ -3,7 +3,7 @@ import * as BackgroundTask from "expo-background-task";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { debugLog } from "@/utils/debug";
+import { debugLog } from "@/src/utils/debug";
 import {
   getLastScheduledTime,
   debugLogTrigger,
@@ -14,7 +14,7 @@ import {
   BACKGROUND_TASK_INTERVAL_MINUTES,
   MAX_BACKGROUND_TASK_HISTORY,
   MIN_NOTIFICATION_BUFFER,
-} from "@/constants/scheduleConstants";
+} from "@/src/constants/scheduleConstants";
 
 // Task name constants
 // export const NOTIFICATION_TASK_NAME = "SCHEDULE_NOTIFICATION_TASK";

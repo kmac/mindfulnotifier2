@@ -4,7 +4,7 @@ import {
   unregisterBackgroundTasks,
   getBackgroundTaskStatus,
 } from "./backgroundTaskService";
-import { debugLog } from "@/utils/debug";
+import { debugLog } from "@/src/utils/debug";
 
 export abstract class AlarmService {
   running: boolean = false;

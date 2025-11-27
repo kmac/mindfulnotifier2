@@ -9,20 +9,20 @@ import {
   useTheme,
 } from "react-native-paper";
 import * as Notifications from "expo-notifications";
-import { getRandomReminder } from "@/lib/reminders";
+import { getRandomReminder } from "@/src/lib/reminders";
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useAppDispatch, useAppSelector } from "@/store/store";
+import { useAppDispatch, useAppSelector } from "@/src/store/store";
 import {
   setEnabled,
   setSoundEnabled,
   setVibrationEnabled,
-} from "@/store/slices/preferencesSlice";
+} from "@/src/store/slices/preferencesSlice";
 import {
   enableNotifications,
   disableNotifications,
   rescheduleNotifications,
   scheduleNotificationAt,
-} from "@/services/notificationController";
+} from "@/src/services/notificationController";
 
 // Track if this is the first mount across all instances
 let hasShownStartupSnackbar = false;

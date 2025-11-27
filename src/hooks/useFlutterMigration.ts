@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { migrateFromFlutter, FlutterMigrationData } from '@/utils/flutterMigration';
+import { migrateFromFlutter, FlutterMigrationData } from '@/src/utils/flutterMigration';
 
 // Import Redux actions
 import {
@@ -18,7 +18,7 @@ import {
   setVibrationEnabled,
   setColorScheme,
   type ColorScheme,
-} from '@/store/slices/preferencesSlice';
+} from '@/src/store/slices/preferencesSlice';
 
 import {
   setScheduleType,
@@ -26,7 +26,7 @@ import {
   setPeriodicConfig,
   setRandomConfig,
   type ScheduleType,
-} from '@/store/slices/scheduleSlice';
+} from '@/src/store/slices/scheduleSlice';
 
 /**
  * Map Flutter SharedPreferences data to Redux actions

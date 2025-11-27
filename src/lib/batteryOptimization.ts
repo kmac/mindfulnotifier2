@@ -2,7 +2,7 @@ import * as IntentLauncher from 'expo-intent-launcher';
 import * as Application from 'expo-application';
 import * as Battery from 'expo-battery';
 import { Platform } from 'react-native';
-import { debugLog } from "@/utils/debug";
+import { debugLog } from "@/src/utils/debug";
 
 /**
  * Check if battery optimization is disabled for this app

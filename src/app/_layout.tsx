@@ -12,18 +12,18 @@ import { Provider, useSelector } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import CustomDrawer from "@/components/CustomDrawer";
+import CustomDrawer from "@/src/components/CustomDrawer";
 
-import { enableNotifications } from "@/services/notificationController";
+import { enableNotifications } from "@/src/services/notificationController";
 import {
   initializeNotifications,
   addNotificationReceivedListener,
   addNotificationResponseListener,
-} from "@/lib/notifications";
+} from "@/src/lib/notifications";
 import * as Notifications from "expo-notifications";
-import { store, persistor, RootState } from "@/store/store";
-import { setLastNotificationText } from "@/store/slices/remindersSlice";
-import { useFlutterMigration } from "@/hooks/useFlutterMigration";
+import { store, persistor, RootState } from "@/src/store/store";
+import { setLastNotificationText } from "@/src/store/slices/remindersSlice";
+import { useFlutterMigration } from "@/src/hooks/useFlutterMigration";
 
 const DO_FLUTTER_MIGRATION = false;
 

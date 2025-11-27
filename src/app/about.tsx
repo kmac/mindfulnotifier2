@@ -2,7 +2,7 @@ import { Surface, Text, Button, useTheme } from "react-native-paper";
 import { Linking, ScrollView, StyleSheet, View } from "react-native";
 import { useState, useEffect } from "react";
 import { Platform } from "react-native";
-import { versionManager } from "@/utils/version";
+import { versionManager } from "@/src/utils/version";
 
 export default function About() {
   const theme = useTheme();

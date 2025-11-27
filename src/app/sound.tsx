@@ -7,13 +7,13 @@ import {
   Button,
 } from "react-native-paper";
 import { StyleSheet, View, ScrollView, Platform } from "react-native";
-import { useAppSelector, useAppDispatch } from "@/store/store";
-import { setSelectedSound, setCustomSound } from "@/store/slices/soundSlice";
+import { useAppSelector, useAppDispatch } from "@/src/store/store";
+import { setSelectedSound, setCustomSound } from "@/src/store/slices/soundSlice";
 import { useAudioPlayer } from "expo-audio";
 import { useState } from "react";
 import * as DocumentPicker from "expo-document-picker";
-import { playSound, stopSound } from "@/lib/sound";
-import { rescheduleNotifications } from "@/services/notificationController";
+import { playSound, stopSound } from "@/src/lib/sound";
+import { rescheduleNotifications } from "@/src/services/notificationController";
 
 const AVAILABLE_SOUNDS = [
   { name: "bell_inside.mp3", label: "Bell Inside" },

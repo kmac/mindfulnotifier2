@@ -17,7 +17,7 @@ import {
   useTheme,
   Checkbox,
 } from "react-native-paper";
-import { useAppDispatch, useAppSelector } from "@/store/store";
+import { useAppDispatch, useAppSelector } from "@/src/store/store";
 import {
   addReminder,
   updateReminder,
@@ -25,10 +25,10 @@ import {
   toggleReminderEnabled,
   setReminders,
   resetReminders,
-} from "@/store/slices/remindersSlice";
-import { JsonReminder } from "@/constants/Reminders";
-import { exportReminders, importReminders, mergeReminders } from "@/utils/remindersImportExport";
-import { Alert } from '@/utils/alert';
+} from "@/src/store/slices/remindersSlice";
+import { JsonReminder } from "@/src/constants/Reminders";
+import { exportReminders, importReminders, mergeReminders } from "@/src/utils/remindersImportExport";
+import { Alert } from '@/src/utils/alert';
 
 export default function Reminders() {
   const dispatch = useAppDispatch();

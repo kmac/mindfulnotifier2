@@ -9,21 +9,21 @@ import {
   HelperText,
   IconButton,
 } from "react-native-paper";
-import { useAppDispatch, useAppSelector } from "@/store/store";
+import { useAppDispatch, useAppSelector } from "@/src/store/store";
 import {
   setScheduleType,
   setPeriodicConfig,
   setRandomConfig,
   setQuietHours,
   ScheduleType,
-} from "@/store/slices/scheduleSlice";
+} from "@/src/store/slices/scheduleSlice";
 import { useState } from "react";
-import { rescheduleNotifications } from "@/services/notificationController";
+import { rescheduleNotifications } from "@/src/services/notificationController";
 import {
   getMinIntervalMinutes,
   isValidPeriodicInterval,
   isValidRandomInterval,
-} from "@/constants/scheduleConstants";
+} from "@/src/constants/scheduleConstants";
 
 // Helper component for numeric input with increment/decrement buttons
 const NumericInputWithButtons = ({

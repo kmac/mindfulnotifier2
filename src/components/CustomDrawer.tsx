@@ -2,7 +2,7 @@ import React from "react";
 import { View, StyleSheet, Modal, TouchableOpacity } from "react-native";
 import { Drawer, useTheme, Divider } from "react-native-paper";
 import { useRouter, usePathname } from "expo-router";
-import { useAppSelector } from "@/store/store";
+import { useAppSelector } from "@/src/store/store";
 
 interface CustomDrawerProps {
   visible: boolean;

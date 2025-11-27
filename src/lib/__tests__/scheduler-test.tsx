@@ -1,8 +1,8 @@
 import {
   TimeOfDay,
-} from "@/lib/timedate";
-import { QuietHours } from "@/lib/quietHours";
-import * as scheduler from "@/lib/scheduler";
+} from "@/src/lib/timedate";
+import { QuietHours } from "@/src/lib/quietHours";
+import * as scheduler from "@/src/lib/scheduler";
 
 const PeriodicDurationHours: number = 0;
 const PeriodicDurationMins: number = 5;
