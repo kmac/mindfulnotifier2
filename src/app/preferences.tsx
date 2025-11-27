@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  Alert,
   AppState,
   Platform,
   ScrollView,
@@ -15,6 +14,7 @@ import {
   List,
   Menu,
   SegmentedButtons,
+  Snackbar,
   Surface,
   Switch,
   Text,
@@ -22,6 +22,9 @@ import {
   TouchableRipple,
   useTheme,
 } from "react-native-paper";
+import * as Sharing from "expo-sharing";
+import * as FileSystem from "expo-file-system";
+import * as DocumentPicker from "expo-document-picker";
 import { useAppDispatch, useAppSelector } from "@/src/store/store";
 import {
   Color,
@@ -37,6 +40,13 @@ import {
   setSoundEnabled,
   setVibrationEnabled,
 } from "@/src/store/slices/preferencesSlice";
+import { setReminders } from "@/src/store/slices/remindersSlice";
+import {
+  setScheduleType,
+  setQuietHours,
+  setPeriodicConfig,
+  setRandomConfig,
+} from "@/src/store/slices/scheduleSlice";
 import {
   BACKGROUND_TASK_INTERVAL_MINUTES,
   MIN_NOTIFICATION_BUFFER,
@@ -51,12 +61,15 @@ import {
 } from "@/src/lib/batteryOptimization";
 import Colors from "@/src/ui/styles/colors";
 import { debugLog } from "@/src/utils/debug";
+import { Alert } from "@/src/utils/alert";
 
 export default function Preferences() {
   const dispatch = useAppDispatch();
   const theme = useTheme();
 
   const preferences = useAppSelector((state) => state.preferences);
+  const reminders = useAppSelector((state) => state.reminders.reminders);
+  const schedule = useAppSelector((state) => state.schedule);
 
   const [colorMenuVisible, setColorMenuVisible] = useState(false);
   const [batteryOptimizationDisabled, setBatteryOptimizationDisabled] =
@@ -69,6 +82,8 @@ export default function Preferences() {
     preferences.minNotificationBuffer?.toString() ||
       MIN_NOTIFICATION_BUFFER.toString(),
   );
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
 
   useEffect(() => {
     // Check battery optimization status when component mounts
@@ -203,6 +218,153 @@ export default function Preferences() {
       );
       console.error("Failed to open battery optimization settings:", error);
       debugLog("Failed to open battery optimization settings:", error);
+    }
+  }
+
+  async function handleExportPreferences() {
+    try {
+      // Create backup object with only non-state preferences
+      const backup = {
+        soundEnabled: preferences.soundEnabled,
+        vibrationEnabled: preferences.vibrationEnabled,
+        colorScheme: preferences.colorScheme,
+        color: preferences.color,
+        backgroundImageEnabled: preferences.backgroundImageEnabled,
+        debugInfoEnabled: preferences.debugInfoEnabled,
+        backgroundTaskIntervalMinutes: preferences.backgroundTaskIntervalMinutes,
+        minNotificationBuffer: preferences.minNotificationBuffer,
+        reminders: reminders,
+        schedule: {
+          scheduleType: schedule.scheduleType,
+          quietHours: schedule.quietHours,
+          periodicConfig: schedule.periodicConfig,
+          randomConfig: schedule.randomConfig,
+        },
+        // Metadata
+        exportDate: new Date().toISOString(),
+        version: "1.0",
+      };
+
+      const jsonString = JSON.stringify(backup, null, 2);
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
+      const fileName = `mindful-notifier-backup-${timestamp}.json`;
+      const file = new FileSystem.File(FileSystem.Paths.document, fileName);
+      file.write(jsonString);
+
+      // Check if sharing is available
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable) {
+        await Sharing.shareAsync(file.uri, {
+          mimeType: "application/json",
+          dialogTitle: "Save Backup File",
+          UTI: "public.json",
+        });
+        setSnackbarMessage("Backup exported successfully");
+        setSnackbarVisible(true);
+      } else {
+        setSnackbarMessage(`Backup created at: ${file.uri}`);
+        setSnackbarVisible(true);
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to export preferences");
+      console.error("Failed to export preferences:", error);
+      debugLog("Failed to export preferences:", error);
+    }
+  }
+
+  async function handleImportPreferences() {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "application/json",
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      const fileUri = result.assets[0].uri;
+      const file = new FileSystem.File(fileUri);
+      const fileContent = await file.text();
+      const backup = JSON.parse(fileContent);
+
+      // Validate backup structure
+      if (!backup.version) {
+        Alert.alert("Error", "Invalid backup file format");
+        return;
+      }
+
+      // Confirm before restoring
+      Alert.alert(
+        "Restore Preferences",
+        `This will restore preferences from backup created on ${new Date(backup.exportDate).toLocaleString()}.\n\nCurrent preferences will be overwritten. Continue?`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Restore",
+            style: "destructive",
+            onPress: () => {
+              // Restore preferences
+              if (backup.soundEnabled !== undefined) {
+                dispatch(setSoundEnabled(backup.soundEnabled));
+              }
+              if (backup.vibrationEnabled !== undefined) {
+                dispatch(setVibrationEnabled(backup.vibrationEnabled));
+              }
+              if (backup.colorScheme !== undefined) {
+                dispatch(setColorScheme(backup.colorScheme));
+              }
+              if (backup.color !== undefined) {
+                dispatch(setColor(backup.color));
+              }
+              if (backup.backgroundImageEnabled !== undefined) {
+                dispatch(setBackgroundImageEnabled(backup.backgroundImageEnabled));
+              }
+              if (backup.debugInfoEnabled !== undefined) {
+                dispatch(setDebugInfoEnabled(backup.debugInfoEnabled));
+              }
+              if (backup.backgroundTaskIntervalMinutes !== undefined) {
+                dispatch(
+                  setBackgroundTaskIntervalMinutes(backup.backgroundTaskIntervalMinutes),
+                );
+                setTaskIntervalInput(backup.backgroundTaskIntervalMinutes.toString());
+              }
+              if (backup.minNotificationBuffer !== undefined) {
+                dispatch(setMinNotificationBuffer(backup.minNotificationBuffer));
+                setNotificationBufferInput(backup.minNotificationBuffer.toString());
+              }
+
+              // Restore reminders
+              if (backup.reminders !== undefined && Array.isArray(backup.reminders)) {
+                dispatch(setReminders(backup.reminders));
+              }
+
+              // Restore schedule
+              if (backup.schedule !== undefined) {
+                if (backup.schedule.scheduleType !== undefined) {
+                  dispatch(setScheduleType(backup.schedule.scheduleType));
+                }
+                if (backup.schedule.quietHours !== undefined) {
+                  dispatch(setQuietHours(backup.schedule.quietHours));
+                }
+                if (backup.schedule.periodicConfig !== undefined) {
+                  dispatch(setPeriodicConfig(backup.schedule.periodicConfig));
+                }
+                if (backup.schedule.randomConfig !== undefined) {
+                  dispatch(setRandomConfig(backup.schedule.randomConfig));
+                }
+              }
+
+              setSnackbarMessage("Preferences, reminders, and schedule restored successfully");
+              setSnackbarVisible(true);
+            },
+          },
+        ],
+      );
+    } catch (error) {
+      Alert.alert("Error", "Failed to import preferences. Please check the file format.");
+      console.error("Failed to import preferences:", error);
+      debugLog("Failed to import preferences:", error);
     }
   }
 
@@ -541,7 +703,48 @@ export default function Preferences() {
             Reset to Defaults
           </Button>
         </View>
+
+        <Divider style={styles.divider} />
+
+        {/* Backup & Restore Section */}
+        <View style={styles.section}>
+          <Text variant="titleLarge" style={styles.sectionTitle}>
+            Backup & Restore
+          </Text>
+          <Text variant="bodyMedium" style={styles.sectionDescription}>
+            Export your preferences, reminders, and schedule to a JSON file or restore from a previous backup.
+          </Text>
+
+          <Button
+            mode="contained"
+            onPress={handleExportPreferences}
+            style={styles.actionButton}
+            icon="export"
+          >
+            Create Backup
+          </Button>
+
+          <Button
+            mode="outlined"
+            onPress={handleImportPreferences}
+            style={styles.actionButton}
+            icon="import"
+          >
+            Restore from Backup
+          </Button>
+        </View>
       </Surface>
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={3000}
+        action={{
+          label: "Dismiss",
+          onPress: () => setSnackbarVisible(false),
+        }}
+      >
+        {snackbarMessage}
+      </Snackbar>
     </ScrollView>
   );
 }
