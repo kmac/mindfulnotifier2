@@ -72,10 +72,13 @@
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCanary": true
+      "reactCanary": true,
+      "appRoot": "src"
     },
     "extra": {
-      "router": {},
+      "router": {
+        "origin": false
+      },
       "eas": {
         "projectId": "605b0bba-69d9-4f70-8eca-b5c86d521255"
       }
