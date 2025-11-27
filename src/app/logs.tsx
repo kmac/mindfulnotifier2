@@ -23,7 +23,7 @@ import {
 } from "@/src/lib/notifications";
 import * as Notifications from "expo-notifications";
 import { getSelectedSoundUri, isVibrationEnabled } from "@/src/lib/sound";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Platform } from "react-native";
 import { getDebugLogs } from "@/src/utils/debug";
 import * as BackgroundTask from "expo-background-task";
@@ -60,9 +60,8 @@ export default function Logs() {
 
   const INCLUDE_CHANNEL_DEBUG = false;
 
-  useEffect(() => {
-    // Update the next notification time and monitoring data
-    const updateData = async () => {
+  // Update the next notification time and monitoring data
+  const updateData = useCallback(async () => {
       const nextTime = await getNextNotificationTime();
       setNextNotificationTime(nextTime);
 
@@ -176,8 +175,9 @@ export default function Logs() {
           }
         }
       }
-    };
+  }, []);
 
+  useEffect(() => {
     // Update immediately
     updateData();
 
@@ -185,7 +185,7 @@ export default function Logs() {
     const interval = setInterval(updateData, 10000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [updateData]);
 
   const formatNotificationTime = (date: Date | null): string => {
     if (!date) return "Not scheduled";
@@ -258,10 +258,12 @@ export default function Logs() {
     return `${timeStr} (${timeAgo})`;
   };
 
-  const handleClearDebugInfo = () => {
+  const handleClearDebugInfo = async () => {
     dispatch(clearDebugInfoAsync());
     setSnackbarMessage("Cleared debug logs");
     setSnackbarVisible(true);
+    // Refresh the data to show the cleared logs
+    await updateData();
   };
 
   const buildLogsText = (): string => {
