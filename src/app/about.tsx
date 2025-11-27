@@ -89,10 +89,15 @@ export default function About() {
           </Text>
           <Text variant="bodyMedium" style={styles.source}>
             If the app hasn't been opened for a while, the app is likely getting
-            killed by android. Aside from disabling battery optimization, you
-            may need to take vendor-specific actions.
+            killed by android.
+
+            Manually opening the app will schedule a new round of
+            notifications. Refer to the help section on 'Android Battery
+            Optimization' for more information.
           </Text>
           <Text variant="bodyMedium" style={styles.source}>
+            Aside from disabling battery optimization, you may need to take
+            vendor-specific actions.
             See{" "}
             <Text
               style={[styles.link, { color: theme.colors.primary }]}

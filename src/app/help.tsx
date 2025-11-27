@@ -12,10 +12,6 @@ import * as Linking from "expo-linking";
 export default function Help() {
   const theme = useTheme();
 
-  const openBatteryOptimizationLink = () => {
-    Linking.openURL("https://dontkillmyapp.com");
-  };
-
   return (
     <ScrollView style={styles.scrollView}>
       <Surface style={styles.container}>
@@ -146,7 +142,7 @@ export default function Help() {
           <Card style={styles.card}>
             <Card.Content>
               <Text variant="titleMedium" style={styles.cardSubtitle}>
-                Import & Export
+                Import and Export
               </Text>
               <Text variant="bodyMedium" style={styles.cardText}>
                 • <Text style={styles.bold}>Export:</Text> Save your reminder
@@ -216,25 +212,30 @@ export default function Help() {
             </Text>
           </Text>
           <Text variant="bodyMedium" style={styles.bodyText}>
-            <Text style={styles.bold}>Take advantage of batch scheduling:</Text>
+            <Text style={styles.bold}>Notification Pre-Scheduling:</Text>
           </Text>
           <Text variant="bodyMedium" style={styles.bodyText}>
-            This app schedules reminder notifications in batches, which
-            will usually cover multiple days in advance.
+            This app pre-schedules reminder notifications in batches, which will
+            usually cover multiple days in advance. You can control how many
+            reminders are pre-scheduled in the advanced section of Preferences.
           </Text>
           <Text variant="bodyMedium" style={styles.bodyText}>
-            Tip: Click on at least one reminder notification per day.
+            If you are on a platform/device that aggressively kills backgrouned
+            apps, then you should periodically click on a reminder notification
+            (once every day or two).
 
-            Notifications will still fire even if the foreground app has been
-            killed. Therefore, if you click on one notification per
-            day, the app restarts if necessary, and a new batch of
-            notifications is scheduled. This also helps keep you engaged with
-            your practice :-)
+            Notifications will still fire even if the backgrounded app has been
+            killed. Therefore, by clicking on one of the reminder
+            notifications, the app is started if necessary, and will
+            immediately schedule the next batch of notifications. This also
+            helps keep you engaged with your practice :-)
           </Text>
           <Text variant="bodyMedium" style={styles.bodyText}>
             As a final fallback, the last scheduled notification will prompt
             you to open the app, which will cause another round of reminders to
-            be scheduled.
+            be scheduled (if you see this reminder, and have disabled battery
+            optimizations for this app, then you are likely on a platform that
+            kills the backgrounded app).
           </Text>
         </View>
 
