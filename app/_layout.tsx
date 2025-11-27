@@ -181,10 +181,26 @@ function AppContent() {
     <IconButton icon="arrow-left" onPress={() => router.back()} />
   );
 
-  // Listen for app state changes
-  AppState.addEventListener("change", async (nextAppState) => {
-    console.log("App state changed:", nextAppState);
-  });
+  // Listen for app state changes and clear notifications when coming to foreground
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", async (nextAppState) => {
+      console.log("[App] App state changed:", nextAppState);
+
+      // Clear notifications when app comes to foreground (if enabled)
+      if (nextAppState === "active" && isEnabled) {
+        try {
+          await Notifications.dismissAllNotificationsAsync();
+          console.log("[App] Cleared all presented notifications on foreground");
+        } catch (error) {
+          console.error("[App] Failed to dismiss notifications on foreground:", error);
+        }
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isEnabled]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
