@@ -1,49 +1,64 @@
+import React, { useState, useEffect } from "react";
 import {
+  Alert,
+  AppState,
+  Platform,
   ScrollView,
   StyleSheet,
   View,
-  Platform,
-  Alert,
-  AppState,
 } from "react-native";
 import {
   Button,
-  Surface,
-  Text,
-  SegmentedButtons,
+  Card,
   Divider,
+  Icon,
   List,
+  Menu,
+  SegmentedButtons,
+  Surface,
   Switch,
+  Text,
   TextInput,
+  TouchableRipple,
+  useTheme,
 } from "react-native-paper";
 import { useAppDispatch, useAppSelector } from "@/src/store/store";
 import {
+  Color,
+  ColorScheme,
+  clearDebugInfoAsync,
+  setBackgroundImageEnabled,
+  setBackgroundTaskIntervalMinutes,
   setColorScheme,
+  setColor,
+  setDebugInfoEnabled,
+  setMinNotificationBuffer,
+  setNotificationsGranted,
   setSoundEnabled,
   setVibrationEnabled,
-  ColorScheme,
-  setNotificationsGranted,
-  setBackgroundImageEnabled,
-  setDebugInfoEnabled,
-  clearDebugInfoAsync,
-  setBackgroundTaskIntervalMinutes,
-  setMinNotificationBuffer,
 } from "@/src/store/slices/preferencesSlice";
 import {
   BACKGROUND_TASK_INTERVAL_MINUTES,
   MIN_NOTIFICATION_BUFFER,
 } from "@/src/constants/scheduleConstants";
-import { isPermissionsGranted, requestPermissions } from "@/src/lib/notifications";
+import {
+  isPermissionsGranted,
+  requestPermissions,
+} from "@/src/lib/notifications";
 import {
   openBatteryOptimizationSettings,
   isBatteryOptimizationDisabled,
 } from "@/src/lib/batteryOptimization";
+import Colors from "@/src/ui/styles/colors";
 import { debugLog } from "@/src/utils/debug";
-import { useEffect, useState } from "react";
 
 export default function Preferences() {
   const dispatch = useAppDispatch();
+  const theme = useTheme();
+
   const preferences = useAppSelector((state) => state.preferences);
+
+  const [colorMenuVisible, setColorMenuVisible] = useState(false);
   const [batteryOptimizationDisabled, setBatteryOptimizationDisabled] =
     useState<boolean | null>(null);
   const [taskIntervalInput, setTaskIntervalInput] = useState(
@@ -83,6 +98,24 @@ export default function Preferences() {
 
   const handleColorSchemeChange = (value: string) => {
     dispatch(setColorScheme(value as ColorScheme));
+  };
+
+  const handleColorChange = (value: Color) => {
+    dispatch(setColor(value));
+  };
+
+  const colorOptions = [...Object.keys(Colors.light), "random"] as Color[];
+
+  const formatColorName = (color: Color) => {
+    // @ts-ignore TS2367
+    if (color === "random") {
+      return "Random";
+    }
+    if (color) {
+      return color.charAt(0).toUpperCase() + color.slice(1);
+    } else {
+      return "Default";
+    }
   };
 
   const handleToggleSound = () => {
@@ -173,6 +206,115 @@ export default function Preferences() {
     }
   }
 
+  const AppearanceCard = () => (
+    <Card style={{ marginBottom: 16 }}>
+      <Card.Title title="Appearance" />
+      <Card.Content>
+        {/* Theme Selection */}
+        <View style={{ marginBottom: 16 }}>
+          <Text variant="titleSmall" style={{ marginBottom: 8 }}>
+            Theme
+          </Text>
+          <SegmentedButtons
+            value={preferences.colorScheme}
+            onValueChange={handleColorSchemeChange}
+            buttons={[
+              { value: "light", label: "Light", icon: "white-balance-sunny" },
+              { value: "dark", label: "Dark", icon: "moon-waning-crescent" },
+              { value: "auto", label: "Auto", icon: "brightness-auto" },
+            ]}
+          />
+        </View>
+
+        <Divider style={{ marginVertical: 8 }} />
+
+        {/* Color Selection */}
+        <View>
+          <Text variant="titleSmall" style={{ marginBottom: 8 }}>
+            Color Theme
+          </Text>
+          <Menu
+            visible={colorMenuVisible}
+            onDismiss={() => setColorMenuVisible(false)}
+            anchor={
+              <TouchableRipple
+                onPress={() => setColorMenuVisible(true)}
+                style={{
+                  padding: 12,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: theme.colors.outline,
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    {
+                      // @ts-ignore TS2367
+                      preferences.color === "random" ? (
+                        <View style={{ marginRight: 12 }}>
+                          <Icon source="shuffle-variant" size={24} />
+                        </View>
+                      ) : (
+                        <View
+                          style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: 12,
+                            backgroundColor: theme.colors.primary,
+                            marginRight: 12,
+                          }}
+                        />
+                      )
+                    }
+                    <Text variant="bodyMedium">
+                      {formatColorName(preferences.color)}
+                    </Text>
+                  </View>
+                  <Icon source="chevron-down" size={20} />
+                </View>
+              </TouchableRipple>
+            }
+          >
+            {colorOptions.map((color) => (
+              <Menu.Item
+                key={color}
+                onPress={() => {
+                  handleColorChange(color);
+                  setColorMenuVisible(false);
+                }}
+                title={formatColorName(color)}
+                leadingIcon={() =>
+                  // @ts-ignore TS2367
+                  color === "random" ? (
+                    <Icon source="shuffle-variant" size={20} />
+                  ) : (
+                    <View
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: 10,
+                        backgroundColor:
+                          Colors.light[color as keyof typeof Colors.light]
+                            .primary,
+                      }}
+                    />
+                  )
+                }
+                trailingIcon={preferences.color === color ? "check" : undefined}
+              />
+            ))}
+          </Menu>
+        </View>
+      </Card.Content>
+    </Card>
+  );
+
   return (
     <ScrollView style={styles.scrollView}>
       <Surface style={styles.container}>
@@ -183,45 +325,9 @@ export default function Preferences() {
           Configure application settings, theme, and other preferences.
         </Text>
 
-        <Divider style={styles.divider} />
+        <AppearanceCard />
 
-        {/* Appearance Section */}
-        <View style={styles.section}>
-          <Text variant="titleLarge" style={styles.sectionTitle}>
-            Appearance
-          </Text>
-
-          <View style={styles.subsection}>
-            <Text variant="titleMedium" style={styles.label}>
-              Color Scheme
-            </Text>
-            <Text variant="bodyMedium" style={styles.sectionDescription}>
-              Choose your preferred color theme for the app.
-            </Text>
-            <SegmentedButtons
-              value={preferences.colorScheme}
-              onValueChange={handleColorSchemeChange}
-              buttons={[
-                {
-                  value: "light",
-                  label: "Light",
-                  icon: "white-balance-sunny",
-                },
-                {
-                  value: "dark",
-                  label: "Dark",
-                  icon: "moon-waning-crescent",
-                },
-                {
-                  value: "auto",
-                  label: "Auto",
-                  icon: "theme-light-dark",
-                },
-              ]}
-              style={styles.segmentedButtons}
-            />
-          </View>
-
+        <View>
           <List.Item
             title="Background Image"
             description={
@@ -238,7 +344,6 @@ export default function Preferences() {
             )}
           />
         </View>
-
         <Divider style={styles.divider} />
 
         {/* Notifications Section */}

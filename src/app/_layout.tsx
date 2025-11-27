@@ -1,11 +1,5 @@
 import { Stack, useRouter } from "expo-router";
-import {
-  PaperProvider,
-  MD3LightTheme,
-  MD3DarkTheme,
-  IconButton,
-  useTheme,
-} from "react-native-paper";
+import { PaperProvider, IconButton, useTheme } from "react-native-paper";
 import { useColorScheme, AppState, BackHandler } from "react-native";
 import { useEffect, useState } from "react";
 import { Provider, useSelector } from "react-redux";
@@ -24,6 +18,7 @@ import * as Notifications from "expo-notifications";
 import { store, persistor, RootState } from "@/src/store/store";
 import { setLastNotificationText } from "@/src/store/slices/remindersSlice";
 import { useFlutterMigration } from "@/src/hooks/useFlutterMigration";
+import { Themes } from "@/src/ui/styles";
 
 const DO_FLUTTER_MIGRATION = false;
 
@@ -36,17 +31,46 @@ function AppContent() {
   const userColorScheme = useSelector(
     (state: RootState) => state.preferences.colorScheme,
   );
+  const userColor = useSelector((state: RootState) => state.preferences.color);
   const isEnabled = useSelector(
     (state: RootState) => state.preferences.isEnabled,
   );
 
+  const router = useRouter();
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [randomColor, setRandomColor] =
+    useState<keyof typeof Themes.light>("default");
+
   // Determine which theme to use based on user preference
   const effectiveColorScheme =
     userColorScheme === "auto" ? systemColorScheme : userColorScheme;
-  const theme = effectiveColorScheme === "dark" ? MD3DarkTheme : MD3LightTheme;
 
-  const router = useRouter();
-  const [drawerVisible, setDrawerVisible] = useState(false);
+  // Helper function to get random color from available themes
+  const getRandomColor = (): keyof typeof Themes.light => {
+    const availableColors = Object.keys(Themes.light).filter(
+      (c) => c !== "default",
+    ) as Array<keyof typeof Themes.light>;
+    return availableColors[Math.floor(Math.random() * availableColors.length)];
+  };
+
+  // Use random color if selected, otherwise use user preference
+  const effectiveColor: keyof typeof Themes.light =
+    // @ts-ignore TS2367
+    userColor === "random"
+      ? randomColor
+      : (userColor as keyof typeof Themes.light);
+  const theme =
+    Themes[effectiveColorScheme === "dark" ? "dark" : "light"][effectiveColor];
+
+  // Initialize random color on mount if random mode is enabled
+  useEffect(() => {
+    // @ts-ignore TS2367
+    if (userColor === "random") {
+      const initialRandomColor = getRandomColor();
+      setRandomColor(initialRandomColor);
+      console.log("[App] Initial random color selected:", initialRandomColor);
+    }
+  }, []);
 
   // Custom drawer toggle button that respects theme
   const ThemedDrawerToggle = () => {
@@ -183,24 +207,42 @@ function AppContent() {
 
   // Listen for app state changes and clear notifications when coming to foreground
   useEffect(() => {
-    const subscription = AppState.addEventListener("change", async (nextAppState) => {
-      console.log("[App] App state changed:", nextAppState);
+    const subscription = AppState.addEventListener(
+      "change",
+      async (nextAppState) => {
+        console.log("[App] App state changed:", nextAppState);
 
-      // Clear notifications when app comes to foreground (if enabled)
-      if (nextAppState === "active" && isEnabled) {
-        try {
-          await Notifications.dismissAllNotificationsAsync();
-          console.log("[App] Cleared all presented notifications on foreground");
-        } catch (error) {
-          console.error("[App] Failed to dismiss notifications on foreground:", error);
+        if (nextAppState === "active") {
+          // Select random color if random mode is enabled
+          // @ts-ignore TS2367
+          if (userColor === "random") {
+            const newRandomColor = getRandomColor();
+            setRandomColor(newRandomColor);
+            console.log("[App] Random color selected:", newRandomColor);
+          }
+
+          // Clear notifications when app comes to foreground (if enabled)
+          if (isEnabled) {
+            try {
+              await Notifications.dismissAllNotificationsAsync();
+              console.log(
+                "[App] Cleared all presented notifications on foreground",
+              );
+            } catch (error) {
+              console.error(
+                "[App] Failed to dismiss notifications on foreground:",
+                error,
+              );
+            }
+          }
         }
-      }
-    });
+      },
+    );
 
     return () => {
       subscription.remove();
     };
-  }, [isEnabled]);
+  }, [isEnabled, userColor]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

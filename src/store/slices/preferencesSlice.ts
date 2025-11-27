@@ -1,7 +1,10 @@
 import { MAX_BACKGROUND_TASK_HISTORY, MAX_DEBUG_INFO, BACKGROUND_TASK_INTERVAL_MINUTES, MIN_NOTIFICATION_BUFFER } from '@/src/constants/scheduleConstants';
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import Colors from "@/src/ui/styles/colors";
 
 export type ColorScheme = 'light' | 'dark' | 'auto';
+export type Color = keyof typeof Colors.light | 'random';
+
 
 export interface PreferencesState {
   isEnabled: boolean;
@@ -9,6 +12,7 @@ export interface PreferencesState {
   soundEnabled: boolean;
   vibrationEnabled: boolean;
   colorScheme: ColorScheme;
+  color: Color;
   backgroundImageEnabled: boolean;
   debugInfoEnabled: boolean;
   backgroundTaskRunHistory: number[]; // Array of timestamps when background task ran
@@ -22,6 +26,7 @@ const initialState: PreferencesState = {
   soundEnabled: true,
   vibrationEnabled: true,
   colorScheme: 'auto',
+  color: 'default',
   backgroundImageEnabled: true,
   debugInfoEnabled: false,
   backgroundTaskRunHistory: [],
@@ -65,6 +70,9 @@ const preferencesSlice = createSlice({
     setColorScheme: (state, action: PayloadAction<ColorScheme>) => {
       state.colorScheme = action.payload;
     },
+    setColor: (state, action: PayloadAction<Color>) => {
+      state.color = action.payload;
+    },
     setBackgroundImageEnabled: (state, action: PayloadAction<boolean>) => {
       state.backgroundImageEnabled = action.payload;
     },
@@ -96,6 +104,7 @@ export const {
   setSoundEnabled,
   setVibrationEnabled,
   setColorScheme,
+  setColor,
   setBackgroundImageEnabled,
   setDebugInfoEnabled,
   clearDebugInfo,
