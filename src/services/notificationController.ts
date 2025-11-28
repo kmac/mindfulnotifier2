@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { RootState } from "@/src/store/store";
 import * as Notifications from "expo-notifications";
-import { getRandomReminder } from "@/src/lib/reminders";
+import { getRandomReminder, getShuffledReminders } from "@/src/lib/reminders";
 import {
   scheduleNotification,
   cancelAllNotifications,
@@ -444,6 +444,12 @@ export async function scheduleMultipleNotifications(
       );
     }
 
+    // Get shuffled reminders for all notifications at once
+    const shuffledReminders = getShuffledReminders(
+      notificationCount,
+      reminders.reminders,
+    );
+
     // Schedule multiple notifications
     let scheduledNextFireDate: Date | undefined = fromTime;
 
@@ -452,8 +458,8 @@ export async function scheduleMultipleNotifications(
       // The scheduler automatically handles quiet hours
       const nextFireDate = scheduler.getNextFireDate(scheduledNextFireDate);
 
-      // Get a random reminder for this notification
-      const reminderText = getRandomReminder(reminders.reminders);
+      // Get the pre-shuffled reminder for this notification
+      const reminderText = shuffledReminders[i];
 
       false &&
         console.log(
