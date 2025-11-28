@@ -160,6 +160,26 @@ export default function Reminders() {
     dispatch(toggleReminderEnabled(index));
   };
 
+  // Enable all filtered reminders
+  const handleEnableAll = () => {
+    filteredReminders.forEach((reminder) => {
+      const originalIndex = reminders.indexOf(reminder);
+      if (!reminder.enabled) {
+        dispatch(toggleReminderEnabled(originalIndex));
+      }
+    });
+  };
+
+  // Disable all filtered reminders
+  const handleDisableAll = () => {
+    filteredReminders.forEach((reminder) => {
+      const originalIndex = reminders.indexOf(reminder);
+      if (reminder.enabled) {
+        dispatch(toggleReminderEnabled(originalIndex));
+      }
+    });
+  };
+
   // Export reminders
   const handleExport = async () => {
     setMoreMenuVisible(false);
@@ -303,6 +323,29 @@ export default function Reminders() {
             ))}
           </Menu>
         </View>
+
+        {selectedTagFilter && (
+          <View style={styles.bulkActionsContainer}>
+            <Button
+              mode="outlined"
+              icon="check-all"
+              onPress={handleEnableAll}
+              compact
+              disabled={filteredReminders.every((r) => r.enabled)}
+            >
+              Enable All
+            </Button>
+            <Button
+              mode="outlined"
+              icon="close-circle-outline"
+              onPress={handleDisableAll}
+              compact
+              disabled={filteredReminders.every((r) => !r.enabled)}
+            >
+              Disable All
+            </Button>
+          </View>
+        )}
 
         <Divider style={styles.divider} />
 
@@ -558,6 +601,11 @@ const styles = StyleSheet.create({
   },
   filterLabel: {
     opacity: 0.7,
+  },
+  bulkActionsContainer: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 12,
   },
   divider: {
     marginVertical: 16,
