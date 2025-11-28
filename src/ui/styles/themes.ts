@@ -99,6 +99,13 @@ const Themes = {
         ...Colors.light.brown,
       },
     },
+    black: {
+      ...BaseLightTheme,
+      colors: {
+        ...BaseLightTheme.colors,
+        ...Colors.light.black,
+      },
+    },
   },
   dark: {
     default: BaseDarkTheme,
@@ -177,6 +184,13 @@ const Themes = {
       colors: {
         ...BaseDarkTheme.colors,
         ...Colors.dark.brown,
+      },
+    },
+    black: {
+      ...BaseDarkTheme,
+      colors: {
+        ...BaseDarkTheme.colors,
+        ...Colors.dark.black,
       },
     },
   },
