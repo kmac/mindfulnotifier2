@@ -39,6 +39,21 @@ export default function About() {
           Version: {versionInfo}
         </Text>
 
+        <View style={styles.licenseContainer}>
+          <Text variant="bodyMedium" style={styles.license}>
+            This application is free and open source software licensed under the{" "}
+            <Text
+              style={[styles.link, { color: theme.colors.primary }]}
+              onPress={() =>
+                Linking.openURL("https://www.gnu.org/licenses/gpl-3.0.en.html")
+              }
+            >
+              GNU General Public License v3.0
+            </Text>
+            .
+          </Text>
+        </View>
+
         <View
           style={{
             flexDirection: "column",
@@ -130,6 +145,12 @@ const styles = StyleSheet.create({
   },
   version: {
     opacity: 0.5,
+  },
+  licenseContainer: {
+    marginTop: 16,
+  },
+  license: {
+    opacity: 0.7,
   },
   source: {
     opacity: 0.7,
