@@ -9,6 +9,7 @@ import {
   useTheme,
 } from "react-native-paper";
 import * as Notifications from "expo-notifications";
+import Markdown from "@ronradtke/react-native-markdown-display";
 import { getRandomReminder } from "@/src/lib/reminders";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "@/src/store/store";
@@ -26,6 +27,27 @@ import {
 
 // Track if this is the first mount across all instances
 let hasShownStartupSnackbar = false;
+
+/**
+ * Detects if text contains markdown syntax
+ */
+function containsMarkdown(text: string): boolean {
+  const markdownPatterns = [
+    /\*\*[^*]+\*\*/,           // **bold**
+    /__[^_]+__/,              // __bold__
+    /\*[^*]+\*/,              // *italic*
+    /_[^_]+_/,                // _italic_
+    /^#{1,6}\s/m,             // # headers
+    /\[.+\]\(.+\)/,           // [link](url)
+    /`[^`]+`/,                // `code`
+    /^[-*+]\s/m,              // - list items
+    /^\d+\.\s/m,              // 1. numbered lists
+    /^>\s/m,                  // > blockquotes
+    /~~[^~]+~~/,              // ~~strikethrough~~
+  ];
+
+  return markdownPatterns.some(pattern => pattern.test(text));
+}
 
 export default function Index() {
   const theme = useTheme();
@@ -51,6 +73,33 @@ export default function Index() {
   const fallbackReminder = useMemo(
     () => getRandomReminder(reminders),
     [reminders],
+  );
+
+  // Current text to display
+  const displayText = lastNotificationText || fallbackReminder;
+
+  // Check if the text contains markdown (memoized)
+  const hasMarkdown = useMemo(
+    () => containsMarkdown(displayText),
+    [displayText],
+  );
+
+  // Memoize markdown styles based on theme
+  const markdownStyles = useMemo(
+    () => ({
+      body: {
+        fontSize: 24,
+        //fontWeight: "600" as const,
+        textAlign: "center" as const,
+        lineHeight: 36,
+        color: theme.colors.onBackground,
+      },
+      paragraph: {
+        marginTop: 0,
+        marginBottom: 0,
+      },
+    }),
+    [theme.colors.onBackground],
   );
 
   const handleSetEnabled = async (value: string) => {
@@ -179,17 +228,19 @@ export default function Index() {
             tintColor={theme.colors.secondaryContainer}
             resizeMode="contain"
           >
-            <Text
-              style={[styles.reminderText]}
-            >
-              {lastNotificationText || fallbackReminder}
-            </Text>
+            {hasMarkdown ? (
+              <Markdown style={markdownStyles}>{displayText}</Markdown>
+            ) : (
+              <Text style={styles.reminderText}>{displayText}</Text>
+            )}
           </ImageBackground>
+        ) : hasMarkdown ? (
+          <Markdown style={markdownStyles}>{displayText}</Markdown>
         ) : (
           <Text
             style={[styles.reminderText, { color: theme.colors.onBackground }]}
           >
-            {lastNotificationText || fallbackReminder}
+            {displayText}
           </Text>
         )}
       </View>

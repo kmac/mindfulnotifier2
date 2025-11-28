@@ -39,6 +39,7 @@ There is no reason it can't run on iOS devices, but there would be a small amoun
     - Periodic: e.g. hourly, or every 15 minutes (intervals are aligned from the top of the hour)
     - Random: e.g. randomly between 30 minutes and an hour
 - **Custom Reminders**: Edit or add your own reminder messages
+    - Use markdown to control rendering
     - Organize/group by tag
     - Enable/disable individual reminders
     - Filter reminders by tag
@@ -53,26 +54,18 @@ There is no reason it can't run on iOS devices, but there would be a small amoun
 - **Debug Mode**: Optional debug logging for troubleshooting
 
 
-### Permissions
+### Differences From Original App
 
-This app uses the following Android permissions:
+#### New Features
 
-- **`POST_NOTIFICATIONS`**: Required on Android 13+ to display any notifications (local or remote). Users must grant this permission for the app to show mindfulness reminders.
+- Supports markdown in reminders
+- Optional background image
+- Full backup/restore, as well as the previous reminder import/export
 
-- **`RECEIVE_BOOT_COMPLETED`**: Allows the app to restart its notification scheduling service after a device reboot, ensuring reminders continue working.
-
-- **`SCHEDULE_EXACT_ALARM`**: Allows the app to schedule notifications at exact times (e.g., hourly reminders aligned to the top of the hour). Users can revoke this permission through Android Settings → Apps → Special Access → Alarms & Reminders.
-
-- **`USE_EXACT_ALARM`**: Similar to `SCHEDULE_EXACT_ALARM`, but for apps whose core functionality is timing-based (like mindfulness bells and timers). This permission cannot be revoked by users. This permission may require justification when submitting to the Google Play Store.
-
-- **`WAKE_LOCK`**: Allows the app to wake the device when a notification is due, ensuring reminders are displayed even when the device is in a low-power state.
-
-- **`VIBRATE`**: Required to use custom vibration patterns with notifications. This is a normal permission that is automatically granted at install time (no user prompt).
-
-- **`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`**: Allows the app to request exemption from battery optimization. The app will prompt users to disable battery optimization to ensure reliable background notification scheduling. This is presented as a user choice through the in-app Preferences screen.
+Removed: no support for custom bell. The sound is now part of the notification, and android does not support this feature.
 
 
-## Differences From Original App
+#### Implementation - Scheduling and Background Behaviour
 
 This implementation is in many ways a much simpler approach than the previous app, but may have its limitations on certain hardware platforms. Android battery optimizations create significant challenges to keep long-term backgrounded apps properly working as intended.
 
@@ -100,7 +93,7 @@ https://dontkillmyapp.com.  In this case, I just try to remember to open the app
 notification is enough.
 
 
-### Notes on Application Settings
+## Notes on Application Settings
 
 #### Notification Permissions
 
@@ -115,7 +108,7 @@ The app will check your battery optimization status (Android only) and show a wa
 This varies from phone-to-phone - generally you must go into the settings for the app on your phone and turn off any battery optimization. See https://dontkillmyapp.com/ for your phone type and android version for more information.
 
 
-### Bells
+## Bells
 
 - Bell 1: is from user 'steaq' via [https://freesound.org/s/346328](https://freesound.org/s/346328/) and is licensed under the [Creative Commons 0 License][CC0].
 
@@ -132,7 +125,7 @@ This varies from phone-to-phone - generally you must go into the settings for th
 [CCA]: https://creativecommons.org/licenses/by/3.0/        "Creative Commons Attribution License"
 
 
-### Backup & Restore
+## Backup & Restore
 
 This app provides two levels of backup functionality:
 
@@ -143,7 +136,7 @@ Note that if you ever uninstall the app, you will lose all of your customized se
 
 ---
 
-#### Reminder List Export/Import
+### Reminder List Export/Import
 
 Export and import just your reminder list. This is useful for sharing reminders between devices or backing up only your custom reminders.
 
@@ -167,7 +160,7 @@ Export and import just your reminder list. This is useful for sharing reminders 
 
 ---
 
-#### Full App Backup & Restore
+### Full App Backup & Restore
 
 Export and import your complete app configuration including preferences, reminders, and schedules.
 
@@ -209,6 +202,25 @@ The following state-only data is **not** included in backups:
 6. All settings, reminders, and schedule will be restored
 
 Both backup file types are JSON text files that can be manually edited if needed, though this is not recommended unless you know what you're doing.
+
+
+## Permissions
+
+This app uses the following Android permissions:
+
+- **`POST_NOTIFICATIONS`**: Required on Android 13+ to display any notifications (local or remote). Users must grant this permission for the app to show mindfulness reminders.
+
+- **`RECEIVE_BOOT_COMPLETED`**: Allows the app to restart its notification scheduling service after a device reboot, ensuring reminders continue working.
+
+- **`SCHEDULE_EXACT_ALARM`**: Allows the app to schedule notifications at exact times (e.g., hourly reminders aligned to the top of the hour). Users can revoke this permission through Android Settings → Apps → Special Access → Alarms & Reminders.
+
+- **`USE_EXACT_ALARM`**: Similar to `SCHEDULE_EXACT_ALARM`, but for apps whose core functionality is timing-based (like mindfulness bells and timers). This permission cannot be revoked by users. This permission may require justification when submitting to the Google Play Store.
+
+- **`WAKE_LOCK`**: Allows the app to wake the device when a notification is due, ensuring reminders are displayed even when the device is in a low-power state.
+
+- **`VIBRATE`**: Required to use custom vibration patterns with notifications. This is a normal permission that is automatically granted at install time (no user prompt).
+
+- **`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`**: Allows the app to request exemption from battery optimization. The app will prompt users to disable battery optimization to ensure reliable background notification scheduling. This is presented as a user choice through the in-app Preferences screen.
 
 
 ## Support Statement
