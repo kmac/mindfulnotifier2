@@ -2,6 +2,11 @@
 
 A mindfulness bell with configurable text notifications, schedules, and sound.
 
+The main focus of this app is for android, but you can also run it in your browser.
+
+Try it online: https://mindfulnotifier.netlify.app/
+
+
 ## About this app
 
 Note: This is a complete rewrite of the original [mindfulnotifier](https://github.com/kmac/mindfulnotifier), using the

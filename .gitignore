@@ -37,6 +37,7 @@ yarn-error.*
 .envrc
 .env*.local
 
+README-kmac.md
 coverage/
 local/
 *.*vim
