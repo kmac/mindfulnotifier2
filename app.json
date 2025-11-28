@@ -32,6 +32,7 @@
         "SCHEDULE_EXACT_ALARM",
         "USE_EXACT_ALARM",
         "WAKE_LOCK",
+        "VIBRATE",
         "REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
       ]
     },
