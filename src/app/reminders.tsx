@@ -296,7 +296,7 @@ export default function Reminders() {
               <Chip
                 mode="outlined"
                 icon="filter"
-                onPress={() => setFilterMenuVisible(true)}
+                onPress={() => setFilterMenuVisible(!filterMenuVisible)}
               >
                 {selectedTagFilter || "All tags"}
               </Chip>
@@ -305,7 +305,7 @@ export default function Reminders() {
             <Menu.Item
               onPress={() => {
                 setSelectedTagFilter(null);
-                setFilterMenuVisible(false);
+                setTimeout(() => setFilterMenuVisible(false), 100);
               }}
               title="All tags"
               leadingIcon={selectedTagFilter === null ? "check" : undefined}
@@ -315,7 +315,7 @@ export default function Reminders() {
                 key={tag}
                 onPress={() => {
                   setSelectedTagFilter(tag);
-                  setFilterMenuVisible(false);
+                  setTimeout(() => setFilterMenuVisible(false), 100);
                 }}
                 title={tag}
                 leadingIcon={selectedTagFilter === tag ? "check" : undefined}
