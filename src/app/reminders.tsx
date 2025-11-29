@@ -423,6 +423,26 @@ export default function Reminders() {
               numberOfLines={4}
               style={styles.textInput}
             />
+            {uniqueTags.length > 0 && (
+              <View style={styles.tagChipsContainer}>
+                <Text variant="bodySmall" style={styles.tagChipsLabel}>
+                  Select existing tag:
+                </Text>
+                <View style={styles.tagChips}>
+                  {uniqueTags.map((tag) => (
+                    <Chip
+                      key={tag}
+                      mode={editTag === tag ? "flat" : "outlined"}
+                      selected={editTag === tag}
+                      onPress={() => setEditTag(tag)}
+                      compact
+                    >
+                      {tag}
+                    </Chip>
+                  ))}
+                </View>
+              </View>
+            )}
             <TextInput
               label="Tag"
               value={editTag}
@@ -454,6 +474,26 @@ export default function Reminders() {
               numberOfLines={4}
               style={styles.textInput}
             />
+            {uniqueTags.length > 0 && (
+              <View style={styles.tagChipsContainer}>
+                <Text variant="bodySmall" style={styles.tagChipsLabel}>
+                  Select existing tag:
+                </Text>
+                <View style={styles.tagChips}>
+                  {uniqueTags.map((tag) => (
+                    <Chip
+                      key={tag}
+                      mode={editTag === tag ? "flat" : "outlined"}
+                      selected={editTag === tag}
+                      onPress={() => setEditTag(tag)}
+                      compact
+                    >
+                      {tag}
+                    </Chip>
+                  ))}
+                </View>
+              </View>
+            )}
             <TextInput
               label="Tag"
               value={editTag}
@@ -644,6 +684,19 @@ const styles = StyleSheet.create({
   },
   textInput: {
     marginBottom: 12,
+  },
+  tagChipsContainer: {
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  tagChipsLabel: {
+    marginBottom: 6,
+    opacity: 0.7,
+  },
+  tagChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
   },
   tagInput: {
     marginTop: 8,
