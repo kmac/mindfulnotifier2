@@ -1,4 +1,4 @@
-import { View, Platform, StyleSheet, ImageBackground } from "react-native";
+import { View, Platform, StyleSheet, ImageBackground, Pressable } from "react-native";
 import {
   Button,
   IconButton,
@@ -60,6 +60,9 @@ export default function Index() {
 
   const [isInitializing, setIsInitializing] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [currentReminder, setCurrentReminder] = useState<string>(() =>
+    getRandomReminder(reminders)
+  );
 
   // Show snackbar on app startup if notifications are enabled (only once per app session)
   useEffect(() => {
@@ -69,14 +72,15 @@ export default function Index() {
     }
   }, []);
 
-  // Memoize the fallback reminder so it doesn't change on every render
-  const fallbackReminder = useMemo(
-    () => getRandomReminder(reminders),
-    [reminders],
-  );
+  // Update current reminder when lastNotificationText changes
+  useEffect(() => {
+    if (lastNotificationText) {
+      setCurrentReminder(lastNotificationText);
+    }
+  }, [lastNotificationText]);
 
   // Current text to display
-  const displayText = lastNotificationText || fallbackReminder;
+  const displayText = currentReminder;
 
   // Check if the text contains markdown (memoized)
   const hasMarkdown = useMemo(
@@ -198,6 +202,16 @@ export default function Index() {
     }
   };
 
+  const handleReminderPress = () => {
+    const newReminder = getRandomReminder(reminders);
+    setCurrentReminder(newReminder);
+  };
+
+  const handleReminderLongPress = () => {
+    // Placeholder for long press functionality
+    console.log('[Index] Long press detected on reminder');
+  };
+
   // const getLastNotificationText = () => {
   //     const lastNotificationResponse = Notifications.useLastNotificationResponse();
   // React.useEffect(() => {
@@ -219,7 +233,11 @@ export default function Index() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       {/* Main Reminder Display */}
-      <View style={styles.reminderContainer}>
+      <Pressable
+        style={styles.reminderContainer}
+        onPress={handleReminderPress}
+        onLongPress={handleReminderLongPress}
+      >
         {preferences.backgroundImageEnabled ? (
           <ImageBackground
             source={require("@/assets/images/mindfulness-symbol.png")}
@@ -243,7 +261,7 @@ export default function Index() {
             {displayText}
           </Text>
         )}
-      </View>
+      </Pressable>
 
       {/* Control Panel at Bottom */}
       <Surface style={styles.controlPanel}>
