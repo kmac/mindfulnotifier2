@@ -65,7 +65,7 @@ const NOTIFICATION_SOUNDS = [
 
 /**
  * Get the notification channel ID for a given sound and vibration setting
- * @param soundName The sound name (e.g., 'zenbell_1.mp3' or 'zenbell_1')
+ * @param soundName The sound name (e.g., 'zenbell_1.mp3', 'zenbell_1', or 'default')
  * @param vibrationEnabled Whether vibration is enabled
  * @returns The channel ID to use for this sound and vibration setting
  */
@@ -77,6 +77,11 @@ export function getNotificationChannelId(
 
   if (!soundName) {
     return `mindful_silent${vibrateSuffix}`;
+  }
+
+  // Handle system default sound
+  if (soundName === 'default') {
+    return `mindful_default${vibrateSuffix}`;
   }
 
   // Remove .mp3 extension if present
@@ -159,6 +164,29 @@ async function createNotificationChannels(): Promise<void> {
     showBadge: false,
   });
   console.log("[Notifications] Created silent no-vibrate channel");
+
+  // Create system default sound channels with and without vibration
+  await Notifications.setNotificationChannelAsync("mindful_default", {
+    name: "Mindful Reminders (System Default)",
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: "#4A9022",
+    sound: "default",
+    enableVibrate: true,
+    showBadge: false,
+  });
+  console.log("[Notifications] Created default sound channel");
+
+  await Notifications.setNotificationChannelAsync("mindful_default_no_vibrate", {
+    name: "Mindful Reminders (System Default, No Vibrate)",
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: null,
+    lightColor: "#4A9022",
+    sound: "default",
+    enableVibrate: false,
+    showBadge: false,
+  });
+  console.log("[Notifications] Created default sound no-vibrate channel");
 
   // Create custom sound channels with and without vibration
   await Notifications.setNotificationChannelAsync("mindful_custom", {

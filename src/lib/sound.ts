@@ -14,6 +14,11 @@ export function getSelectedSoundUri(): string | null {
   const state = store.getState();
   const { selectedSound, customSoundUri } = state.sound;
 
+  // If system default sound is selected, return 'default'
+  if (selectedSound === 'default') {
+    return 'default';
+  }
+
   // If custom sound is selected on Android, fallback to default
   // Android notifications can't use custom sounds from user files
   if (selectedSound === 'custom') {

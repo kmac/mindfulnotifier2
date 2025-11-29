@@ -16,6 +16,7 @@ import { playSound, stopSound } from "@/src/lib/sound";
 import { rescheduleNotifications } from "@/src/services/notificationController";
 
 const AVAILABLE_SOUNDS = [
+  { name: "default", label: "System Default" },
   { name: "bell_inside.mp3", label: "Bell Inside" },
   { name: "bowl_struck.mp3", label: "Bowl Struck" },
   { name: "ding_soft.mp3", label: "Ding Soft" },
@@ -110,18 +111,20 @@ export default function Sound() {
                 style={styles.radioItem}
                 position="leading"
               />
-              <IconButton
-                icon={playingSound === soundItem.name ? "stop" : "play"}
-                size={24}
-                onPress={() => {
-                  if (playingSound === soundItem.name) {
-                    handleStopSound();
-                  } else {
-                    handlePlaySound(soundItem.name);
-                  }
-                }}
-                style={styles.playButton}
-              />
+              {soundItem.name !== "default" && (
+                <IconButton
+                  icon={playingSound === soundItem.name ? "stop" : "play"}
+                  size={24}
+                  onPress={() => {
+                    if (playingSound === soundItem.name) {
+                      handleStopSound();
+                    } else {
+                      handlePlaySound(soundItem.name);
+                    }
+                  }}
+                  style={styles.playButton}
+                />
+              )}
             </View>
           ))}
 
