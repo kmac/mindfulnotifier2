@@ -53,6 +53,9 @@ export default function Reminders() {
   const [importedReminders, setImportedReminders] = useState<JsonReminder[] | null>(null);
   const [importMergeMode, setImportMergeMode] = useState(false);
 
+  const [editTagDialogVisible, setEditTagDialogVisible] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
+
   // Get unique tags from all reminders
   const uniqueTags = Array.from(new Set(reminders.map((r) => r.tag)));
 
@@ -178,6 +181,34 @@ export default function Reminders() {
         dispatch(toggleReminderEnabled(originalIndex));
       }
     });
+  };
+
+  // Edit tag name
+  const handleEditTagPress = () => {
+    if (selectedTagFilter) {
+      setNewTagName(selectedTagFilter);
+      setEditTagDialogVisible(true);
+    }
+  };
+
+  const handleEditTagSave = () => {
+    if (selectedTagFilter && newTagName.trim() && newTagName !== selectedTagFilter) {
+      // Update all reminders with the old tag to use the new tag
+      const updatedReminders = reminders.map((reminder) =>
+        reminder.tag === selectedTagFilter
+          ? { ...reminder, tag: newTagName.trim() }
+          : reminder
+      );
+      dispatch(setReminders(updatedReminders));
+      setSelectedTagFilter(newTagName.trim());
+      setEditTagDialogVisible(false);
+      setNewTagName("");
+    }
+  };
+
+  const handleEditTagCancel = () => {
+    setEditTagDialogVisible(false);
+    setNewTagName("");
   };
 
   // Export reminders
@@ -343,6 +374,14 @@ export default function Reminders() {
               disabled={filteredReminders.every((r) => !r.enabled)}
             >
               Disable All
+            </Button>
+            <Button
+              mode="outlined"
+              icon="pencil"
+              onPress={handleEditTagPress}
+              compact
+            >
+              Edit Tag
             </Button>
           </View>
         )}
@@ -556,6 +595,34 @@ export default function Reminders() {
         </Dialog>
       </Portal>
 
+      {/* Edit Tag Dialog */}
+      <Portal>
+        <Dialog visible={editTagDialogVisible} onDismiss={handleEditTagCancel}>
+          <Dialog.Title>Edit Tag Name</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={styles.editTagDescription}>
+              Rename the tag "{selectedTagFilter}" for all {filteredReminders.length} reminder(s).
+            </Text>
+            <TextInput
+              label="New Tag Name"
+              value={newTagName}
+              onChangeText={setNewTagName}
+              mode="outlined"
+              style={styles.editTagInput}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={handleEditTagCancel}>Cancel</Button>
+            <Button
+              onPress={handleEditTagSave}
+              disabled={!newTagName.trim() || newTagName === selectedTagFilter}
+            >
+              Save
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
       {/* Import Confirmation Dialog */}
       <Portal>
         <Dialog visible={importDialogVisible} onDismiss={handleImportCancel}>
@@ -644,6 +711,7 @@ const styles = StyleSheet.create({
   },
   bulkActionsContainer: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
     marginTop: 12,
   },
@@ -699,6 +767,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   tagInput: {
+    marginTop: 8,
+  },
+  editTagDescription: {
+    marginBottom: 12,
+    opacity: 0.7,
+  },
+  editTagInput: {
     marginTop: 8,
   },
   deletePreview: {
