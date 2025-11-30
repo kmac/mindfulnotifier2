@@ -10,7 +10,7 @@ web-build/
 expo-env.d.ts
 
 *.apk
-*.apb
+*.aab
 
 # Native
 .kotlin/
