@@ -1,12 +1,19 @@
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
+import { Drawer } from "expo-router/drawer";
 import { PaperProvider, IconButton, useTheme } from "react-native-paper";
 import { useColorScheme, AppState, BackHandler } from "react-native";
 import { useEffect, useState } from "react";
 import { Provider, useSelector } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import CustomDrawer from "@/src/components/CustomDrawer";
+import {
+  DrawerContentScrollView,
+  DrawerItemList,
+  DrawerItem,
+  DrawerContentComponentProps,
+} from "@react-navigation/drawer";
 
 import { enableNotifications } from "@/src/services/notificationController";
 import {
@@ -15,7 +22,7 @@ import {
   addNotificationResponseListener,
 } from "@/src/lib/notifications";
 import * as Notifications from "expo-notifications";
-import { store, persistor, RootState } from "@/src/store/store";
+import { store, persistor, RootState, useAppSelector } from "@/src/store/store";
 import { setLastNotificationText } from "@/src/store/slices/remindersSlice";
 import { useFlutterMigration } from "@/src/hooks/useFlutterMigration";
 import { Themes } from "@/src/ui/styles";
@@ -37,7 +44,6 @@ function AppContent() {
   );
 
   const router = useRouter();
-  const [drawerVisible, setDrawerVisible] = useState(false);
   const [randomColor, setRandomColor] =
     useState<keyof typeof Themes.light>("default");
 
@@ -72,17 +78,6 @@ function AppContent() {
     }
   }, []);
 
-  // Custom drawer toggle button that respects theme
-  const ThemedDrawerToggle = () => {
-    const theme = useTheme();
-    return (
-      <IconButton
-        icon="menu"
-        iconColor={theme.colors.onSurface}
-        onPress={() => setDrawerVisible(true)}
-      />
-    );
-  };
 
   // Initialize the controller and notification system on app startup
   useEffect(() => {
@@ -201,9 +196,6 @@ function AppContent() {
     return () => backHandler.remove();
   }, []);
 
-  const BackButton = () => (
-    <IconButton icon="arrow-left" onPress={() => router.back()} />
-  );
 
   // Listen for app state changes and clear notifications when coming to foreground
   useEffect(() => {
@@ -244,79 +236,180 @@ function AppContent() {
     };
   }, [isEnabled, userColor]);
 
+  // Back button that returns to home screen (for modal screens)
+  const BackToHomeButton = () => {
+    const theme = useTheme();
+    return (
+      <IconButton
+        icon="close"
+        iconColor={theme.colors.onSurface}
+        onPress={() => router.push("/")}
+      />
+    );
+  };
+
+  // Custom drawer content component with theming support
+  const CustomDrawerContent = (props: DrawerContentComponentProps) => {
+    const theme = useTheme();
+    const debugInfoEnabled = useAppSelector(
+      (state) => state.preferences.debugInfoEnabled,
+    );
+
+    return (
+      <DrawerContentScrollView
+        {...props}
+        style={{ backgroundColor: theme.colors.surface }}
+      >
+        <DrawerItemList {...props} />
+        {debugInfoEnabled && (
+          <DrawerItem
+            label="Logs"
+            onPress={() => props.navigation.navigate("logs")}
+            icon={() => (
+              <MaterialCommunityIcons
+                name="file-document-outline"
+                size={24}
+                color={theme.colors.onSurfaceVariant}
+              />
+            )}
+            labelStyle={{ color: theme.colors.onSurface }}
+            style={{
+              backgroundColor:
+                props.state.routes[props.state.index]?.name === "logs"
+                  ? theme.colors.secondaryContainer
+                  : "transparent",
+            }}
+          />
+        )}
+      </DrawerContentScrollView>
+    );
+  };
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <PaperProvider theme={theme}>
-        <CustomDrawer
-          visible={drawerVisible}
-          onClose={() => setDrawerVisible(false)}
-        />
-        <Stack
+        <Drawer
+          drawerContent={(props) => <CustomDrawerContent {...props} />}
           screenOptions={{
             headerStyle: {
               backgroundColor: theme.colors.surface,
             },
             headerTintColor: theme.colors.onSurface,
             headerShadowVisible: false,
+            drawerStyle: {
+              backgroundColor: theme.colors.surface,
+            },
+            drawerActiveTintColor: theme.colors.onSecondaryContainer,
+            drawerActiveBackgroundColor: theme.colors.secondaryContainer,
+            drawerInactiveTintColor: theme.colors.onSurfaceVariant,
           }}
         >
-          <Stack.Screen
+          <Drawer.Screen
             name="index"
             options={{
               title: "Mindful Notifier",
-              headerLeft: () => <ThemedDrawerToggle />,
+              drawerLabel: "Mindful Notifier",
+              drawerIcon: ({ color, size }: { color: string; size: number }) => (
+                <MaterialCommunityIcons name="home" size={size} color={color} />
+              ),
             }}
           />
-          <Stack.Screen
+          <Drawer.Screen
             name="schedule"
             options={{
               title: "Manage Schedule",
-              headerLeft: () => <BackButton />,
+              drawerLabel: "Schedule",
+              drawerIcon: ({ color, size }: { color: string; size: number }) => (
+                <MaterialCommunityIcons
+                  name="calendar-clock"
+                  size={size}
+                  color={color}
+                />
+              ),
             }}
           />
-          <Stack.Screen
+          <Drawer.Screen
             name="reminders"
             options={{
               title: "Configure Reminders",
-              headerLeft: () => <BackButton />,
+              drawerLabel: "Reminders",
+              drawerIcon: ({ color, size }: { color: string; size: number }) => (
+                <MaterialCommunityIcons name="bell" size={size} color={color} />
+              ),
             }}
           />
-          <Stack.Screen
+          <Drawer.Screen
             name="sound"
             options={{
               title: "Configure Sound",
-              headerLeft: () => <BackButton />,
+              drawerLabel: "Sound",
+              drawerIcon: ({ color, size }: { color: string; size: number }) => (
+                <MaterialCommunityIcons
+                  name="volume-high"
+                  size={size}
+                  color={color}
+                />
+              ),
             }}
           />
-          <Stack.Screen
+          <Drawer.Screen
             name="preferences"
             options={{
               title: "App Preferences",
-              headerLeft: () => <BackButton />,
+              drawerLabel: "Preferences",
+              drawerIcon: ({ color, size }: { color: string; size: number }) => (
+                <MaterialCommunityIcons name="cog" size={size} color={color} />
+              ),
+              headerLeft: () => <BackToHomeButton />,
             }}
           />
-          <Stack.Screen
+          <Drawer.Screen
             name="help"
             options={{
               title: "Help",
-              headerLeft: () => <BackButton />,
+              drawerLabel: "Help",
+              drawerIcon: ({ color, size }: { color: string; size: number }) => (
+                <MaterialCommunityIcons
+                  name="help-box-outline"
+                  size={size}
+                  color={color}
+                />
+              ),
+              headerLeft: () => <BackToHomeButton />,
             }}
           />
-          <Stack.Screen
+          <Drawer.Screen
             name="about"
             options={{
               title: "About Mindful Notifier",
-              headerLeft: () => <BackButton />,
+              drawerLabel: "About",
+              drawerIcon: ({ color, size }: { color: string; size: number }) => (
+                <MaterialCommunityIcons
+                  name="information"
+                  size={size}
+                  color={color}
+                />
+              ),
+              headerLeft: () => <BackToHomeButton />,
             }}
           />
-          <Stack.Screen
+          <Drawer.Screen
             name="logs"
             options={{
               title: "Logs",
-              headerLeft: () => <BackButton />,
+              drawerLabel: "Logs",
+              drawerIcon: ({ color, size }: { color: string; size: number }) => (
+                <MaterialCommunityIcons
+                  name="file-document-outline"
+                  size={size}
+                  color={color}
+                />
+              ),
+              drawerItemStyle: { display: "none" },
+              headerLeft: () => <BackToHomeButton />,
             }}
           />
-        </Stack>
+        </Drawer>
       </PaperProvider>
     </GestureHandlerRootView>
   );
