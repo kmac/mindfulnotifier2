@@ -6,18 +6,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { debugLog } from "@/src/utils/debug";
 import {
   getLastScheduledTime,
-  debugLogTrigger,
   getPersistedState,
   scheduleMultipleNotifications,
-} from "./notificationController";
+} from "@/src/utils/notificationUtils";
 import {
   BACKGROUND_TASK_INTERVAL_MINUTES,
   MAX_BACKGROUND_TASK_HISTORY,
-  MIN_NOTIFICATION_BUFFER,
 } from "@/src/constants/scheduleConstants";
 
 // Task name constants
-// export const NOTIFICATION_TASK_NAME = "SCHEDULE_NOTIFICATION_TASK";
 export const BACKGROUND_CHECK_TASK = "BACKGROUND_CHECK_TASK";
 
 // AsyncStorage keys for background task data
@@ -69,10 +66,9 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
           "[BackgroundTask] Failed to get persisted state, cannot continue",
         ),
       );
+      return BackgroundTask.BackgroundTaskResult.Failed;
     }
-    const minNotificationBuffer = state
-      ? state.preferences.minNotificationBuffer
-      : MIN_NOTIFICATION_BUFFER;
+    const minNotificationBuffer = state.preferences.minNotificationBuffer;
 
     // Check if we need to schedule notifications
     const scheduled: Notifications.NotificationRequest[] =
@@ -101,6 +97,7 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
       // Starting from the last scheduled time to avoid gaps or duplicates
       const notificationsToSchedule = minNotificationBuffer - scheduled.length;
       await scheduleMultipleNotifications(
+        state,
         notificationsToSchedule,
         lastScheduledTime,
         "[BackgroundTask]",
