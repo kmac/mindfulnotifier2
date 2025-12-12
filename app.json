@@ -2,7 +2,7 @@
   "expo": {
     "name": "Mindful Notifier",
     "slug": "mindfulnotifier",
-    "version": "0.1.4",
+    "version": "0.1.5",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mindfulnotifier",
@@ -18,7 +18,7 @@
       "bundleIdentifier": "com.mindfulnotifier.app"
     },
     "android": {
-      "versionCode": 1,
+      "versionCode": 2,
       "package": "com.mindfulnotifier.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
@@ -69,7 +69,8 @@
         }
       ],
       "expo-background-task",
-      "./plugins/withRawResourceKeep.js"
+      "./plugins/withRawResourceKeep.js",
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,
