@@ -96,6 +96,36 @@ export default function Help() {
 
         <Divider style={styles.divider} />
 
+        {/* Home Screen Section */}
+        <View style={styles.section}>
+          <Text variant="titleLarge" style={styles.sectionTitle}>
+            Home Screen
+          </Text>
+          <Text variant="bodyMedium" style={styles.bodyText}>
+            The home screen displays your current mindfulness reminder and
+            provides quick actions to interact with it.
+          </Text>
+
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleMedium" style={styles.cardSubtitle}>
+                Quick Actions
+              </Text>
+              <Text variant="bodyMedium" style={styles.cardText}>
+                • <Text style={styles.bold}>Tap:</Text> Get a new random
+                reminder from your active collection
+              </Text>
+              <Text variant="bodyMedium" style={styles.cardText}>
+                • <Text style={styles.bold}>Long-press:</Text> Quickly edit the
+                current reminder. This will take you to the Reminders screen
+                with the edit dialog already open.
+              </Text>
+            </Card.Content>
+          </Card>
+        </View>
+
+        <Divider style={styles.divider} />
+
         {/* Reminder Contents Section */}
         <View style={styles.section}>
           <Text variant="titleLarge" style={styles.sectionTitle}>

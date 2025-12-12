@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
+import { useLocalSearchParams, useFocusEffect, router } from "expo-router";
+import { useCallback } from "react";
 import {
   Surface,
   Text,
@@ -34,6 +36,7 @@ export default function Reminders() {
   const dispatch = useAppDispatch();
   const reminders = useAppSelector((state) => state.reminders.reminders);
   const theme = useTheme();
+  const { editIndex } = useLocalSearchParams();
 
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [addDialogVisible, setAddDialogVisible] = useState(false);
@@ -55,6 +58,22 @@ export default function Reminders() {
 
   const [editTagDialogVisible, setEditTagDialogVisible] = useState(false);
   const [newTagName, setNewTagName] = useState("");
+
+  // Handle navigation from index.tsx with editIndex parameter
+  // Use useFocusEffect to trigger every time the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (editIndex !== undefined) {
+        const index = parseInt(editIndex as string, 10);
+        if (!isNaN(index) && index >= 0 && index < reminders.length) {
+          console.log('[Reminders] Opening edit dialog for reminder at index:', index);
+          handleEditPress(index);
+          // Clear the parameter so it doesn't trigger again on subsequent navigations
+          router.setParams({ editIndex: undefined });
+        }
+      }
+    }, [editIndex, reminders.length])
+  );
 
   // Get unique tags from all reminders
   const uniqueTags = Array.from(new Set(reminders.map((r) => r.tag)));

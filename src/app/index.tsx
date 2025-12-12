@@ -1,4 +1,10 @@
-import { View, Platform, StyleSheet, ImageBackground, Pressable } from "react-native";
+import {
+  View,
+  Platform,
+  StyleSheet,
+  ImageBackground,
+  Pressable,
+} from "react-native";
 import {
   Button,
   IconButton,
@@ -8,10 +14,9 @@ import {
   Text,
   useTheme,
 } from "react-native-paper";
-import * as Notifications from "expo-notifications";
 import Markdown from "@ronradtke/react-native-markdown-display";
 import { getRandomReminder } from "@/src/lib/reminders";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/src/store/store";
 import {
   setEnabled,
@@ -24,6 +29,7 @@ import {
   rescheduleNotifications,
   scheduleNotificationAt,
 } from "@/src/services/notificationController";
+import { router } from "expo-router";
 
 // Track if this is the first mount across all instances
 let hasShownStartupSnackbar = false;
@@ -33,20 +39,20 @@ let hasShownStartupSnackbar = false;
  */
 function containsMarkdown(text: string): boolean {
   const markdownPatterns = [
-    /\*\*[^*]+\*\*/,           // **bold**
-    /__[^_]+__/,              // __bold__
-    /\*[^*]+\*/,              // *italic*
-    /_[^_]+_/,                // _italic_
-    /^#{1,6}\s/m,             // # headers
-    /\[.+\]\(.+\)/,           // [link](url)
-    /`[^`]+`/,                // `code`
-    /^[-*+]\s/m,              // - list items
-    /^\d+\.\s/m,              // 1. numbered lists
-    /^>\s/m,                  // > blockquotes
-    /~~[^~]+~~/,              // ~~strikethrough~~
+    /\*\*[^*]+\*\*/, // **bold**
+    /__[^_]+__/, // __bold__
+    /\*[^*]+\*/, // *italic*
+    /_[^_]+_/, // _italic_
+    /^#{1,6}\s/m, // # headers
+    /\[.+\]\(.+\)/, // [link](url)
+    /`[^`]+`/, // `code`
+    /^[-*+]\s/m, // - list items
+    /^\d+\.\s/m, // 1. numbered lists
+    /^>\s/m, // > blockquotes
+    /~~[^~]+~~/, // ~~strikethrough~~
   ];
 
-  return markdownPatterns.some(pattern => pattern.test(text));
+  return markdownPatterns.some((pattern) => pattern.test(text));
 }
 
 export default function Index() {
@@ -61,7 +67,7 @@ export default function Index() {
   const [isInitializing, setIsInitializing] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [currentReminder, setCurrentReminder] = useState<string>(() =>
-    getRandomReminder(reminders)
+    getRandomReminder(reminders),
   );
 
   // Show snackbar on app startup if notifications are enabled (only once per app session)
@@ -191,11 +197,7 @@ export default function Index() {
 
       console.log(`[Test] Scheduling notification for ${testDate}`);
 
-      await scheduleNotificationAt(
-        testDate,
-        "Test Notification",
-        reminderText,
-      );
+      await scheduleNotificationAt(testDate, "Test Notification", reminderText);
       console.log("[Test] Test notification scheduled successfully");
     } catch (error) {
       console.error("[Test] Failed to schedule test notification:", error);
@@ -208,8 +210,22 @@ export default function Index() {
   };
 
   const handleReminderLongPress = () => {
-    // Placeholder for long press functionality
-    console.log('[Index] Long press detected on reminder');
+    // Find the index of the current reminder in the reminders array
+    const reminderIndex = reminders.findIndex(
+      (r) => r.text === currentReminder,
+    );
+
+    if (reminderIndex !== -1) {
+      // Navigate to reminders page with editIndex parameter
+      router.push({
+        pathname: "/reminders",
+        params: { editIndex: reminderIndex.toString() },
+      });
+    } else {
+      console.warn(
+        `[Index] Could not find current reminder in reminders array: ${currentReminder}`,
+      );
+    }
   };
 
   // const getLastNotificationText = () => {
@@ -290,12 +306,14 @@ export default function Index() {
             size={20}
             onPress={handleToggleSound}
           />
-          <IconButton
-            icon={preferences.vibrationEnabled ? "vibrate" : "vibrate-off"}
-            mode={preferences.vibrationEnabled ? "contained" : "outlined"}
-            size={20}
-            onPress={handleToggleVibration}
-          />
+          {Platform.OS !== "web" && (
+            <IconButton
+              icon={preferences.vibrationEnabled ? "vibrate" : "vibrate-off"}
+              mode={preferences.vibrationEnabled ? "contained" : "outlined"}
+              size={20}
+              onPress={handleToggleVibration}
+            />
+          )}
         </View>
         {false && __DEV__ && (
           <View style={styles.testRow}>
