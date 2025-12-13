@@ -188,6 +188,22 @@ function withAppBuildGradle(config) {
       }
     }
 
+    // Fix Hermes compiler path for React Native 0.83.0+
+    // Old path: node_modules/react-native/sdks/hermesc/
+    // New path: node_modules/hermes-compiler/hermesc/
+    const oldHermesPattern = /hermesCommand\s*=\s*new File\(\["node",\s*"--print",\s*"require\.resolve\('react-native\/package\.json'\)"\]\.execute\(null,\s*rootDir\)\.text\.trim\(\)\)\.getParentFile\(\)\.getAbsolutePath\(\)\s*\+\s*"\/sdks\/hermesc\/%OS-BIN%\/hermesc"/;
+    const newHermesPath = `hermesCommand = new File(["node", "--print", "require.resolve('hermes-compiler/package.json')"].execute(null, rootDir).text.trim()).getParentFile().getAbsolutePath() + "/hermesc/%OS-BIN%/hermesc"`;
+
+    if (oldHermesPattern.test(buildGradleContent)) {
+      buildGradleContent = buildGradleContent.replace(
+        oldHermesPattern,
+        newHermesPath
+      );
+      console.log('✅ Fixed Hermes compiler path for React Native 0.83.0+');
+    } else if (buildGradleContent.includes("require.resolve('hermes-compiler/package.json')")) {
+      console.log('✅ Hermes compiler path already correct');
+    }
+
     fs.writeFileSync(appBuildGradlePath, buildGradleContent);
     console.log('✅ Modified app/build.gradle to preserve MP3 resources');
 
