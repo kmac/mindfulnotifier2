@@ -18,7 +18,7 @@ import {
 import { enableNotifications } from "@/src/services/notificationController";
 import {
   initializeNotifications,
-  addNotificationReceivedListener,
+  // addNotificationReceivedListener,
   addNotificationResponseListener,
 } from "@/src/lib/notifications";
 import * as Notifications from "expo-notifications";
@@ -97,17 +97,17 @@ function AppContent() {
     });
 
     // Listen for notifications received while the app is in the foreground
-    const notificationListener = addNotificationReceivedListener(
-      (notification) => {
-        console.log("[App] Notification received in foreground:", notification);
-
-        // Update the last notification text when received in foreground
-        const reminderText = notification.request.content.body;
-        if (reminderText) {
-          store.dispatch(setLastNotificationText(reminderText));
-        }
-      },
-    );
+    // const notificationListener = addNotificationReceivedListener(
+    //   (notification) => {
+    //     console.log("[App] Notification received in foreground:", notification);
+    //
+    //     // Update the last notification text when received in foreground
+    //     const reminderText = notification.request.content.body;
+    //     if (reminderText) {
+    //       store.dispatch(setLastNotificationText(reminderText));
+    //     }
+    //   },
+    // );
 
     // Listen for notification taps (when user interacts with notification)
     const responseListener = addNotificationResponseListener(
@@ -176,7 +176,7 @@ function AppContent() {
     // Cleanup on unmount
     return () => {
       isMounted = false;
-      notificationListener.remove();
+      // notificationListener.remove();
       responseListener.remove();
     };
   }, []);
