@@ -42,8 +42,8 @@ export default function Help() {
                 Notifications are sent at fixed, regular intervals. For example,
                 if you set the interval to 1 hour and 30 minutes, you'll receive
                 a reminder every 1 hour and 30 minutes throughout the day
-                (outside of quiet hours).
-                Reminders are aligned on 15/30 minutes, or on the hour.
+                (outside of quiet hours). Reminders are aligned on 15/30
+                minutes, or on the hour.
               </Text>
               <Text variant="bodyMedium" style={styles.cardText}>
                 <Text style={styles.bold}>Best for:</Text> Creating a consistent
@@ -70,8 +70,8 @@ export default function Help() {
                 30 and 90 minutes apart.
               </Text>
               <Text variant="bodyMedium" style={styles.cardText}>
-                <Text style={styles.bold}>Best for:</Text> Preventing habituation
-                and keeping reminders fresh throughout the day.
+                <Text style={styles.bold}>Best for:</Text> Preventing
+                habituation and keeping reminders fresh throughout the day.
               </Text>
             </Card.Content>
           </Card>
@@ -163,8 +163,8 @@ export default function Help() {
                 "gratitude", "breathing", or your own custom categories.
               </Text>
               <Text variant="bodyMedium" style={styles.cardText}>
-                Use the filter menu to view reminders by specific tags, making it
-                easier to manage large collections.
+                Use the filter menu to view reminders by specific tags, making
+                it easier to manage large collections.
               </Text>
             </Card.Content>
           </Card>
@@ -192,8 +192,8 @@ export default function Help() {
                 </Text>
               </View>
               <Text variant="bodyMedium" style={styles.cardText}>
-                • <Text style={styles.bold}>Restore Defaults:</Text> Reset to the
-                original set of mindfulness reminders
+                • <Text style={styles.bold}>Restore Defaults:</Text> Reset to
+                the original set of mindfulness reminders
               </Text>
             </Card.Content>
           </Card>
@@ -241,6 +241,37 @@ export default function Help() {
               https://dontkillmyapp.com/
             </Text>
           </Text>
+
+          <Card style={styles.card}>
+            <Card.Content>
+              <View style={styles.cardHeader}>
+                <List.Icon icon="shield-check" color={theme.colors.primary} />
+                <Text variant="titleMedium" style={styles.cardTitle}>
+                  Foreground Service
+                </Text>
+              </View>
+              <Text variant="bodyMedium" style={styles.cardText}>
+                For devices with aggressive battery optimization (Samsung,
+                Xiaomi, Huawei, etc.), you can enable a foreground service that
+                displays a persistent notification. This keeps the app running
+                and prevents the system from killing it.
+              </Text>
+              <Text variant="bodyMedium" style={styles.cardText}>
+                <Text style={styles.bold}>To enable:</Text> Go to Preferences →
+                Information section → toggle "Foreground Service" on.
+              </Text>
+              <Text variant="bodyMedium" style={styles.cardText}>
+                The persistent notification includes the "Stop" button for quick
+                control. Tapping the notification itself will open the app.
+              </Text>
+              <Text variant="bodyMedium" style={styles.cardText}>
+                <Text style={styles.bold}>Note:</Text> This is optional and only
+                recommended if you experience missed notifications despite
+                disabling battery optimization.
+              </Text>
+            </Card.Content>
+          </Card>
+
           <Text variant="bodyMedium" style={styles.bodyText}>
             <Text style={styles.bold}>Notification Pre-Scheduling:</Text>
           </Text>
@@ -252,18 +283,16 @@ export default function Help() {
           <Text variant="bodyMedium" style={styles.bodyText}>
             If you are on a platform/device that aggressively kills backgrouned
             apps, then you should periodically click on a reminder notification
-            (once every day or two).
-
-            Notifications will still fire even if the backgrounded app has been
-            killed. Therefore, by clicking on one of the reminder
-            notifications, the app is started if necessary, and will
-            immediately schedule the next batch of notifications. This also
+            (once every day or two). Notifications will still fire even if the
+            backgrounded app has been killed. Therefore, by clicking on one of
+            the reminder notifications, the app is started if necessary, and
+            will immediately schedule the next batch of notifications. This also
             helps keep you engaged with your practice :-)
           </Text>
           <Text variant="bodyMedium" style={styles.bodyText}>
-            As a final fallback, the last scheduled notification will prompt
-            you to open the app, which will cause another round of reminders to
-            be scheduled (if you see this reminder, and have disabled battery
+            As a final fallback, the last scheduled notification will prompt you
+            to open the app, which will cause another round of reminders to be
+            scheduled (if you see this reminder, and have disabled battery
             optimizations for this app, then you are likely on a platform that
             kills the backgrounded app).
           </Text>

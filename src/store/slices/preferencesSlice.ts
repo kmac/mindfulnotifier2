@@ -18,6 +18,7 @@ export interface PreferencesState {
   backgroundTaskRunHistory: number[]; // Array of timestamps when background task ran
   backgroundTaskIntervalMinutes: number;
   minNotificationBuffer: number;
+  foregroundServiceEnabled: boolean; // Android foreground service to prevent app from being killed
 }
 
 const initialState: PreferencesState = {
@@ -32,6 +33,7 @@ const initialState: PreferencesState = {
   backgroundTaskRunHistory: [],
   backgroundTaskIntervalMinutes: BACKGROUND_TASK_INTERVAL_MINUTES,
   minNotificationBuffer: MIN_NOTIFICATION_BUFFER,
+  foregroundServiceEnabled: false, // Opt-in, disabled by default
 };
 
 /**
@@ -88,6 +90,9 @@ const preferencesSlice = createSlice({
     setMinNotificationBuffer: (state, action: PayloadAction<number>) => {
       state.minNotificationBuffer = action.payload;
     },
+    setForegroundServiceEnabled: (state, action: PayloadAction<boolean>) => {
+      state.foregroundServiceEnabled = action.payload;
+    },
     resetPreferences: () => initialState,
   },
   extraReducers: (builder) => {
@@ -110,6 +115,7 @@ export const {
   clearDebugInfo,
   setBackgroundTaskIntervalMinutes,
   setMinNotificationBuffer,
+  setForegroundServiceEnabled,
   resetPreferences,
 } = preferencesSlice.actions;
 

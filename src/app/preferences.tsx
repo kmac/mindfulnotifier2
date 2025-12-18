@@ -39,7 +39,12 @@ import {
   setNotificationsGranted,
   setSoundEnabled,
   setVibrationEnabled,
+  setForegroundServiceEnabled,
 } from "@/src/store/slices/preferencesSlice";
+import {
+  startForegroundService,
+  stopForegroundService,
+} from "@/src/services/foregroundService";
 import { setReminders } from "@/src/store/slices/remindersSlice";
 import {
   setScheduleType,
@@ -221,6 +226,29 @@ export default function Preferences() {
     }
   }
 
+  async function handleToggleForegroundService() {
+    const newValue = !preferences.foregroundServiceEnabled;
+    dispatch(setForegroundServiceEnabled(newValue));
+
+    try {
+      if (newValue) {
+        await startForegroundService();
+        setSnackbarMessage("Foreground service started");
+      } else {
+        await stopForegroundService();
+        setSnackbarMessage("Foreground service stopped");
+      }
+      setSnackbarVisible(true);
+    } catch (error) {
+      console.error("Failed to toggle foreground service:", error);
+      debugLog("Failed to toggle foreground service:", error);
+      // Revert state on error
+      dispatch(setForegroundServiceEnabled(!newValue));
+      setSnackbarMessage("Failed to toggle foreground service");
+      setSnackbarVisible(true);
+    }
+  }
+
   async function handleExportPreferences() {
     try {
       // Create backup object with only non-state preferences
@@ -233,6 +261,7 @@ export default function Preferences() {
         debugInfoEnabled: preferences.debugInfoEnabled,
         backgroundTaskIntervalMinutes: preferences.backgroundTaskIntervalMinutes,
         minNotificationBuffer: preferences.minNotificationBuffer,
+        foregroundServiceEnabled: preferences.foregroundServiceEnabled,
         reminders: reminders,
         schedule: {
           scheduleType: schedule.scheduleType,
@@ -332,6 +361,9 @@ export default function Preferences() {
               if (backup.minNotificationBuffer !== undefined) {
                 dispatch(setMinNotificationBuffer(backup.minNotificationBuffer));
                 setNotificationBufferInput(backup.minNotificationBuffer.toString());
+              }
+              if (backup.foregroundServiceEnabled !== undefined) {
+                dispatch(setForegroundServiceEnabled(backup.foregroundServiceEnabled));
               }
 
               // Restore reminders
@@ -618,6 +650,34 @@ export default function Preferences() {
                 </Button>
               )}
             </>
+          )}
+
+          {Platform.OS === "android" && (
+            <List.Item
+              title="Foreground Service"
+              description={
+                preferences.foregroundServiceEnabled
+                  ? "Persistent notification keeps app running - recommended for Samsung/Xiaomi"
+                  : "Enable to prevent app from being killed by battery optimization"
+              }
+              descriptionNumberOfLines={3}
+              left={(props) => (
+                <List.Icon
+                  {...props}
+                  icon={
+                    preferences.foregroundServiceEnabled
+                      ? "shield-check"
+                      : "shield-outline"
+                  }
+                />
+              )}
+              right={() => (
+                <Switch
+                  value={preferences.foregroundServiceEnabled}
+                  onValueChange={handleToggleForegroundService}
+                />
+              )}
+            />
           )}
 
           <List.Item

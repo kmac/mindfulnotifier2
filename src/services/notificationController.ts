@@ -17,6 +17,11 @@ import {
   AndroidAlarmService,
   type AlarmService,
 } from "./alarmService";
+import {
+  startForegroundService,
+  stopForegroundService,
+  isForegroundServiceRunning,
+} from "./foregroundService";
 import { TimeOfDay } from "@/src/lib/timedate";
 import { store } from "@/src/store/store";
 import { setLastNotificationText } from "@/src/store/slices/remindersSlice";
@@ -185,6 +190,20 @@ export async function enableNotifications(
     const alarmService = getAlarmService();
     await alarmService.enable();
 
+    // Start foreground service if enabled in preferences (Android only)
+    if (Platform.OS === "android") {
+      const state = store.getState();
+      if (state.preferences.foregroundServiceEnabled) {
+        try {
+          await startForegroundService();
+          console.info("[NotificationController] Foreground service started");
+        } catch (fgError) {
+          // Don't throw - foreground service is optional
+          console.warn("[NotificationController] Failed to start foreground service:", fgError);
+        }
+      }
+    }
+
     console.info("[NotificationController] Notifications enabled successfully");
   } catch (error) {
     console.error(
@@ -208,6 +227,15 @@ export async function disableNotifications(): Promise<void> {
     // Disable alarm service (unregisters background task on Android)
     const alarmService = getAlarmService();
     await alarmService.disable();
+
+    // Stop foreground service if running (Android only)
+    if (Platform.OS === "android") {
+      const isRunning = await isForegroundServiceRunning();
+      if (isRunning) {
+        await stopForegroundService();
+        console.info("[NotificationController] Foreground service stopped");
+      }
+    }
 
     // Persist disabled state to AsyncStorage (works across all contexts)
     await AsyncStorage.setItem(NOTIFICATIONS_ENABLED_KEY, "false");

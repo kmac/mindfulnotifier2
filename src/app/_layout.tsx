@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { PaperProvider, IconButton, useTheme } from "react-native-paper";
-import { useColorScheme, AppState, BackHandler } from "react-native";
+import { useColorScheme, AppState, BackHandler, Platform } from "react-native";
 import { useEffect, useState } from "react";
 import { Provider, useSelector } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
@@ -21,6 +21,10 @@ import {
   // addNotificationReceivedListener,
   addNotificationResponseListener,
 } from "@/src/lib/notifications";
+import {
+  initializeForegroundService,
+  setupForegroundServiceEventHandler,
+} from "@/src/services/foregroundService";
 import * as Notifications from "expo-notifications";
 import { store, persistor, RootState, useAppSelector } from "@/src/store/store";
 import { setLastNotificationText } from "@/src/store/slices/remindersSlice";
@@ -153,6 +157,13 @@ function AppContent() {
         // Initialize notification channels (Android) and request permissions
         // Note: We continue even if permissions not granted - user can enable later
         await initializeNotifications();
+
+        // Initialize foreground service (Android only)
+        if (Platform.OS === "android") {
+          await initializeForegroundService();
+          setupForegroundServiceEventHandler();
+          console.log("[App] Foreground service initialized");
+        }
 
         // Start notifications if enabled
         if (isEnabled) {
