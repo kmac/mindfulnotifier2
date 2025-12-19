@@ -184,9 +184,7 @@ export async function enableNotifications(
     // This ensures the initial notification buffer is created before the background task runs
     await scheduleNextNotificationInternal();
 
-    // THEN enable the alarm service (registers background task on Android)
-    // By scheduling first, we avoid race conditions where the background task
-    // tries to schedule notifications at the same time as the foreground
+    // Now enable the alarm service (registers background task on Android)
     const alarmService = getAlarmService();
     await alarmService.enable();
 

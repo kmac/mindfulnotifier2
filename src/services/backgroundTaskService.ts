@@ -21,6 +21,10 @@ export const BACKGROUND_CHECK_TASK = "BACKGROUND_CHECK_TASK";
 const BACKGROUND_TASK_HISTORY_KEY = "backgroundTaskHistory";
 const LAST_BUFFER_REPLENISH_TIME_KEY = "lastBufferReplenishTime";
 
+export const BACKGROUND_STATUS_AVAILABLE = "Available";
+export const BACKGROUND_STATUS_RESTRICTED = "Restricted";
+export const BACKGROUND_STATUS_UNKNOWN = "Unknown";
+
 /**
  * Persist background task run timestamp directly to AsyncStorage
  * This is necessary because Redux store is not hydrated in headless background tasks
@@ -148,6 +152,10 @@ export async function clearBackgroundTaskData(): Promise<void> {
   }
 }
 
+export async function isEnabled(): Promise<boolean> {
+  return TaskManager.isTaskRegisteredAsync(BACKGROUND_CHECK_TASK);
+}
+
 /**
  * Register background tasks
  * This should be called when the app starts
@@ -159,10 +167,7 @@ export async function registerBackgroundTasks(): Promise<void> {
   }
   try {
     // Check if tasks are already registered
-    const isTaskRegistered = await TaskManager.isTaskRegisteredAsync(
-      BACKGROUND_CHECK_TASK,
-    );
-
+    const isTaskRegistered = await isEnabled();
     if (!isTaskRegistered) {
       console.log(`[BackgroundTask] Registering ${BACKGROUND_CHECK_TASK}`);
 
@@ -201,22 +206,25 @@ export async function unregisterBackgroundTasks(): Promise<void> {
   if (Platform.OS !== "android") {
     return;
   }
-  try {
-    await BackgroundTask.unregisterTaskAsync(BACKGROUND_CHECK_TASK);
-    console.log(
+  const isTaskEnabled = await isEnabled();
+  if (isTaskEnabled) {
+    try {
+      await BackgroundTask.unregisterTaskAsync(BACKGROUND_CHECK_TASK);
+      console.log(
+        debugLog(
+          `[BackgroundTask] Background task ${BACKGROUND_CHECK_TASK} unregistered`,
+        ),
+      );
+    } catch (error) {
       debugLog(
-        `[BackgroundTask] Background task ${BACKGROUND_CHECK_TASK} unregistered`,
-      ),
-    );
-  } catch (error) {
-    debugLog(
-      `[BackgroundTask] Failed to unregister ${BACKGROUND_CHECK_TASK}:`,
-      error,
-    );
-    console.error(
-      `[BackgroundTask] Failed to unregister ${BACKGROUND_CHECK_TASK}:`,
-      error,
-    );
+        `[BackgroundTask] Failed to unregister ${BACKGROUND_CHECK_TASK}:`,
+        error,
+      );
+      console.error(
+        `[BackgroundTask] Failed to unregister ${BACKGROUND_CHECK_TASK}:`,
+        error,
+      );
+    }
   }
 }
 
@@ -233,17 +241,17 @@ export async function getBackgroundTaskStatus(): Promise<string> {
 
     switch (status) {
       case BackgroundTask.BackgroundTaskStatus.Available:
-        return "Available";
+        return BACKGROUND_STATUS_AVAILABLE;
       case BackgroundTask.BackgroundTaskStatus.Restricted:
-        return "Restricted";
+        return BACKGROUND_STATUS_RESTRICTED;
       default:
-        return "Unknown";
+        return BACKGROUND_STATUS_UNKNOWN;
     }
   } catch (error) {
     console.error(
       "[BackgroundTask] Failed to get background task status:",
       error,
     );
-    return "Error";
+    return BACKGROUND_STATUS_UNKNOWN;
   }
 }
