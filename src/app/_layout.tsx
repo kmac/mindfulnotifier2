@@ -28,16 +28,9 @@ import {
 import * as Notifications from "expo-notifications";
 import { store, persistor, RootState, useAppSelector } from "@/src/store/store";
 import { setLastNotificationText } from "@/src/store/slices/remindersSlice";
-import { useFlutterMigration } from "@/src/hooks/useFlutterMigration";
 import { Themes } from "@/src/ui/styles";
 
-const DO_FLUTTER_MIGRATION = false;
-
 function AppContent() {
-  // Perform Flutter migration if needed (runs once on first launch after update)
-  const migrationStatus = DO_FLUTTER_MIGRATION
-    ? useFlutterMigration()
-    : undefined;
   const systemColorScheme = useColorScheme();
   const userColorScheme = useSelector(
     (state: RootState) => state.preferences.colorScheme,
