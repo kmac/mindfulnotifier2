@@ -31,7 +31,6 @@ import {
   ColorScheme,
   clearDebugInfoAsync,
   setBackgroundImageEnabled,
-  setBackgroundTaskIntervalMinutes,
   setColorScheme,
   setColor,
   setDebugInfoEnabled,
@@ -52,10 +51,7 @@ import {
   setPeriodicConfig,
   setRandomConfig,
 } from "@/src/store/slices/scheduleSlice";
-import {
-  BACKGROUND_TASK_INTERVAL_MINUTES,
-  MIN_NOTIFICATION_BUFFER,
-} from "@/src/constants/scheduleConstants";
+import { MIN_NOTIFICATION_BUFFER } from "@/src/constants/scheduleConstants";
 import {
   isPermissionsGranted,
   requestPermissions,
@@ -79,10 +75,6 @@ export default function Preferences() {
   const [colorMenuVisible, setColorMenuVisible] = useState(false);
   const [batteryOptimizationDisabled, setBatteryOptimizationDisabled] =
     useState<boolean | null>(null);
-  const [taskIntervalInput, setTaskIntervalInput] = useState(
-    preferences.backgroundTaskIntervalMinutes?.toString() ||
-      BACKGROUND_TASK_INTERVAL_MINUTES.toString(),
-  );
   const [notificationBufferInput, setNotificationBufferInput] = useState(
     preferences.minNotificationBuffer?.toString() ||
       MIN_NOTIFICATION_BUFFER.toString(),
@@ -159,14 +151,6 @@ export default function Preferences() {
     }
   };
 
-  const handleBackgroundTaskIntervalChange = (value: string) => {
-    setTaskIntervalInput(value);
-    const numValue = parseInt(value, 10);
-    if (!isNaN(numValue) && numValue >= 1) {
-      dispatch(setBackgroundTaskIntervalMinutes(numValue));
-    }
-  };
-
   const handleMinNotificationBufferChange = (value: string) => {
     setNotificationBufferInput(value);
     const numValue = parseInt(value, 10);
@@ -176,11 +160,7 @@ export default function Preferences() {
   };
 
   const handleResetAdvancedSettings = () => {
-    dispatch(
-      setBackgroundTaskIntervalMinutes(BACKGROUND_TASK_INTERVAL_MINUTES),
-    );
     dispatch(setMinNotificationBuffer(MIN_NOTIFICATION_BUFFER));
-    setTaskIntervalInput(BACKGROUND_TASK_INTERVAL_MINUTES.toString());
     setNotificationBufferInput(MIN_NOTIFICATION_BUFFER.toString());
   };
 
@@ -259,7 +239,6 @@ export default function Preferences() {
         color: preferences.color,
         backgroundImageEnabled: preferences.backgroundImageEnabled,
         debugInfoEnabled: preferences.debugInfoEnabled,
-        backgroundTaskIntervalMinutes: preferences.backgroundTaskIntervalMinutes,
         minNotificationBuffer: preferences.minNotificationBuffer,
         foregroundServiceEnabled: preferences.foregroundServiceEnabled,
         reminders: reminders,
@@ -351,12 +330,6 @@ export default function Preferences() {
               }
               if (backup.debugInfoEnabled !== undefined) {
                 dispatch(setDebugInfoEnabled(backup.debugInfoEnabled));
-              }
-              if (backup.backgroundTaskIntervalMinutes !== undefined) {
-                dispatch(
-                  setBackgroundTaskIntervalMinutes(backup.backgroundTaskIntervalMinutes),
-                );
-                setTaskIntervalInput(backup.backgroundTaskIntervalMinutes.toString());
               }
               if (backup.minNotificationBuffer !== undefined) {
                 dispatch(setMinNotificationBuffer(backup.minNotificationBuffer));
@@ -723,23 +696,6 @@ export default function Preferences() {
             )}
           />
           <View style={[styles.subsection, { marginTop: 16 }]}>
-            <TextInput
-              label="Background Task Interval (minutes)"
-              value={taskIntervalInput}
-              onChangeText={handleBackgroundTaskIntervalChange}
-              keyboardType="numeric"
-              mode="outlined"
-              style={styles.input}
-              right={<TextInput.Affix text="min" />}
-            />
-            <Text variant="bodySmall" style={styles.helperText}>
-              How often the background task runs to schedule notifications.
-              Default: {BACKGROUND_TASK_INTERVAL_MINUTES} minutes. Android
-              minimum is 15 minutes.
-            </Text>
-          </View>
-
-          <View style={styles.subsection}>
             <TextInput
               label="Notification Buffer Size"
               value={notificationBufferInput}

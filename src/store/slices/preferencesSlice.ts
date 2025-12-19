@@ -1,4 +1,4 @@
-import { MAX_BACKGROUND_TASK_HISTORY, MAX_DEBUG_INFO, BACKGROUND_TASK_INTERVAL_MINUTES, MIN_NOTIFICATION_BUFFER } from '@/src/constants/scheduleConstants';
+import { MAX_BACKGROUND_TASK_HISTORY, MAX_DEBUG_INFO, MIN_NOTIFICATION_BUFFER } from '@/src/constants/scheduleConstants';
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import Colors from "@/src/ui/styles/colors";
 
@@ -16,7 +16,6 @@ export interface PreferencesState {
   backgroundImageEnabled: boolean;
   debugInfoEnabled: boolean;
   backgroundTaskRunHistory: number[]; // Array of timestamps when background task ran
-  backgroundTaskIntervalMinutes: number;
   minNotificationBuffer: number;
   foregroundServiceEnabled: boolean; // Android foreground service to prevent app from being killed
 }
@@ -31,7 +30,6 @@ const initialState: PreferencesState = {
   backgroundImageEnabled: true,
   debugInfoEnabled: false,
   backgroundTaskRunHistory: [],
-  backgroundTaskIntervalMinutes: BACKGROUND_TASK_INTERVAL_MINUTES,
   minNotificationBuffer: MIN_NOTIFICATION_BUFFER,
   foregroundServiceEnabled: false, // Opt-in, disabled by default
 };
@@ -84,9 +82,6 @@ const preferencesSlice = createSlice({
     clearDebugInfo: (state) => {
       state.backgroundTaskRunHistory = [];
     },
-    setBackgroundTaskIntervalMinutes: (state, action: PayloadAction<number>) => {
-      state.backgroundTaskIntervalMinutes = action.payload;
-    },
     setMinNotificationBuffer: (state, action: PayloadAction<number>) => {
       state.minNotificationBuffer = action.payload;
     },
@@ -113,7 +108,6 @@ export const {
   setBackgroundImageEnabled,
   setDebugInfoEnabled,
   clearDebugInfo,
-  setBackgroundTaskIntervalMinutes,
   setMinNotificationBuffer,
   setForegroundServiceEnabled,
   resetPreferences,
