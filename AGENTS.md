@@ -14,7 +14,7 @@ This is an Expo react native TypeScript project using redux for storage, and tes
 
 ### Source Code Control
 
-We are using `jujutsu` for source code control. Git is available if needed but the primary source-code control is jujutsu.
+Uses `jujutsu` for source code control, with git as the backend.
 
 
 ## Commands
@@ -36,16 +36,22 @@ We are using `jujutsu` for source code control. Git is available if needed but t
 - Redux error state management in slices
 
 ### File Structure
-- Expo top-level app structure in `src/app`
+- Expo top-level app structure in `src/app/`
 - Components in `src/components/`
+- Library components in `src/lib/`
+- Service components in `src/services/`
+- React hooks in `src/hooks/`
+- Constants in `src/constants/`
 - Utilities in `src/utils/`
 - Types in `src/types/`
+- UI styles/themes/etc in `src/ui/`
 - Storage (redux) in `src/store/`
+- Expo config plugins in `plugins/`
 
 ### Dependencies
 - Prefer built-in browser APIs when possible
 - Always check if dependency already exists before adding new ones
-- Use exact versions in package.json
+- Use flexible versioning in package.json
 
 ### Testing
 - Jest with React Native preset
@@ -58,10 +64,10 @@ We are using `jujutsu` for source code control. Git is available if needed but t
 
 ## Application Overview
 
-This project is a new cross-platform (web/android/ios) application using the react-native expo framework.
+This project is a ross-platform (web/android/ios) application using the react-native expo framework.
 
 The app is called "Mindful Notifier" and its intent is to provide a background notification service which schedules
-reminder notifications (either periodical or random) which remind the user to be mindful. There is an associated bell
+reminder notifications (either periodical or random) which prompt the user to be mindful. There is an associated bell
 that is run when the reminder is triggered.  The notifications are local notifications.
 
 Note: the "ios" funcationaly is not yet a focus.  Ignore it for the most part; for now we are focussing on android and
