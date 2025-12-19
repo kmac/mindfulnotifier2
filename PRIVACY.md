@@ -30,7 +30,6 @@ Your internal data is deleted when the app is uninstalled. However, any exported
 This app uses the following Android permissions:
 
 - **`POST_NOTIFICATIONS`**: Required on Android 13+ to display any notifications (local or remote). Users must grant this permission for the app to show mindfulness reminders.
-- **`RECEIVE_BOOT_COMPLETED`**: Allows the app to restart its notification scheduling service after a device reboot, ensuring reminders continue working.
 - **`SCHEDULE_EXACT_ALARM`**: Allows the app to schedule notifications at exact times (e.g., hourly reminders aligned to the top of the hour). Users can revoke this permission through Android Settings → Apps → Special Access → Alarms & Reminders.
 - **`USE_EXACT_ALARM`**: Similar to `SCHEDULE_EXACT_ALARM`, but for apps whose core functionality is timing-based (like mindfulness bells and timers).
 - **`WAKE_LOCK`**: Allows the app to wake the device when a notification is due, ensuring reminders are displayed even when the device is in a low-power state.

@@ -286,7 +286,6 @@ The following Android permissions are configured:
 
 ```json
 "permissions": [
-  "RECEIVE_BOOT_COMPLETED",  // Start on device boot
   "POST_NOTIFICATIONS",       // Show notifications
   "SCHEDULE_EXACT_ALARM",     // Schedule exact alarms
   "USE_EXACT_ALARM",          // Use exact alarm APIs
