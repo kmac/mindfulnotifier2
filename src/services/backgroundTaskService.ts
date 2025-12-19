@@ -9,13 +9,16 @@ import {
   getPersistedState,
   scheduleMultipleNotifications,
 } from "@/src/utils/notificationUtils";
-import {
-  BACKGROUND_TASK_INTERVAL_MINUTES,
-  MAX_BACKGROUND_TASK_HISTORY,
-} from "@/src/constants/scheduleConstants";
+import { MAX_BACKGROUND_TASK_HISTORY } from "@/src/constants/scheduleConstants";
 
 // Task name constants
 export const BACKGROUND_CHECK_TASK = "BACKGROUND_CHECK_TASK";
+
+// Background task interval constraints (in minutes)
+// Maximum interval - task will run at least this often
+const MAX_BACKGROUND_TASK_INTERVAL_MINUTES = 8 * 60;
+// Minimum interval - Android WorkManager minimum is 15 minutes
+const MIN_BACKGROUND_TASK_INTERVAL_MINUTES = 15;
 
 // AsyncStorage keys for background task data
 const BACKGROUND_TASK_HISTORY_KEY = "backgroundTaskHistory";
@@ -24,6 +27,46 @@ const LAST_BUFFER_REPLENISH_TIME_KEY = "lastBufferReplenishTime";
 export const BACKGROUND_STATUS_AVAILABLE = "Available";
 export const BACKGROUND_STATUS_RESTRICTED = "Restricted";
 export const BACKGROUND_STATUS_UNKNOWN = "Unknown";
+
+/**
+ * Calculate the optimal background task interval based on schedule configuration.
+ * Aims to run when the notification buffer is approximately half-drained.
+ *
+ * @param state - The persisted app state containing preferences and schedule
+ * @returns The interval in minutes, clamped between MIN and MAX constraints
+ */
+function calculateBackgroundTaskInterval(state: {
+  preferences: { minNotificationBuffer: number };
+  schedule: {
+    scheduleType: "periodic" | "random";
+    periodicConfig: { durationHours: number; durationMinutes: number };
+    randomConfig: { minMinutes: number; maxMinutes: number };
+  };
+}): number {
+  const { minNotificationBuffer } = state.preferences;
+  const { scheduleType, periodicConfig, randomConfig } = state.schedule;
+
+  // Calculate average interval between notifications based on schedule type
+  let avgIntervalMinutes: number;
+  if (scheduleType === "periodic") {
+    avgIntervalMinutes =
+      periodicConfig.durationHours * 60 + periodicConfig.durationMinutes;
+  } else {
+    // Random: use the average of min and max
+    avgIntervalMinutes = (randomConfig.minMinutes + randomConfig.maxMinutes) / 2;
+  }
+
+  // Calculate when buffer will be half-drained
+  const halfBufferDrainTime = (minNotificationBuffer / 2) * avgIntervalMinutes;
+
+  // Clamp between minimum (Android WorkManager) and maximum (12 hours)
+  const interval = Math.max(
+    MIN_BACKGROUND_TASK_INTERVAL_MINUTES,
+    Math.min(halfBufferDrainTime, MAX_BACKGROUND_TASK_INTERVAL_MINUTES),
+  );
+
+  return Math.round(interval);
+}
 
 /**
  * Persist background task run timestamp directly to AsyncStorage
@@ -171,15 +214,20 @@ export async function registerBackgroundTasks(): Promise<void> {
     if (!isTaskRegistered) {
       console.log(`[BackgroundTask] Registering ${BACKGROUND_CHECK_TASK}`);
 
+      const state = await getPersistedState();
+      const intervalMinutes = state
+        ? calculateBackgroundTaskInterval(state)
+        : MAX_BACKGROUND_TASK_INTERVAL_MINUTES;
+
       // Task will run periodically and persist across app restarts
       await BackgroundTask.registerTaskAsync(BACKGROUND_CHECK_TASK, {
-        minimumInterval: BACKGROUND_TASK_INTERVAL_MINUTES,
+        minimumInterval: intervalMinutes,
       });
 
       console.log(
         debugLog(
           `[BackgroundTask] Background task ${BACKGROUND_CHECK_TASK} ` +
-            `registered successfully (${BACKGROUND_TASK_INTERVAL_MINUTES}min)`,
+            `registered successfully (${intervalMinutes}min)`,
         ),
       );
     } else {

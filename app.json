@@ -2,7 +2,7 @@
   "expo": {
     "name": "Mindful Notifier",
     "slug": "mindfulnotifier",
-    "version": "0.1.8",
+    "version": "0.1.9",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mindfulnotifier",
@@ -18,7 +18,7 @@
       "bundleIdentifier": "com.mindfulnotifier.app"
     },
     "android": {
-      "versionCode": 6,
+      "versionCode": 7,
       "package": "com.mindfulnotifier.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",

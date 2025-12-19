@@ -1,4 +1,4 @@
-import { MAX_BACKGROUND_TASK_HISTORY, MAX_DEBUG_INFO, MIN_NOTIFICATION_BUFFER } from '@/src/constants/scheduleConstants';
+import { MIN_NOTIFICATION_BUFFER } from '@/src/constants/scheduleConstants';
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import Colors from "@/src/ui/styles/colors";
 
