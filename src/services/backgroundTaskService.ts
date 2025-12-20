@@ -12,7 +12,7 @@ import {
 import { MAX_BACKGROUND_TASK_HISTORY } from "@/src/constants/scheduleConstants";
 
 // Task name constants
-export const BACKGROUND_CHECK_TASK = "BACKGROUND_CHECK_TASK";
+export const BACKGROUND_CHECK_TASK_ID = "BACKGROUND_CHECK_TASK";
 
 // Background task interval constraints (in minutes)
 // Maximum interval - task will run at least this often
@@ -53,7 +53,8 @@ function calculateBackgroundTaskInterval(state: {
       periodicConfig.durationHours * 60 + periodicConfig.durationMinutes;
   } else {
     // Random: use the average of min and max
-    avgIntervalMinutes = (randomConfig.minMinutes + randomConfig.maxMinutes) / 2;
+    avgIntervalMinutes =
+      (randomConfig.minMinutes + randomConfig.maxMinutes) / 2;
   }
 
   // Calculate when buffer will be half-drained
@@ -96,7 +97,7 @@ async function persistBackgroundTaskRun(timestamp: number): Promise<void> {
  * This ensures notifications are scheduled even if the app is killed
  * Maintains a buffer of upcoming notifications
  */
-TaskManager.defineTask(BACKGROUND_CHECK_TASK, async () => {
+TaskManager.defineTask(BACKGROUND_CHECK_TASK_ID, async () => {
   // This runs in its own javascript context - different from the foreground app
   // Any code in this context cannot use redux (store is not hydrated in headless context)
   try {
@@ -195,8 +196,8 @@ export async function clearBackgroundTaskData(): Promise<void> {
   }
 }
 
-export async function isEnabled(): Promise<boolean> {
-  return TaskManager.isTaskRegisteredAsync(BACKGROUND_CHECK_TASK);
+export async function isBackgroundTaskRegistered(): Promise<boolean> {
+  return TaskManager.isTaskRegisteredAsync(BACKGROUND_CHECK_TASK_ID);
 }
 
 /**
@@ -210,9 +211,9 @@ export async function registerBackgroundTasks(): Promise<void> {
   }
   try {
     // Check if tasks are already registered
-    const isTaskRegistered = await isEnabled();
+    const isTaskRegistered = await isBackgroundTaskRegistered();
     if (!isTaskRegistered) {
-      console.log(`[BackgroundTask] Registering ${BACKGROUND_CHECK_TASK}`);
+      console.log(`[BackgroundTask] Registering ${BACKGROUND_CHECK_TASK_ID}`);
 
       const state = await getPersistedState();
       const intervalMinutes = state
@@ -220,20 +221,20 @@ export async function registerBackgroundTasks(): Promise<void> {
         : MAX_BACKGROUND_TASK_INTERVAL_MINUTES;
 
       // Task will run periodically and persist across app restarts
-      await BackgroundTask.registerTaskAsync(BACKGROUND_CHECK_TASK, {
+      await BackgroundTask.registerTaskAsync(BACKGROUND_CHECK_TASK_ID, {
         minimumInterval: intervalMinutes,
       });
 
       console.log(
         debugLog(
-          `[BackgroundTask] Background task ${BACKGROUND_CHECK_TASK} ` +
+          `[BackgroundTask] Background task ${BACKGROUND_CHECK_TASK_ID} ` +
             `registered successfully (${intervalMinutes}min)`,
         ),
       );
     } else {
       console.log(
         debugLog(
-          `[BackgroundTask] Background task ${BACKGROUND_CHECK_TASK} already registered`,
+          `[BackgroundTask] Background task ${BACKGROUND_CHECK_TASK_ID} already registered`,
         ),
       );
     }
@@ -254,25 +255,22 @@ export async function unregisterBackgroundTasks(): Promise<void> {
   if (Platform.OS !== "android") {
     return;
   }
-  const isTaskEnabled = await isEnabled();
-  if (isTaskEnabled) {
-    try {
-      await BackgroundTask.unregisterTaskAsync(BACKGROUND_CHECK_TASK);
-      console.log(
-        debugLog(
-          `[BackgroundTask] Background task ${BACKGROUND_CHECK_TASK} unregistered`,
-        ),
-      );
-    } catch (error) {
+  try {
+    await BackgroundTask.unregisterTaskAsync(BACKGROUND_CHECK_TASK_ID);
+    console.log(
       debugLog(
-        `[BackgroundTask] Failed to unregister ${BACKGROUND_CHECK_TASK}:`,
-        error,
-      );
-      console.error(
-        `[BackgroundTask] Failed to unregister ${BACKGROUND_CHECK_TASK}:`,
-        error,
-      );
-    }
+        `[BackgroundTask] Background task ${BACKGROUND_CHECK_TASK_ID} unregistered`,
+      ),
+    );
+  } catch (error) {
+    debugLog(
+      `[BackgroundTask] Failed to unregister ${BACKGROUND_CHECK_TASK_ID}:`,
+      error,
+    );
+    console.error(
+      `[BackgroundTask] Failed to unregister ${BACKGROUND_CHECK_TASK_ID}:`,
+      error,
+    );
   }
 }
 
