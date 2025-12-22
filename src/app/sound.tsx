@@ -2,14 +2,12 @@ import {
   Surface,
   Text,
   RadioButton,
-  List,
   IconButton,
   Button,
 } from "react-native-paper";
 import { StyleSheet, View, ScrollView, Platform } from "react-native";
 import { useAppSelector, useAppDispatch } from "@/src/store/store";
 import { setSelectedSound, setCustomSound } from "@/src/store/slices/soundSlice";
-import { useAudioPlayer } from "expo-audio";
 import { useState } from "react";
 import * as DocumentPicker from "expo-document-picker";
 import { playSound, stopSound } from "@/src/lib/sound";
@@ -31,7 +29,6 @@ export default function Sound() {
   const customSoundName = useAppSelector((state) => state.sound.customSoundName);
   const isEnabled = useAppSelector((state) => state.preferences.isEnabled);
   const [playingSound, setPlayingSound] = useState<string | null>(null);
-  const audioPlayer = useAudioPlayer();
 
   const handleSelectSound = async (soundName: string) => {
     dispatch(setSelectedSound(soundName));
@@ -79,13 +76,13 @@ export default function Sound() {
 
   const handlePlaySound = (soundName: string) => {
     setPlayingSound(soundName);
-    playSound(audioPlayer, soundName, customSoundUri, () => {
+    playSound(soundName, customSoundUri, () => {
       setPlayingSound(null);
     });
   };
 
   const handleStopSound = () => {
-    stopSound(audioPlayer);
+    stopSound();
     setPlayingSound(null);
   };
 

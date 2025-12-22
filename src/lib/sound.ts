@@ -1,6 +1,16 @@
 import { store } from '@/src/store/store';
-import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 import { Platform } from 'react-native';
+
+// Conditionally import react-native-sound only on native platforms
+let Sound: any = null;
+if (Platform.OS !== 'web') {
+  Sound = require('react-native-sound').default;
+  Sound.setCategory('Playback');
+}
+
+// Track current playing sound for stop functionality
+let currentSound: any = null;
+let currentWebAudio: HTMLAudioElement | null = null;
 
 /**
  * Get the sound to use for notifications
@@ -60,106 +70,8 @@ export function isVibrationEnabled(): boolean {
 }
 
 /**
- * Get the Audio.Sound source for playing the selected sound
- * This is different from notification sounds - used for preview playback
- */
-export function getSelectedSoundSource(): any {
-  const state = store.getState();
-  const { selectedSound, customSoundUri } = state.sound;
-
-  if (selectedSound === 'custom' && customSoundUri) {
-    return { uri: customSoundUri };
-  }
-
-  const soundMap: { [key: string]: any } = {
-    'bell_inside.mp3': require('@/assets/sounds/bell_inside.mp3'),
-    'bowl_struck.mp3': require('@/assets/sounds/bowl_struck.mp3'),
-    'ding_soft.mp3': require('@/assets/sounds/ding_soft.mp3'),
-    'tibetan_bell_ding_b.mp3': require('@/assets/sounds/tibetan_bell_ding_b.mp3'),
-    'zenbell_1.mp3': require('@/assets/sounds/zenbell_1.mp3'),
-  };
-
-  return soundMap[selectedSound] || null;
-}
-
-/**
- * Get the sound source for a specific sound name
- * Used for preview playback in the sound settings
- * @param soundName The name of the sound (e.g., 'bell_inside.mp3' or 'custom')
- * @param customSoundUri The URI of the custom sound (if soundName is 'custom')
- * @returns The sound source that can be used with AudioPlayer
- */
-export function getSoundSourceForName(soundName: string, customSoundUri: string | null): any {
-  if (soundName === 'custom') {
-    if (!customSoundUri) {
-      console.error('[Sound] No custom sound URI available');
-      return null;
-    }
-    return { uri: customSoundUri };
-  }
-
-  const soundMap: { [key: string]: any } = {
-    'bell_inside.mp3': require('@/assets/sounds/bell_inside.mp3'),
-    'bowl_struck.mp3': require('@/assets/sounds/bowl_struck.mp3'),
-    'ding_soft.mp3': require('@/assets/sounds/ding_soft.mp3'),
-    'tibetan_bell_ding_b.mp3': require('@/assets/sounds/tibetan_bell_ding_b.mp3'),
-    'zenbell_1.mp3': require('@/assets/sounds/zenbell_1.mp3'),
-  };
-
-  return soundMap[soundName] || null;
-}
-
-/**
- * Play a sound using the AudioPlayer
- * @param audioPlayer The AudioPlayer instance
- * @param soundName The name of the sound to play
- * @param customSoundUri The URI of the custom sound (if soundName is 'custom')
- * @param onFinish Callback to call when playback finishes
- */
-export function playSound(
-  audioPlayer: AudioPlayer,
-  soundName: string,
-  customSoundUri: string | null,
-  onFinish?: () => void
-): void {
-  try {
-    const soundSource = getSoundSourceForName(soundName, customSoundUri);
-    if (!soundSource) {
-      console.error(`[Sound] No sound source found for ${soundName}`);
-      if (onFinish) onFinish();
-      return;
-    }
-
-    // Replace current audio and play
-    audioPlayer.replace(soundSource);
-    audioPlayer.play();
-
-    // Listen for when playback finishes
-    if (onFinish) {
-      const subscription = audioPlayer.addListener('playbackStatusUpdate', (status) => {
-        if (status.isLoaded && status.didJustFinish) {
-          onFinish();
-          subscription.remove();
-        }
-      });
-    }
-  } catch (error) {
-    console.error('[Sound] Error playing sound:', error);
-    if (onFinish) onFinish();
-  }
-}
-
-/**
- * Stop the currently playing sound
- * @param audioPlayer The AudioPlayer instance
- */
-export function stopSound(audioPlayer: AudioPlayer): void {
-  audioPlayer.pause();
-}
-
-/**
  * Get the web-compatible path for a sound
- * Used for HTML5 Audio API in web notifications
+ * Used for HTML5 Audio API in web
  * @param soundName The name of the sound (e.g., 'bell_inside.mp3' or 'custom')
  * @param customSoundUri The URI of the custom sound (if soundName is 'custom')
  * @returns The web-compatible path/URL for the sound, or null if not available
@@ -196,8 +108,154 @@ export function getSelectedWebSoundPath(): string | null {
 }
 
 /**
- * Play the currently selected sound using a temporary AudioPlayer
- * Creates and manages its own AudioPlayer instance, useful for one-off playback like notifications
+ * Play a sound on web using HTML5 Audio
+ */
+function playWebSound(soundPath: string, onFinish?: () => void): void {
+  try {
+    // Stop any currently playing sound
+    stopSound();
+
+    currentWebAudio = new Audio(soundPath);
+    currentWebAudio.addEventListener('ended', () => {
+      currentWebAudio = null;
+      if (onFinish) onFinish();
+    });
+    currentWebAudio.addEventListener('error', (e) => {
+      console.error('[Sound] Web audio error:', e);
+      currentWebAudio = null;
+      if (onFinish) onFinish();
+    });
+    currentWebAudio.play().catch((error) => {
+      console.error('[Sound] Web audio play error:', error);
+      currentWebAudio = null;
+      if (onFinish) onFinish();
+    });
+  } catch (error) {
+    console.error('[Sound] Error playing web sound:', error);
+    if (onFinish) onFinish();
+  }
+}
+
+/**
+ * Play a sound on native using react-native-sound
+ */
+function playNativeSound(soundName: string, customSoundUri: string | null, onFinish?: () => void): void {
+  try {
+    // Stop any currently playing sound
+    stopSound();
+
+    // For custom sounds, use the URI directly
+    if (soundName === 'custom' && customSoundUri) {
+      currentSound = new Sound(customSoundUri, '', (error: any) => {
+        if (error) {
+          console.error('[Sound] Failed to load custom sound:', error);
+          currentSound = null;
+          if (onFinish) onFinish();
+          return;
+        }
+        currentSound.play((success: boolean) => {
+          if (!success) {
+            console.error('[Sound] Playback failed');
+          }
+          currentSound?.release();
+          currentSound = null;
+          if (onFinish) onFinish();
+        });
+      });
+      return;
+    }
+
+    // For built-in sounds, use require
+    const soundMap: { [key: string]: any } = {
+      'bell_inside.mp3': require('@/assets/sounds/bell_inside.mp3'),
+      'bowl_struck.mp3': require('@/assets/sounds/bowl_struck.mp3'),
+      'ding_soft.mp3': require('@/assets/sounds/ding_soft.mp3'),
+      'tibetan_bell_ding_b.mp3': require('@/assets/sounds/tibetan_bell_ding_b.mp3'),
+      'zenbell_1.mp3': require('@/assets/sounds/zenbell_1.mp3'),
+    };
+
+    const soundSource = soundMap[soundName];
+    if (!soundSource) {
+      console.error(`[Sound] No sound source found for ${soundName}`);
+      if (onFinish) onFinish();
+      return;
+    }
+
+    // react-native-sound can load from require() result
+    currentSound = new Sound(soundSource, (error: any) => {
+      if (error) {
+        console.error('[Sound] Failed to load sound:', error);
+        currentSound = null;
+        if (onFinish) onFinish();
+        return;
+      }
+      currentSound.play((success: boolean) => {
+        if (!success) {
+          console.error('[Sound] Playback failed');
+        }
+        currentSound?.release();
+        currentSound = null;
+        if (onFinish) onFinish();
+      });
+    });
+  } catch (error) {
+    console.error('[Sound] Error playing native sound:', error);
+    if (onFinish) onFinish();
+  }
+}
+
+/**
+ * Play a sound for preview
+ * @param soundName The name of the sound to play
+ * @param customSoundUri The URI of the custom sound (if soundName is 'custom')
+ * @param onFinish Callback to call when playback finishes
+ */
+export function playSound(
+  soundName: string,
+  customSoundUri: string | null,
+  onFinish?: () => void
+): void {
+  if (soundName === 'default') {
+    // Can't preview system default sound
+    console.log('[Sound] Cannot preview system default sound');
+    if (onFinish) onFinish();
+    return;
+  }
+
+  if (Platform.OS === 'web') {
+    const soundPath = getWebSoundPath(soundName, customSoundUri);
+    if (soundPath) {
+      playWebSound(soundPath, onFinish);
+    } else {
+      if (onFinish) onFinish();
+    }
+  } else {
+    playNativeSound(soundName, customSoundUri, onFinish);
+  }
+}
+
+/**
+ * Stop the currently playing sound
+ */
+export function stopSound(): void {
+  if (Platform.OS === 'web') {
+    if (currentWebAudio) {
+      currentWebAudio.pause();
+      currentWebAudio.currentTime = 0;
+      currentWebAudio = null;
+    }
+  } else {
+    if (currentSound) {
+      currentSound.stop();
+      currentSound.release();
+      currentSound = null;
+    }
+  }
+}
+
+/**
+ * Play the currently selected sound
+ * Useful for one-off playback like notifications
  * @returns Promise that resolves when playback starts (does not wait for completion)
  */
 export async function playSelectedSound(): Promise<void> {
@@ -208,27 +266,16 @@ export async function playSelectedSound(): Promise<void> {
       return;
     }
 
-    const soundSource = getSelectedSoundSource();
-    if (!soundSource) {
-      console.log('[Sound] No sound source available');
+    const state = store.getState();
+    const { selectedSound, customSoundUri } = state.sound;
+
+    if (selectedSound === 'default') {
+      console.log('[Sound] System default sound - skipping playback');
       return;
     }
 
     console.log('[Sound] Playing selected sound');
-
-    // Create a temporary audio player that doesn't auto-release
-    const player = createAudioPlayer(soundSource);
-
-    // Play the sound
-    player.play();
-
-    // Clean up after playback finishes
-    const subscription = player.addListener('playbackStatusUpdate', (status) => {
-      if (status.isLoaded && status.didJustFinish) {
-        subscription.remove();
-        player.remove();
-      }
-    });
+    playSound(selectedSound, customSoundUri);
   } catch (error) {
     console.error('[Sound] Error playing selected sound:', error);
   }
