@@ -8,11 +8,6 @@
     "scheme": "mindfulnotifier",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/images/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mindfulnotifier.app"
@@ -45,6 +40,19 @@
       "buildNumber": "1"
     },
     "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#ffffff",
+          "image": "./assets/images/icon-transparent.png",
+          "dark": {
+            "image": "./assets/images/icon-transparent.png",
+            "backgroundColor": "#000000"
+          },
+          "resizeMode": "contain",
+          "imageWidth": 200
+        }
+      ],
       "expo-router",
       [
         "expo-notifications",
