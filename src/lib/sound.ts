@@ -1,24 +1,15 @@
-import { store } from '@/src/store/store';
-import { Platform } from 'react-native';
-
-// Conditionally import react-native-sound only on native platforms
-let Sound: any = null;
-if (Platform.OS !== 'web') {
-  Sound = require('react-native-sound');
-  Sound.setCategory('Playback');
-}
-
-// Track current playing sound for stop functionality
-let currentSound: any = null;
-let currentWebAudio: HTMLAudioElement | null = null;
+import { store } from "@/src/store/store";
+import { Platform } from "react-native";
+import * as Notifications from "expo-notifications";
+import { getNotificationChannelId, requestPermissions } from "./notifications";
 
 // Map sound names to filenames (without extension)
 const SOUND_FILE_MAP: { [key: string]: string } = {
-  'bell_inside.mp3': 'bell_inside',
-  'bowl_struck.mp3': 'bowl_struck',
-  'ding_soft.mp3': 'ding_soft',
-  'tibetan_bell_ding_b.mp3': 'tibetan_bell_ding_b',
-  'zenbell_1.mp3': 'zenbell_1',
+  "bell_inside.mp3": "bell_inside",
+  "bowl_struck.mp3": "bowl_struck",
+  "ding_soft.mp3": "ding_soft",
+  "tibetan_bell_ding_b.mp3": "tibetan_bell_ding_b",
+  "zenbell_1.mp3": "zenbell_1",
 };
 
 /**
@@ -31,11 +22,11 @@ export function getSelectedSoundUri(): string {
   const state = store.getState();
   const { selectedSound } = state.sound;
 
-  if (selectedSound === 'default') {
-    return 'default';
+  if (selectedSound === "default") {
+    return "default";
   }
 
-  return SOUND_FILE_MAP[selectedSound] || 'default';
+  return SOUND_FILE_MAP[selectedSound] || "default";
 }
 
 /**
@@ -55,143 +46,113 @@ export function isVibrationEnabled(): boolean {
 }
 
 /**
- * Get the web-compatible path for a sound
+ * Play a test notification to preview a sound
+ * @param soundName The name of the sound to preview (e.g., 'bell_inside.mp3')
+ * @returns true if notification was sent, false if permission denied
  */
-function getWebSoundPath(soundName: string): string | null {
-  const soundFile = SOUND_FILE_MAP[soundName];
-  if (!soundFile) {
-    return null;
+export async function playTestNotification(
+  soundName: string,
+  soundLabel: string,
+): Promise<boolean> {
+  // Request notification permissions if not already granted
+  if (Platform.OS !== "web") {
+    const granted = await requestPermissions();
+    if (!granted) {
+      console.log(
+        "[Sound] Notification permission denied, cannot preview sound",
+      );
+      return false;
+    }
   }
-  return `/assets/sounds/${soundFile}.mp3`;
-}
 
-/**
- * Play a sound on web using HTML5 Audio
- */
-function playWebSound(soundPath: string, onFinish?: () => void): void {
-  try {
-    stopSound();
-
-    currentWebAudio = new Audio(soundPath);
-    currentWebAudio.addEventListener('ended', () => {
-      currentWebAudio = null;
-      if (onFinish) onFinish();
-    });
-    currentWebAudio.addEventListener('error', (e) => {
-      console.error('[Sound] Web audio error:', e);
-      currentWebAudio = null;
-      if (onFinish) onFinish();
-    });
-    currentWebAudio.play().catch((error) => {
-      console.error('[Sound] Web audio play error:', error);
-      currentWebAudio = null;
-      if (onFinish) onFinish();
-    });
-  } catch (error) {
-    console.error('[Sound] Error playing web sound:', error);
-    if (onFinish) onFinish();
-  }
-}
-
-/**
- * Play a sound on native using react-native-sound
- */
-function playNativeSound(soundName: string, onFinish?: () => void): void {
-  try {
-    stopSound();
-
+  if (soundName === "default") {
+    // For system default, use the default channel
+    const channelId = getNotificationChannelId("default", false);
+    await scheduleTestNotification(channelId, "System Default", "System Default");
+  } else {
     const soundFile = SOUND_FILE_MAP[soundName];
     if (!soundFile) {
-      console.error(`[Sound] No sound file found for ${soundName}`);
-      if (onFinish) onFinish();
+      console.error(`[Sound] Unknown sound: ${soundName}`);
+      return false;
+    }
+    const channelId = getNotificationChannelId(soundFile, false);
+    await scheduleTestNotification(channelId, soundName, soundLabel);
+  }
+  return true;
+}
+
+/**
+ * Schedule a test notification with a specific channel
+ */
+async function scheduleTestNotification(
+  channelId: string,
+  soundName: string,
+  soundLabel: string,
+): Promise<void> {
+  try {
+    if (Platform.OS === "web") {
+      // On web, use the browser notification API with HTML5 audio
+      await playWebTestSound(soundName);
       return;
     }
 
-    const fileName = `${soundFile}.mp3`;
-
-    currentSound = new Sound(fileName, Sound.MAIN_BUNDLE, (error: any) => {
-      if (error) {
-        console.error('[Sound] Failed to load sound:', error);
-        currentSound = null;
-        if (onFinish) onFinish();
-        return;
-      }
-      currentSound.play((success: boolean) => {
-        if (!success) {
-          console.error('[Sound] Playback failed');
-        }
-        currentSound?.release();
-        currentSound = null;
-        if (onFinish) onFinish();
-      });
+    await Notifications.scheduleNotificationAsync({
+      identifier: "sound-test",
+      content: {
+        title: "Sound Preview",
+        body: `Testing: ${soundLabel}`,
+        data: { type: "sound-test" },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: new Date(Date.now() + 100),
+        channelId: channelId,
+      },
     });
   } catch (error) {
-    console.error('[Sound] Error playing native sound:', error);
-    if (onFinish) onFinish();
+    console.error("[Sound] Failed to play test notification:", error);
   }
 }
 
 /**
- * Play a sound for preview
- * @param soundName The name of the sound to play
- * @param onFinish Callback to call when playback finishes
+ * Play a test sound on web using HTML5 Audio
  */
-export function playSound(soundName: string, onFinish?: () => void): void {
-  if (soundName === 'default') {
-    console.log('[Sound] Cannot preview system default sound');
-    if (onFinish) onFinish();
+async function playWebTestSound(soundName: string): Promise<void> {
+  if (soundName === "default" || soundName === "System Default") {
+    console.log("[Sound] Cannot preview system default sound on web");
     return;
   }
 
-  if (Platform.OS === 'web') {
-    const soundPath = getWebSoundPath(soundName);
-    if (soundPath) {
-      playWebSound(soundPath, onFinish);
-    } else {
-      if (onFinish) onFinish();
-    }
-  } else {
-    playNativeSound(soundName, onFinish);
+  const soundFile = SOUND_FILE_MAP[soundName] || soundName.replace(".mp3", "");
+  const soundPath = `/assets/sounds/${soundFile}.mp3`;
+
+  try {
+    const audio = new Audio(soundPath);
+    await audio.play();
+  } catch (error) {
+    console.error("[Sound] Web audio play error:", error);
   }
 }
 
 /**
- * Stop the currently playing sound
- */
-export function stopSound(): void {
-  if (Platform.OS === 'web') {
-    if (currentWebAudio) {
-      currentWebAudio.pause();
-      currentWebAudio.currentTime = 0;
-      currentWebAudio = null;
-    }
-  } else {
-    if (currentSound) {
-      currentSound.stop();
-      currentSound.release();
-      currentSound = null;
-    }
-  }
-}
-
-/**
- * Play the currently selected sound
+ * Play the currently selected sound (for web notifications)
+ * On web, notifications can't play custom sounds, so we play them via HTML5 Audio
  */
 export async function playSelectedSound(): Promise<void> {
-  try {
-    if (!isSoundEnabled()) {
-      return;
-    }
-
-    const state = store.getState();
-    const { selectedSound } = state.sound;
-
-    if (selectedSound === 'default') {
-      return;
-    }
-
-    playSound(selectedSound);
-  } catch (error) {
-    console.error('[Sound] Error playing selected sound:', error);
+  if (Platform.OS !== "web") {
+    return;
   }
+
+  if (!isSoundEnabled()) {
+    return;
+  }
+
+  const state = store.getState();
+  const { selectedSound } = state.sound;
+
+  if (selectedSound === "default") {
+    return;
+  }
+
+  await playWebTestSound(selectedSound);
 }

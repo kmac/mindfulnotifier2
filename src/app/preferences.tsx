@@ -1,11 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  AppState,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { AppState, Platform, ScrollView, StyleSheet, View } from "react-native";
 import {
   Button,
   Card,
@@ -210,22 +204,24 @@ export default function Preferences() {
     const newValue = !preferences.foregroundServiceEnabled;
     dispatch(setForegroundServiceEnabled(newValue));
 
-    try {
-      if (newValue) {
-        await startForegroundService();
-        setSnackbarMessage("Foreground service started");
-      } else {
-        await stopForegroundService();
-        setSnackbarMessage("Foreground service stopped");
+    if (preferences.isEnabled) {
+      try {
+        if (newValue) {
+          await startForegroundService();
+          setSnackbarMessage("Foreground service started");
+        } else {
+          await stopForegroundService();
+          setSnackbarMessage("Foreground service stopped");
+        }
+        setSnackbarVisible(true);
+      } catch (error) {
+        console.error("Failed to toggle foreground service:", error);
+        debugLog("Failed to toggle foreground service:", error);
+        // Revert state on error
+        dispatch(setForegroundServiceEnabled(!newValue));
+        setSnackbarMessage("Failed to toggle foreground service");
+        setSnackbarVisible(true);
       }
-      setSnackbarVisible(true);
-    } catch (error) {
-      console.error("Failed to toggle foreground service:", error);
-      debugLog("Failed to toggle foreground service:", error);
-      // Revert state on error
-      dispatch(setForegroundServiceEnabled(!newValue));
-      setSnackbarMessage("Failed to toggle foreground service");
-      setSnackbarVisible(true);
     }
   }
 
@@ -254,7 +250,10 @@ export default function Preferences() {
       };
 
       const jsonString = JSON.stringify(backup, null, 2);
-      const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, "-")
+        .slice(0, -5);
       const fileName = `mindful-notifier-backup-${timestamp}.json`;
       const file = new FileSystem.File(FileSystem.Paths.document, fileName);
       file.write(jsonString);
@@ -326,21 +325,32 @@ export default function Preferences() {
                 dispatch(setColor(backup.color));
               }
               if (backup.backgroundImageEnabled !== undefined) {
-                dispatch(setBackgroundImageEnabled(backup.backgroundImageEnabled));
+                dispatch(
+                  setBackgroundImageEnabled(backup.backgroundImageEnabled),
+                );
               }
               if (backup.debugInfoEnabled !== undefined) {
                 dispatch(setDebugInfoEnabled(backup.debugInfoEnabled));
               }
               if (backup.minNotificationBuffer !== undefined) {
-                dispatch(setMinNotificationBuffer(backup.minNotificationBuffer));
-                setNotificationBufferInput(backup.minNotificationBuffer.toString());
+                dispatch(
+                  setMinNotificationBuffer(backup.minNotificationBuffer),
+                );
+                setNotificationBufferInput(
+                  backup.minNotificationBuffer.toString(),
+                );
               }
               if (backup.foregroundServiceEnabled !== undefined) {
-                dispatch(setForegroundServiceEnabled(backup.foregroundServiceEnabled));
+                dispatch(
+                  setForegroundServiceEnabled(backup.foregroundServiceEnabled),
+                );
               }
 
               // Restore reminders
-              if (backup.reminders !== undefined && Array.isArray(backup.reminders)) {
+              if (
+                backup.reminders !== undefined &&
+                Array.isArray(backup.reminders)
+              ) {
                 dispatch(setReminders(backup.reminders));
               }
 
@@ -360,14 +370,19 @@ export default function Preferences() {
                 }
               }
 
-              setSnackbarMessage("Preferences, reminders, and schedule restored successfully");
+              setSnackbarMessage(
+                "Preferences, reminders, and schedule restored successfully",
+              );
               setSnackbarVisible(true);
             },
           },
         ],
       );
     } catch (error) {
-      Alert.alert("Error", "Failed to import preferences. Please check the file format.");
+      Alert.alert(
+        "Error",
+        "Failed to import preferences. Please check the file format.",
+      );
       console.error("Failed to import preferences:", error);
       debugLog("Failed to import preferences:", error);
     }
@@ -728,7 +743,8 @@ export default function Preferences() {
             Backup & Restore
           </Text>
           <Text variant="bodyMedium" style={styles.sectionDescription}>
-            Export your preferences, reminders, and schedule to a JSON file or restore from a previous backup.
+            Export your preferences, reminders, and schedule to a JSON file or
+            restore from a previous backup.
           </Text>
 
           <Button

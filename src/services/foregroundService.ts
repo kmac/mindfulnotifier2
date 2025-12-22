@@ -1,14 +1,8 @@
-import notifee, {
-  AndroidColor,
-  AndroidImportance,
-  EventType,
-} from "@notifee/react-native";
+import notifee, { AndroidImportance, EventType } from "@notifee/react-native";
 import { Platform, Appearance } from "react-native";
 import { store } from "@/src/store/store";
 import { setEnabled } from "@/src/store/slices/preferencesSlice";
 import { debugLog } from "@/src/utils/debug";
-import Colors from "@/src/ui/styles/colors";
-import type { ColorScheme, Color } from "@/src/store/slices/preferencesSlice";
 
 // Channel ID for foreground service notification
 const FOREGROUND_CHANNEL_ID = "mindful-notifier-foreground";
@@ -18,38 +12,6 @@ const FOREGROUND_NOTIFICATION_ID = "foreground-service";
 const ACTION_STOP = "stop";
 
 /**
- * Get the primary color based on user preferences and color scheme
- */
-function getPrimaryColor(): string {
-  const state = store.getState();
-  const { colorScheme, color } = state.preferences;
-
-  // Determine if we're in dark mode
-  const systemColorScheme = Appearance.getColorScheme();
-  const isDark =
-    colorScheme === "dark" ||
-    (colorScheme === "auto" && systemColorScheme === "dark");
-
-  // Get the appropriate color palette
-  const palette = isDark ? Colors.dark : Colors.light;
-
-  // Handle random color by picking a random color from available colors
-  let selectedColor: keyof typeof Colors.light =
-    color === "random"
-      ? (Object.keys(palette)[
-          Math.floor(Math.random() * Object.keys(palette).length)
-        ] as keyof typeof Colors.light)
-      : (color as keyof typeof Colors.light);
-
-  // Fallback to 'default' if color not found
-  if (!palette[selectedColor]) {
-    selectedColor = "default";
-  }
-
-  return palette[selectedColor].primary;
-}
-
-/**
  * Initialize foreground service channel
  * Should be called once at app startup (in _layout.tsx)
  */
@@ -57,7 +19,6 @@ export async function initializeForegroundService(): Promise<void> {
   if (Platform.OS !== "android") {
     return;
   }
-
   try {
     // Create notification channel for foreground service
     await notifee.createChannel({
@@ -83,7 +44,6 @@ export function registerForegroundServiceTask(): void {
   if (Platform.OS !== "android") {
     return;
   }
-
   notifee.registerForegroundService((_notification) => {
     return new Promise(() => {
       // This promise should never resolve while the service is running
@@ -101,7 +61,6 @@ export async function startForegroundService(): Promise<void> {
   if (Platform.OS !== "android") {
     return;
   }
-
   try {
     await notifee.displayNotification({
       id: FOREGROUND_NOTIFICATION_ID,
@@ -123,7 +82,8 @@ export async function startForegroundService(): Promise<void> {
           },
         ],
         smallIcon: "notification_icon", // Uses existing notification icon
-        color: getPrimaryColor(),
+        // color: Appearance.getColorScheme() == "dark" ? '#ffffff' : '#000000',
+        // colorized: true,
       },
     });
 
@@ -141,7 +101,6 @@ export async function stopForegroundService(): Promise<void> {
   if (Platform.OS !== "android") {
     return;
   }
-
   try {
     await notifee.stopForegroundService();
     console.log(debugLog("[ForegroundService] Foreground service stopped"));
@@ -157,7 +116,6 @@ export async function isForegroundServiceRunning(): Promise<boolean> {
   if (Platform.OS !== "android") {
     return false;
   }
-
   try {
     const notifications = await notifee.getDisplayedNotifications();
     return notifications.some((n) => n.id === FOREGROUND_NOTIFICATION_ID);
@@ -175,10 +133,7 @@ async function handleStopAction(): Promise<void> {
     // Import here to avoid circular dependency
     const { disableNotifications } = await import("./notificationController");
 
-    // Stop foreground service first
     await stopForegroundService();
-
-    // Disable notifications
     await disableNotifications();
 
     // Update Redux state

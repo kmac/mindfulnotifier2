@@ -3,12 +3,13 @@ import {
   Text,
   RadioButton,
   IconButton,
+  Snackbar,
 } from "react-native-paper";
 import { StyleSheet, View, ScrollView } from "react-native";
 import { useAppSelector, useAppDispatch } from "@/src/store/store";
 import { setSelectedSound } from "@/src/store/slices/soundSlice";
 import { useState } from "react";
-import { playSound, stopSound } from "@/src/lib/sound";
+import { playTestNotification } from "@/src/lib/sound";
 import { rescheduleNotifications } from "@/src/services/notificationController";
 
 const AVAILABLE_SOUNDS = [
@@ -24,7 +25,10 @@ export default function Sound() {
   const dispatch = useAppDispatch();
   const selectedSound = useAppSelector((state) => state.sound.selectedSound);
   const isEnabled = useAppSelector((state) => state.preferences.isEnabled);
-  const [playingSound, setPlayingSound] = useState<string | null>(null);
+  const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({
+    visible: false,
+    message: "",
+  });
 
   const handleSelectSound = async (soundName: string) => {
     dispatch(setSelectedSound(soundName));
@@ -40,16 +44,17 @@ export default function Sound() {
     }
   };
 
-  const handlePlaySound = (soundName: string) => {
-    setPlayingSound(soundName);
-    playSound(soundName, () => {
-      setPlayingSound(null);
-    });
+  const handlePlaySound = async (soundName: string, soundLabel: string) => {
+    const success = await playTestNotification(soundName, soundLabel);
+    if (success) {
+      setSnackbar({ visible: true, message: "Test notification scheduled" });
+    } else {
+      setSnackbar({ visible: true, message: "Notification permission required" });
+    }
   };
 
-  const handleStopSound = () => {
-    stopSound();
-    setPlayingSound(null);
+  const dismissSnackbar = () => {
+    setSnackbar({ ...snackbar, visible: false });
   };
 
   return (
@@ -74,24 +79,24 @@ export default function Sound() {
                 style={styles.radioItem}
                 position="leading"
               />
-              {soundItem.name !== "default" && (
-                <IconButton
-                  icon={playingSound === soundItem.name ? "stop" : "play"}
-                  size={24}
-                  onPress={() => {
-                    if (playingSound === soundItem.name) {
-                      handleStopSound();
-                    } else {
-                      handlePlaySound(soundItem.name);
-                    }
-                  }}
-                  style={styles.playButton}
-                />
-              )}
+              <IconButton
+                icon="play"
+                size={24}
+                onPress={() => handlePlaySound(soundItem.name, soundItem.label)}
+                style={styles.playButton}
+              />
             </View>
           ))}
         </RadioButton.Group>
       </ScrollView>
+
+      <Snackbar
+        visible={snackbar.visible}
+        onDismiss={dismissSnackbar}
+        duration={1200}
+      >
+        {snackbar.message}
+      </Snackbar>
     </Surface>
   );
 }
