@@ -33,6 +33,7 @@ import {
   setSoundEnabled,
   setVibrationEnabled,
   setForegroundServiceEnabled,
+  setFavouriteSelectionProbability,
 } from "@/src/store/slices/preferencesSlice";
 import {
   startForegroundService,
@@ -237,6 +238,7 @@ export default function Preferences() {
         debugInfoEnabled: preferences.debugInfoEnabled,
         minNotificationBuffer: preferences.minNotificationBuffer,
         foregroundServiceEnabled: preferences.foregroundServiceEnabled,
+        favouriteSelectionProbability: preferences.favouriteSelectionProbability,
         reminders: reminders,
         schedule: {
           scheduleType: schedule.scheduleType,
@@ -343,6 +345,11 @@ export default function Preferences() {
               if (backup.foregroundServiceEnabled !== undefined) {
                 dispatch(
                   setForegroundServiceEnabled(backup.foregroundServiceEnabled),
+                );
+              }
+              if (backup.favouriteSelectionProbability !== undefined) {
+                dispatch(
+                  setFavouriteSelectionProbability(backup.favouriteSelectionProbability),
                 );
               }
 

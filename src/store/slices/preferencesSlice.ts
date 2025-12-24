@@ -1,10 +1,9 @@
-import { MIN_NOTIFICATION_BUFFER } from '@/src/constants/scheduleConstants';
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { MIN_NOTIFICATION_BUFFER } from "@/src/constants/scheduleConstants";
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import Colors from "@/src/ui/styles/colors";
 
-export type ColorScheme = 'light' | 'dark' | 'auto';
-export type Color = keyof typeof Colors.light | 'random';
-
+export type ColorScheme = "light" | "dark" | "auto";
+export type Color = keyof typeof Colors.light | "random";
 
 export interface PreferencesState {
   isEnabled: boolean;
@@ -18,6 +17,7 @@ export interface PreferencesState {
   backgroundTaskRunHistory: number[]; // Array of timestamps when background task ran
   minNotificationBuffer: number;
   foregroundServiceEnabled: boolean; // Android foreground service to prevent app from being killed
+  favouriteSelectionProbability: number; // Probability (0-1) of selecting from favourites pool
 }
 
 const initialState: PreferencesState = {
@@ -25,13 +25,14 @@ const initialState: PreferencesState = {
   notificationsGranted: false,
   soundEnabled: true,
   vibrationEnabled: true,
-  colorScheme: 'auto',
-  color: 'default',
+  colorScheme: "auto",
+  color: "default",
   backgroundImageEnabled: true,
   debugInfoEnabled: false,
   backgroundTaskRunHistory: [],
   minNotificationBuffer: MIN_NOTIFICATION_BUFFER,
   foregroundServiceEnabled: false, // Opt-in, disabled by default
+  favouriteSelectionProbability: 0.3, // 30% chance to select from favourites
 };
 
 /**
@@ -39,20 +40,18 @@ const initialState: PreferencesState = {
  * Clears AsyncStorage debug logs and background task history
  */
 export const clearDebugInfoAsync = createAsyncThunk(
-  'preferences/clearDebugInfo',
+  "preferences/clearDebugInfo",
   async () => {
     // Import here to avoid circular dependency
-    const { clearBackgroundTaskData } = await import('@/src/services/backgroundTaskService');
-    const { clearDebugLogs } = await import('@/src/utils/debug');
-    await Promise.all([
-      clearBackgroundTaskData(),
-      clearDebugLogs(),
-    ]);
-  }
+    const { clearBackgroundTaskData } =
+      await import("@/src/services/backgroundTaskService");
+    const { clearDebugLogs } = await import("@/src/utils/debug");
+    await Promise.all([clearBackgroundTaskData(), clearDebugLogs()]);
+  },
 );
 
 const preferencesSlice = createSlice({
-  name: 'preferences',
+  name: "preferences",
   initialState,
   reducers: {
     setEnabled: (state, action: PayloadAction<boolean>) => {
@@ -88,6 +87,12 @@ const preferencesSlice = createSlice({
     setForegroundServiceEnabled: (state, action: PayloadAction<boolean>) => {
       state.foregroundServiceEnabled = action.payload;
     },
+    setFavouriteSelectionProbability: (
+      state,
+      action: PayloadAction<number>,
+    ) => {
+      state.favouriteSelectionProbability = action.payload;
+    },
     resetPreferences: () => initialState,
   },
   extraReducers: (builder) => {
@@ -110,6 +115,7 @@ export const {
   clearDebugInfo,
   setMinNotificationBuffer,
   setForegroundServiceEnabled,
+  setFavouriteSelectionProbability,
   resetPreferences,
 } = preferencesSlice.actions;
 

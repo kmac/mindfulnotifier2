@@ -197,7 +197,10 @@ export async function enableNotifications(
           console.info("[NotificationController] Foreground service started");
         } catch (fgError) {
           // Don't throw - foreground service is optional
-          console.warn("[NotificationController] Failed to start foreground service:", fgError);
+          console.warn(
+            "[NotificationController] Failed to start foreground service:",
+            fgError,
+          );
         }
       }
     }
@@ -532,9 +535,12 @@ async function triggerNotificationInternal(): Promise<void> {
 
   try {
     const state = store.getState();
-    const { reminders } = state;
+    const { reminders, preferences } = state;
 
-    const reminderText = getRandomReminder(reminders.reminders);
+    const reminderText = getRandomReminder(
+      reminders.reminders,
+      preferences.favouriteSelectionProbability,
+    );
 
     await showLocalNotification({
       title: "Mindful Reminder",

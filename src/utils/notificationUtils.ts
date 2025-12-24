@@ -311,7 +311,7 @@ export async function scheduleMultipleNotifications(
   }
 
   try {
-    const { schedule, reminders } = state;
+    const { schedule, reminders, preferences } = state;
 
     console.info(
       debugLog(
@@ -357,7 +357,11 @@ export async function scheduleMultipleNotifications(
     }
 
     // Get shuffled reminders for all notifications at once
-    const shuffledReminders = getShuffledReminders(count, reminders.reminders);
+    const shuffledReminders = getShuffledReminders(
+      count,
+      reminders.reminders,
+      preferences.favouriteSelectionProbability,
+    );
 
     // Schedule multiple notifications
     let scheduledNextFireDate: Date | undefined = fromTime;

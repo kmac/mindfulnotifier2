@@ -68,7 +68,7 @@ export default function Index() {
   const [isInitializing, setIsInitializing] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [currentReminder, setCurrentReminder] = useState<string>(() =>
-    getRandomReminder(reminders),
+    getRandomReminder(reminders, preferences.favouriteSelectionProbability),
   );
 
   // Show snackbar on app startup if notifications are enabled (only once per app session)
@@ -191,7 +191,10 @@ export default function Index() {
   const handleTestNotification = async () => {
     try {
       // Get a random reminder
-      const reminderText = getRandomReminder(reminders);
+      const reminderText = getRandomReminder(
+        reminders,
+        preferences.favouriteSelectionProbability,
+      );
 
       // Schedule notification 5 seconds in the future
       const testDate = new Date(Date.now() + 5000);
@@ -206,7 +209,10 @@ export default function Index() {
   };
 
   const handleReminderPress = () => {
-    const newReminder = getRandomReminder(reminders);
+    const newReminder = getRandomReminder(
+      reminders,
+      preferences.favouriteSelectionProbability,
+    );
     setCurrentReminder(newReminder);
   };
 
@@ -262,21 +268,24 @@ export default function Index() {
     <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      {/* Favourite Toggle - Top Right */}
-      {currentReminderData && (
-        <View style={styles.favouriteContainer}>
-          <IconButton
-            icon={currentReminderData.favourite ? "heart" : "heart-outline"}
-            iconColor={
-              currentReminderData.favourite
-                ? theme.colors.error
-                : theme.colors.onSurfaceVariant
-            }
-            size={28}
-            onPress={handleToggleFavourite}
-          />
-        </View>
-      )}
+      {/* Favourite Toggle - Top Right (only show if favourites are prioritized) */}
+      {currentReminderData &&
+        (preferences.favouriteSelectionProbability
+          ? preferences.favouriteSelectionProbability
+          : 0.3) > 0 && (
+          <View style={styles.favouriteContainer}>
+            <IconButton
+              icon={currentReminderData.favourite ? "heart" : "heart-outline"}
+              iconColor={
+                currentReminderData.favourite
+                  ? theme.colors.error
+                  : theme.colors.onSurfaceVariant
+              }
+              size={28}
+              onPress={handleToggleFavourite}
+            />
+          </View>
+        )}
 
       {/* Main Reminder Display */}
       <Pressable
@@ -383,7 +392,7 @@ const styles = StyleSheet.create({
   favouriteContainer: {
     position: "absolute",
     top: 8,
-    right: 8,
+    right: 24,
     zIndex: 1,
   },
   reminderContainer: {
