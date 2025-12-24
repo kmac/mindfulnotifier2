@@ -23,6 +23,7 @@ import {
   setSoundEnabled,
   setVibrationEnabled,
 } from "@/src/store/slices/preferencesSlice";
+import { toggleReminderFavourite } from "@/src/store/slices/remindersSlice";
 import {
   enableNotifications,
   disableNotifications,
@@ -228,6 +229,19 @@ export default function Index() {
     }
   };
 
+  // Get current reminder's index and favourite status
+  const currentReminderIndex = reminders.findIndex(
+    (r) => r.text === currentReminder,
+  );
+  const currentReminderData =
+    currentReminderIndex !== -1 ? reminders[currentReminderIndex] : null;
+
+  const handleToggleFavourite = () => {
+    if (currentReminderIndex !== -1) {
+      dispatch(toggleReminderFavourite(currentReminderIndex));
+    }
+  };
+
   // const getLastNotificationText = () => {
   //     const lastNotificationResponse = Notifications.useLastNotificationResponse();
   // React.useEffect(() => {
@@ -248,6 +262,22 @@ export default function Index() {
     <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
+      {/* Favourite Toggle - Top Right */}
+      {currentReminderData && (
+        <View style={styles.favouriteContainer}>
+          <IconButton
+            icon={currentReminderData.favourite ? "heart" : "heart-outline"}
+            iconColor={
+              currentReminderData.favourite
+                ? theme.colors.error
+                : theme.colors.onSurfaceVariant
+            }
+            size={28}
+            onPress={handleToggleFavourite}
+          />
+        </View>
+      )}
+
       {/* Main Reminder Display */}
       <Pressable
         style={styles.reminderContainer}
@@ -349,6 +379,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "space-between",
+  },
+  favouriteContainer: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    zIndex: 1,
   },
   reminderContainer: {
     flex: 1,

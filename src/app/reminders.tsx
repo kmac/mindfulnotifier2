@@ -25,12 +25,17 @@ import {
   updateReminder,
   deleteReminder,
   toggleReminderEnabled,
+  toggleReminderFavourite,
   setReminders,
   resetReminders,
 } from "@/src/store/slices/remindersSlice";
 import { JsonReminder } from "@/src/constants/Reminders";
-import { exportReminders, importReminders, mergeReminders } from "@/src/utils/remindersImportExport";
-import { Alert } from '@/src/utils/alert';
+import {
+  exportReminders,
+  importReminders,
+  mergeReminders,
+} from "@/src/utils/remindersImportExport";
+import { Alert } from "@/src/utils/alert";
 
 export default function Reminders() {
   const dispatch = useAppDispatch();
@@ -49,11 +54,16 @@ export default function Reminders() {
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
 
   const [filterMenuVisible, setFilterMenuVisible] = useState(false);
-  const [selectedTagFilter, setSelectedTagFilter] = useState<string | null>(null);
+  const [selectedTagFilter, setSelectedTagFilter] = useState<string | null>(
+    null,
+  );
+  const [showFavouritesOnly, setShowFavouritesOnly] = useState(false);
 
   const [moreMenuVisible, setMoreMenuVisible] = useState(false);
   const [importDialogVisible, setImportDialogVisible] = useState(false);
-  const [importedReminders, setImportedReminders] = useState<JsonReminder[] | null>(null);
+  const [importedReminders, setImportedReminders] = useState<
+    JsonReminder[] | null
+  >(null);
   const [importMergeMode, setImportMergeMode] = useState(false);
 
   const [editTagDialogVisible, setEditTagDialogVisible] = useState(false);
@@ -66,24 +76,33 @@ export default function Reminders() {
       if (editIndex !== undefined) {
         const index = parseInt(editIndex as string, 10);
         if (!isNaN(index) && index >= 0 && index < reminders.length) {
-          console.log('[Reminders] Opening edit dialog for reminder at index:', index);
+          console.log(
+            "[Reminders] Opening edit dialog for reminder at index:",
+            index,
+          );
           handleEditPress(index);
           // Clear the parameter so it doesn't trigger again on subsequent navigations
           router.setParams({ editIndex: undefined });
         }
       }
-    }, [editIndex, reminders.length])
+    }, [editIndex, reminders.length]),
   );
 
   // Get unique tags from all reminders
   const uniqueTags = Array.from(new Set(reminders.map((r) => r.tag)));
 
   // Filter reminders by selected tag
-  const filteredReminders = selectedTagFilter
+  const tagFilteredReminders = selectedTagFilter
     ? reminders.filter((r) => r.tag === selectedTagFilter)
     : reminders;
 
+  // Apply favourites filter (independent of tag filter)
+  const filteredReminders = showFavouritesOnly
+    ? tagFilteredReminders.filter((r) => r.favourite)
+    : tagFilteredReminders;
+
   const enabledCount = filteredReminders.filter((r) => r.enabled).length;
+  const favouriteCount = reminders.filter((r) => r.favourite).length;
   const totalCount = filteredReminders.length;
 
   // Edit existing reminder
@@ -104,7 +123,7 @@ export default function Reminders() {
             enabled: reminders[editingIndex].enabled,
             tag: editTag,
           },
-        })
+        }),
       );
       setEditDialogVisible(false);
       setEditText("");
@@ -132,7 +151,7 @@ export default function Reminders() {
           text: editText.trim(),
           enabled: true,
           tag: editTag,
-        })
+        }),
       );
       setAddDialogVisible(false);
       setEditText("");
@@ -182,6 +201,11 @@ export default function Reminders() {
     dispatch(toggleReminderEnabled(index));
   };
 
+  // Toggle favourite
+  const handleToggleFavourite = (index: number) => {
+    dispatch(toggleReminderFavourite(index));
+  };
+
   // Enable all filtered reminders
   const handleEnableAll = () => {
     filteredReminders.forEach((reminder) => {
@@ -211,12 +235,16 @@ export default function Reminders() {
   };
 
   const handleEditTagSave = () => {
-    if (selectedTagFilter && newTagName.trim() && newTagName !== selectedTagFilter) {
+    if (
+      selectedTagFilter &&
+      newTagName.trim() &&
+      newTagName !== selectedTagFilter
+    ) {
       // Update all reminders with the old tag to use the new tag
       const updatedReminders = reminders.map((reminder) =>
         reminder.tag === selectedTagFilter
           ? { ...reminder, tag: newTagName.trim() }
-          : reminder
+          : reminder,
       );
       dispatch(setReminders(updatedReminders));
       setSelectedTagFilter(newTagName.trim());
@@ -237,7 +265,10 @@ export default function Reminders() {
       await exportReminders(reminders);
       Alert.alert("Success", "Reminders exported successfully!");
     } catch (error) {
-      Alert.alert("Export Failed", error instanceof Error ? error.message : "An unknown error occurred");
+      Alert.alert(
+        "Export Failed",
+        error instanceof Error ? error.message : "An unknown error occurred",
+      );
     }
   };
 
@@ -266,13 +297,19 @@ export default function Reminders() {
         dispatch(setReminders(merged));
         setImportDialogVisible(false);
         setImportedReminders(null);
-        Alert.alert("Success", `Merged ${addedCount} new reminder(s) (${importedReminders.length - addedCount} duplicates skipped)`);
+        Alert.alert(
+          "Success",
+          `Merged ${addedCount} new reminder(s) (${importedReminders.length - addedCount} duplicates skipped)`,
+        );
       } else {
         // Replace all reminders
         dispatch(setReminders(importedReminders));
         setImportDialogVisible(false);
         setImportedReminders(null);
-        Alert.alert("Success", `Imported ${importedReminders.length} reminder(s)`);
+        Alert.alert(
+          "Success",
+          `Imported ${importedReminders.length} reminder(s)`,
+        );
       }
     }
   };
@@ -330,6 +367,9 @@ export default function Reminders() {
           <Chip icon="check-circle" mode="flat" compact>
             {enabledCount} enabled
           </Chip>
+          <Chip icon="heart" mode="flat" compact>
+            {favouriteCount} favourites
+          </Chip>
           <Chip icon="format-list-bulleted" mode="flat" compact>
             {totalCount} total
           </Chip>
@@ -372,6 +412,14 @@ export default function Reminders() {
               />
             ))}
           </Menu>
+          <Chip
+            mode={showFavouritesOnly ? "flat" : "outlined"}
+            icon={showFavouritesOnly ? "heart" : "heart-outline"}
+            selected={showFavouritesOnly}
+            onPress={() => setShowFavouritesOnly(!showFavouritesOnly)}
+          >
+            Favourites
+          </Chip>
         </View>
 
         {selectedTagFilter && (
@@ -428,6 +476,14 @@ export default function Reminders() {
                 right={(props) => (
                   <View style={styles.rightContainer}>
                     <IconButton
+                      icon={reminder.favourite ? "heart" : "heart-outline"}
+                      iconColor={
+                        reminder.favourite ? theme.colors.error : undefined
+                      }
+                      size={20}
+                      onPress={() => handleToggleFavourite(originalIndex)}
+                    />
+                    <IconButton
                       icon="pencil"
                       size={20}
                       onPress={() => handleEditPress(originalIndex)}
@@ -450,9 +506,11 @@ export default function Reminders() {
           {filteredReminders.length === 0 && (
             <View style={styles.emptyContainer}>
               <Text variant="bodyLarge" style={styles.emptyText}>
-                {selectedTagFilter
-                  ? `No reminders found with tag "${selectedTagFilter}"`
-                  : "No reminders yet. Add your first reminder!"}
+                {showFavouritesOnly
+                  ? "No favourite reminders yet. Tap the heart icon to add some!"
+                  : selectedTagFilter
+                    ? `No reminders found with tag "${selectedTagFilter}"`
+                    : "No reminders yet. Add your first reminder!"}
               </Text>
             </View>
           )}
@@ -620,7 +678,8 @@ export default function Reminders() {
           <Dialog.Title>Edit Tag Name</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={styles.editTagDescription}>
-              Rename the tag "{selectedTagFilter}" for all {filteredReminders.length} reminder(s).
+              Rename the tag "{selectedTagFilter}" for all{" "}
+              {filteredReminders.length} reminder(s).
             </Text>
             <TextInput
               label="New Tag Name"

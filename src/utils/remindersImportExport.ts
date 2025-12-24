@@ -1,22 +1,22 @@
-import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
-import { Platform } from 'react-native';
-import { JsonReminder } from '@/src/constants/Reminders';
+import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
+import { Platform } from "react-native";
+import { JsonReminder } from "@/src/constants/Reminders";
 
 /**
  * Export reminders to a JSON file (web implementation)
  */
 function exportRemindersWeb(reminders: JsonReminder[]): void {
   const jsonContent = JSON.stringify(reminders, null, 2);
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
   const filename = `mindful-reminders-${timestamp}.json`;
 
   // Create a blob and download it
-  const blob = new Blob([jsonContent], { type: 'application/json' });
+  const blob = new Blob([jsonContent], { type: "application/json" });
   const url = URL.createObjectURL(blob);
 
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.href = url;
   link.download = filename;
   document.body.appendChild(link);
@@ -30,11 +30,11 @@ function exportRemindersWeb(reminders: JsonReminder[]): void {
  */
 async function exportRemindersNative(reminders: JsonReminder[]): Promise<void> {
   const jsonContent = JSON.stringify(reminders, null, 2);
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
   const filename = `mindful-reminders-${timestamp}.json`;
 
   if (!FileSystem.cacheDirectory) {
-    throw new Error('Cache directory is not available');
+    throw new Error("Cache directory is not available");
   }
 
   const fileUri = FileSystem.cacheDirectory + filename;
@@ -42,27 +42,31 @@ async function exportRemindersNative(reminders: JsonReminder[]): Promise<void> {
 
   if (await Sharing.isAvailableAsync()) {
     await Sharing.shareAsync(fileUri, {
-      mimeType: 'application/json',
-      dialogTitle: 'Export Reminders',
-      UTI: 'public.json',
+      mimeType: "application/json",
+      dialogTitle: "Export Reminders",
+      UTI: "public.json",
     });
   } else {
-    throw new Error('Sharing is not available on this device');
+    throw new Error("Sharing is not available on this device");
   }
 }
 
 /**
  * Export reminders to a JSON file and share it
  */
-export async function exportReminders(reminders: JsonReminder[]): Promise<void> {
+export async function exportReminders(
+  reminders: JsonReminder[],
+): Promise<void> {
   try {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === "web") {
       exportRemindersWeb(reminders);
     } else {
       await exportRemindersNative(reminders);
     }
   } catch (error) {
-    throw new Error(`Failed to export reminders: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to export reminders: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 }
 
@@ -72,36 +76,43 @@ export async function exportReminders(reminders: JsonReminder[]): Promise<void> 
 function validateReminders(parsedData: any): JsonReminder[] {
   // Validate the data structure
   if (!Array.isArray(parsedData)) {
-    throw new Error('Invalid file format: Expected an array of reminders');
+    throw new Error("Invalid file format: Expected an array of reminders");
   }
 
   // Validate each reminder object
   const validatedReminders: JsonReminder[] = parsedData.map((item, index) => {
-    if (typeof item !== 'object' || item === null) {
+    if (typeof item !== "object" || item === null) {
       throw new Error(`Invalid reminder at index ${index}: Must be an object`);
     }
 
-    if (typeof item.text !== 'string') {
-      throw new Error(`Invalid reminder at index ${index}: Missing or invalid 'text' field`);
+    if (typeof item.text !== "string") {
+      throw new Error(
+        `Invalid reminder at index ${index}: Missing or invalid 'text' field`,
+      );
     }
 
-    if (typeof item.enabled !== 'boolean') {
-      throw new Error(`Invalid reminder at index ${index}: Missing or invalid 'enabled' field`);
+    if (typeof item.enabled !== "boolean") {
+      throw new Error(
+        `Invalid reminder at index ${index}: Missing or invalid 'enabled' field`,
+      );
     }
 
-    if (typeof item.tag !== 'string') {
-      throw new Error(`Invalid reminder at index ${index}: Missing or invalid 'tag' field`);
+    if (typeof item.tag !== "string") {
+      throw new Error(
+        `Invalid reminder at index ${index}: Missing or invalid 'tag' field`,
+      );
     }
 
     return {
       text: item.text,
       enabled: item.enabled,
       tag: item.tag,
+      favourite: typeof item.favourite === "boolean" ? item.favourite : false,
     };
   });
 
   if (validatedReminders.length === 0) {
-    throw new Error('No valid reminders found in the file');
+    throw new Error("No valid reminders found in the file");
   }
 
   return validatedReminders;
@@ -112,14 +123,14 @@ function validateReminders(parsedData: any): JsonReminder[] {
  */
 function importRemindersWeb(): Promise<JsonReminder[]> {
   return new Promise((resolve, reject) => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'application/json,.json';
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/json,.json";
 
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) {
-        reject(new Error('Import cancelled'));
+        reject(new Error("Import cancelled"));
         return;
       }
 
@@ -134,7 +145,7 @@ function importRemindersWeb(): Promise<JsonReminder[]> {
           reject(error);
         }
       };
-      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.onerror = () => reject(new Error("Failed to read file"));
       reader.readAsText(file);
     };
 
@@ -147,12 +158,12 @@ function importRemindersWeb(): Promise<JsonReminder[]> {
  */
 async function importRemindersNative(): Promise<JsonReminder[]> {
   const result = await DocumentPicker.getDocumentAsync({
-    type: 'application/json',
+    type: "application/json",
     copyToCacheDirectory: true,
   });
 
   if (result.canceled) {
-    throw new Error('Import cancelled');
+    throw new Error("Import cancelled");
   }
 
   const fileUri = result.assets[0].uri;
@@ -167,16 +178,18 @@ async function importRemindersNative(): Promise<JsonReminder[]> {
  */
 export async function importReminders(): Promise<JsonReminder[]> {
   try {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === "web") {
       return await importRemindersWeb();
     } else {
       return await importRemindersNative();
     }
   } catch (error) {
-    if (error instanceof Error && error.message === 'Import cancelled') {
+    if (error instanceof Error && error.message === "Import cancelled") {
       throw error;
     }
-    throw new Error(`Failed to import reminders: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to import reminders: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 }
 
@@ -185,11 +198,12 @@ export async function importReminders(): Promise<JsonReminder[]> {
  */
 export function isValidReminder(obj: any): obj is JsonReminder {
   return (
-    typeof obj === 'object' &&
+    typeof obj === "object" &&
     obj !== null &&
-    typeof obj.text === 'string' &&
-    typeof obj.enabled === 'boolean' &&
-    typeof obj.tag === 'string'
+    typeof obj.text === "string" &&
+    typeof obj.enabled === "boolean" &&
+    typeof obj.tag === "string" &&
+    (obj.favourite === undefined || typeof obj.favourite === "boolean")
   );
 }
 
@@ -199,10 +213,12 @@ export function isValidReminder(obj: any): obj is JsonReminder {
  */
 export function mergeReminders(
   existingReminders: JsonReminder[],
-  importedReminders: JsonReminder[]
+  importedReminders: JsonReminder[],
 ): JsonReminder[] {
   const merged = [...existingReminders];
-  const existingTexts = new Set(existingReminders.map(r => r.text.toLowerCase()));
+  const existingTexts = new Set(
+    existingReminders.map((r) => r.text.toLowerCase()),
+  );
 
   for (const importedReminder of importedReminders) {
     // Only add if we don't already have a reminder with the same text (case-insensitive)
@@ -234,13 +250,13 @@ export interface AppBackup {
  */
 function exportAppBackupWeb(backup: AppBackup): void {
   const jsonContent = JSON.stringify(backup, null, 2);
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
   const filename = `mindful-notifier-backup-${timestamp}.json`;
 
-  const blob = new Blob([jsonContent], { type: 'application/json' });
+  const blob = new Blob([jsonContent], { type: "application/json" });
   const url = URL.createObjectURL(blob);
 
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.href = url;
   link.download = filename;
   document.body.appendChild(link);
@@ -254,23 +270,23 @@ function exportAppBackupWeb(backup: AppBackup): void {
  */
 async function exportAppBackupNative(backup: AppBackup): Promise<void> {
   const jsonContent = JSON.stringify(backup, null, 2);
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
   const filename = `mindful-notifier-backup-${timestamp}.json`;
 
   if (!FileSystem.cacheDirectory) {
-    throw new Error('Cache directory is not available');
+    throw new Error("Cache directory is not available");
   }
   const fileUri = FileSystem.cacheDirectory + filename;
   await FileSystem.writeAsStringAsync(fileUri, jsonContent);
 
   if (await Sharing.isAvailableAsync()) {
     await Sharing.shareAsync(fileUri, {
-      mimeType: 'application/json',
-      dialogTitle: 'Export App Backup',
-      UTI: 'public.json',
+      mimeType: "application/json",
+      dialogTitle: "Export App Backup",
+      UTI: "public.json",
     });
   } else {
-    throw new Error('Sharing is not available on this device');
+    throw new Error("Sharing is not available on this device");
   }
 }
 
@@ -279,13 +295,15 @@ async function exportAppBackupNative(backup: AppBackup): Promise<void> {
  */
 export async function exportAppBackup(backup: AppBackup): Promise<void> {
   try {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === "web") {
       exportAppBackupWeb(backup);
     } else {
       await exportAppBackupNative(backup);
     }
   } catch (error) {
-    throw new Error(`Failed to export app backup: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to export app backup: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 }
 
@@ -293,12 +311,12 @@ export async function exportAppBackup(backup: AppBackup): Promise<void> {
  * Validate app backup structure
  */
 function validateAppBackup(parsedData: any): AppBackup {
-  if (typeof parsedData !== 'object' || parsedData === null) {
-    throw new Error('Invalid backup file: Expected an object');
+  if (typeof parsedData !== "object" || parsedData === null) {
+    throw new Error("Invalid backup file: Expected an object");
   }
 
   if (!parsedData.version || !parsedData.timestamp) {
-    throw new Error('Invalid backup file: Missing version or timestamp');
+    throw new Error("Invalid backup file: Missing version or timestamp");
   }
 
   return parsedData as AppBackup;
@@ -309,14 +327,14 @@ function validateAppBackup(parsedData: any): AppBackup {
  */
 function importAppBackupWeb(): Promise<AppBackup> {
   return new Promise((resolve, reject) => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'application/json,.json';
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/json,.json";
 
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) {
-        reject(new Error('Import cancelled'));
+        reject(new Error("Import cancelled"));
         return;
       }
 
@@ -331,7 +349,7 @@ function importAppBackupWeb(): Promise<AppBackup> {
           reject(error);
         }
       };
-      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.onerror = () => reject(new Error("Failed to read file"));
       reader.readAsText(file);
     };
 
@@ -344,12 +362,12 @@ function importAppBackupWeb(): Promise<AppBackup> {
  */
 async function importAppBackupNative(): Promise<AppBackup> {
   const result = await DocumentPicker.getDocumentAsync({
-    type: 'application/json',
+    type: "application/json",
     copyToCacheDirectory: true,
   });
 
   if (result.canceled) {
-    throw new Error('Import cancelled');
+    throw new Error("Import cancelled");
   }
 
   const fileUri = result.assets[0].uri;
@@ -364,15 +382,17 @@ async function importAppBackupNative(): Promise<AppBackup> {
  */
 export async function importAppBackup(): Promise<AppBackup> {
   try {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === "web") {
       return await importAppBackupWeb();
     } else {
       return await importAppBackupNative();
     }
   } catch (error) {
-    if (error instanceof Error && error.message === 'Import cancelled') {
+    if (error instanceof Error && error.message === "Import cancelled") {
       throw error;
     }
-    throw new Error(`Failed to import app backup: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to import app backup: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 }
