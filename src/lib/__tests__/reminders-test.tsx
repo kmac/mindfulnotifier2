@@ -1,9 +1,9 @@
-import { JsonReminder } from "@/src/constants/Reminders";
 import {
-  getRandomReminder,
-  getShuffledReminders,
   DEFAULT_FAVOURITE_SELECTION_PROBABILITY,
-} from "@/src/lib/reminders";
+  JsonReminder,
+} from "@/src/constants/Reminders";
+
+import { getRandomReminder, getShuffledReminders } from "@/src/lib/reminders";
 
 // Test fixtures
 const createReminder = (
@@ -131,9 +131,9 @@ describe("getRandomReminder", () => {
     });
   });
 
-  describe("favouriteSelectionProbability = 0.3 (default)", () => {
-    test("default probability constant is 0.3", () => {
-      expect(DEFAULT_FAVOURITE_SELECTION_PROBABILITY).toBe(0.3);
+  describe("favouriteSelectionProbability = 0.2 (default)", () => {
+    test("default probability constant is 0.2", () => {
+      expect(DEFAULT_FAVOURITE_SELECTION_PROBABILITY).toBe(0.2);
     });
 
     test("returns mix of favourites and non-favourites over many iterations", () => {
@@ -141,7 +141,7 @@ describe("getRandomReminder", () => {
       const iterations = 1000;
 
       for (let i = 0; i < iterations; i++) {
-        const result = getRandomReminder(mixedReminders, 0.3);
+        const result = getRandomReminder(mixedReminders, 0.2);
         if (result.startsWith("fav")) {
           favouriteCount.fav++;
         } else {
@@ -149,11 +149,11 @@ describe("getRandomReminder", () => {
         }
       }
 
-      // With 30% probability, favourites should appear roughly 30% of the time
-      // Allow for statistical variance (15-45%)
+      // With 20% probability, favourites should appear roughly 20% of the time
+      // Allow for statistical variance (12-42%)
       const favPercentage = favouriteCount.fav / iterations;
-      expect(favPercentage).toBeGreaterThan(0.15);
-      expect(favPercentage).toBeLessThan(0.45);
+      expect(favPercentage).toBeGreaterThan(0.12);
+      expect(favPercentage).toBeLessThan(0.42);
     });
   });
 

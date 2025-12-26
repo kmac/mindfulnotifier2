@@ -269,23 +269,20 @@ export default function Index() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       {/* Favourite Toggle - Top Right (only show if favourites are prioritized) */}
-      {currentReminderData &&
-        (preferences.favouriteSelectionProbability
-          ? preferences.favouriteSelectionProbability
-          : 0.3) > 0 && (
-          <View style={styles.favouriteContainer}>
-            <IconButton
-              icon={currentReminderData.favourite ? "heart" : "heart-outline"}
-              iconColor={
-                currentReminderData.favourite
-                  ? theme.colors.error
-                  : theme.colors.onSurfaceVariant
-              }
-              size={28}
-              onPress={handleToggleFavourite}
-            />
-          </View>
-        )}
+      {currentReminderData && preferences.favouriteSelectionProbability > 0 && (
+        <View style={styles.favouriteContainer}>
+          <IconButton
+            icon={currentReminderData.favourite ? "heart" : "heart-outline"}
+            iconColor={
+              currentReminderData.favourite
+                ? theme.colors.error
+                : theme.colors.onSurfaceVariant
+            }
+            size={28}
+            onPress={handleToggleFavourite}
+          />
+        </View>
+      )}
 
       {/* Main Reminder Display */}
       <Pressable

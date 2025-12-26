@@ -76,6 +76,9 @@ export default function Preferences() {
   );
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [favouriteProbabilityInput, setFavouriteProbabilityInput] = useState(
+    Math.round(preferences.favouriteSelectionProbability * 100).toString(),
+  );
 
   useEffect(() => {
     // Check battery optimization status when component mounts
@@ -135,6 +138,14 @@ export default function Preferences() {
 
   const handleToggleBackgroundImage = () => {
     dispatch(setBackgroundImageEnabled(!preferences.backgroundImageEnabled));
+  };
+
+  const handleFavouriteProbabilityChange = (value: string) => {
+    setFavouriteProbabilityInput(value);
+    const numValue = parseInt(value, 10);
+    if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+      dispatch(setFavouriteSelectionProbability(numValue / 100));
+    }
   };
 
   const handleToggleDebugInfo = () => {
@@ -532,6 +543,26 @@ export default function Preferences() {
               />
             )}
           />
+
+          <List.Item
+            title="Favourite Boost"
+            description={`${Math.round(preferences.favouriteSelectionProbability * 100)}% extra chance to show a favourite reminder`}
+            left={(props) => <List.Icon {...props} icon="heart" />}
+          />
+          <View style={styles.subsection}>
+            <TextInput
+              label="Selection Probability (%)"
+              value={favouriteProbabilityInput}
+              onChangeText={handleFavouriteProbabilityChange}
+              keyboardType="numeric"
+              mode="outlined"
+              style={styles.input}
+            />
+            <Text variant="bodySmall" style={styles.helperText}>
+              Boosted probability of selecting a reminder from your favourites. Set to
+              0% to disable favourite prioritization.
+            </Text>
+          </View>
         </View>
         <Divider style={styles.divider} />
 

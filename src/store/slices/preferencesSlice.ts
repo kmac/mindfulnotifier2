@@ -1,4 +1,5 @@
 import { MIN_NOTIFICATION_BUFFER } from "@/src/constants/scheduleConstants";
+import { DEFAULT_FAVOURITE_SELECTION_PROBABILITY } from "@/src/constants/Reminders";
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import Colors from "@/src/ui/styles/colors";
 
@@ -32,7 +33,7 @@ const initialState: PreferencesState = {
   backgroundTaskRunHistory: [],
   minNotificationBuffer: MIN_NOTIFICATION_BUFFER,
   foregroundServiceEnabled: false, // Opt-in, disabled by default
-  favouriteSelectionProbability: 0.3, // 30% chance to select from favourites
+  favouriteSelectionProbability: DEFAULT_FAVOURITE_SELECTION_PROBABILITY,
 };
 
 /**

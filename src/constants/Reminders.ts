@@ -1,5 +1,9 @@
 const defaultTagName = "default";
 
+// Default probability of selecting from favourites pool when favourites exist
+// This value is used when no preference is provided; the actual value comes from Redux store
+export const DEFAULT_FAVOURITE_SELECTION_PROBABILITY = 0.2;
+
 export type JsonReminder = {
   text: string;
   enabled: boolean;

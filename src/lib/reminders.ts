@@ -1,11 +1,8 @@
 import {
   defaultJsonReminderMap,
+  DEFAULT_FAVOURITE_SELECTION_PROBABILITY,
   JsonReminder,
 } from "@/src/constants/Reminders";
-
-// Default probability of selecting from favourites pool when favourites exist
-// This value is used when no preference is provided; the actual value comes from Redux store
-export const DEFAULT_FAVOURITE_SELECTION_PROBABILITY = 0.3;
 
 export function getRandomReminder(
   reminders?: JsonReminder[],
