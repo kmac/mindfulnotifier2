@@ -51,6 +51,7 @@ export default function Reminders() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
   const [editTag, setEditTag] = useState("default");
+  const [editFavourite, setEditFavourite] = useState(false);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
 
   const [filterMenuVisible, setFilterMenuVisible] = useState(false);
@@ -110,6 +111,7 @@ export default function Reminders() {
     setEditingIndex(index);
     setEditText(reminders[index].text);
     setEditTag(reminders[index].tag);
+    setEditFavourite(reminders[index].favourite ?? false);
     setEditDialogVisible(true);
   };
 
@@ -122,6 +124,7 @@ export default function Reminders() {
             text: editText.trim(),
             enabled: reminders[editingIndex].enabled,
             tag: editTag,
+            favourite: editFavourite,
           },
         }),
       );
@@ -528,7 +531,17 @@ export default function Reminders() {
       {/* Edit Dialog */}
       <Portal>
         <Dialog visible={editDialogVisible} onDismiss={handleEditCancel}>
-          <Dialog.Title>Edit Reminder</Dialog.Title>
+          <View style={styles.dialogTitleRow}>
+            <Dialog.Title style={styles.dialogTitleText}>
+              Edit Reminder
+            </Dialog.Title>
+            <IconButton
+              icon={editFavourite ? "heart" : "heart-outline"}
+              iconColor={editFavourite ? theme.colors.error : undefined}
+              size={24}
+              onPress={() => setEditFavourite(!editFavourite)}
+            />
+          </View>
           <Dialog.Content>
             <TextInput
               label="Reminder Text"
@@ -870,5 +883,14 @@ const styles = StyleSheet.create({
   importWarning: {
     marginTop: 12,
     fontWeight: "bold",
+  },
+  dialogTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingRight: 8,
+  },
+  dialogTitleText: {
+    flex: 1,
   },
 });
