@@ -270,8 +270,8 @@ async function showWebNotification(
     // We'll play the sound manually instead
     const notification = new Notification(config.title, {
       body: config.body,
-      icon: "/icon.png",
-      badge: "/icon.png",
+      icon: "/adaptive-icon.png",
+      badge: "/adaptive-icon.png",
       data: config.data,
       silent: true, // Always silent, we play sound manually
     });

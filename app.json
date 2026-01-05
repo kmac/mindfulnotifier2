@@ -2,9 +2,9 @@
   "expo": {
     "name": "Mindful Notifier",
     "slug": "mindfulnotifier",
-    "version": "0.3.1",
+    "version": "0.3.2",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/adaptive-icon.png",
     "scheme": "mindfulnotifier",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,11 +13,11 @@
       "bundleIdentifier": "com.mindfulnotifier.app"
     },
     "android": {
-      "versionCode": 17,
+      "versionCode": 18,
       "package": "com.mindfulnotifier.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#F5EFE6"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -43,10 +43,10 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#ffffff",
-          "image": "./assets/images/icon-transparent.png",
+          "image": "./assets/images/adaptive-icon.png",
+          "backgroundColor": "#F5EFE6",
           "dark": {
-            "image": "./assets/images/icon-transparent.png",
+            "image": "./assets/images/adaptive-icon.png",
             "backgroundColor": "#000000"
           },
           "resizeMode": "contain",
@@ -57,8 +57,8 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/icon.png",
-          "color": "#ffffff",
+          "icon": "./assets/images/adaptive-icon.png",
+          "color": "#F5EFE6",
           "sounds": [
             "./assets/sounds/bell_inside.mp3",
             "./assets/sounds/bowl_struck.mp3",
