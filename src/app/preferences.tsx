@@ -40,6 +40,7 @@ import {
   stopForegroundService,
 } from "@/src/services/foregroundService";
 import { setReminders } from "@/src/store/slices/remindersSlice";
+import { setSelectedSound } from "@/src/store/slices/soundSlice";
 import {
   setScheduleType,
   setQuietHours,
@@ -66,6 +67,7 @@ export default function Preferences() {
   const preferences = useAppSelector((state) => state.preferences);
   const reminders = useAppSelector((state) => state.reminders.reminders);
   const schedule = useAppSelector((state) => state.schedule);
+  const selectedSound = useAppSelector((state) => state.sound.selectedSound);
 
   const [colorMenuVisible, setColorMenuVisible] = useState(false);
   const [batteryOptimizationDisabled, setBatteryOptimizationDisabled] =
@@ -250,6 +252,7 @@ export default function Preferences() {
         minNotificationBuffer: preferences.minNotificationBuffer,
         foregroundServiceEnabled: preferences.foregroundServiceEnabled,
         favouriteSelectionProbability: preferences.favouriteSelectionProbability,
+        selectedSound: selectedSound,
         reminders: reminders,
         schedule: {
           scheduleType: schedule.scheduleType,
@@ -362,6 +365,9 @@ export default function Preferences() {
                 dispatch(
                   setFavouriteSelectionProbability(backup.favouriteSelectionProbability),
                 );
+              }
+              if (backup.selectedSound !== undefined) {
+                dispatch(setSelectedSound(backup.selectedSound));
               }
 
               // Restore reminders
