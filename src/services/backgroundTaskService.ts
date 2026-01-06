@@ -8,6 +8,7 @@ import {
   getLastScheduledTime,
   getPersistedState,
   scheduleMultipleNotifications,
+  scheduleWarningNotification,
 } from "@/src/utils/notificationUtils";
 import { MAX_BACKGROUND_TASK_HISTORY } from "@/src/constants/scheduleConstants";
 
@@ -144,12 +145,16 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK_ID, async () => {
       // Schedule next notifications to replenish the buffer
       // Starting from the last scheduled time to avoid gaps or duplicates
       const notificationsToSchedule = minNotificationBuffer - scheduled.length;
-      await scheduleMultipleNotifications(
+      const lastFireDate = await scheduleMultipleNotifications(
         state,
         notificationsToSchedule,
         lastScheduledTime,
         "[BackgroundTask]",
       );
+
+      if (lastFireDate) {
+        await scheduleWarningNotification(lastFireDate, "[BackgroundTask]");
+      }
     } else {
       console.log(
         debugLog(
