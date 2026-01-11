@@ -57,7 +57,12 @@ import {
   isBatteryOptimizationDisabled,
 } from "@/src/lib/batteryOptimization";
 import Colors from "@/src/ui/styles/colors";
-import { debugLog } from "@/src/utils/debug";
+import {
+  debugLog,
+  hasLogExportPermission,
+  requestLogExportDirectory,
+  clearLogExportPermission,
+} from "@/src/utils/debug";
 import { Alert } from "@/src/utils/alert";
 
 export default function Preferences() {
@@ -81,6 +86,17 @@ export default function Preferences() {
   const [favouriteProbabilityInput, setFavouriteProbabilityInput] = useState(
     Math.round(preferences.favouriteSelectionProbability * 100).toString(),
   );
+  const [logExportPermissionGranted, setLogExportPermissionGranted] =
+    useState<boolean | null>(null);
+
+  // Check log export permission status
+  useEffect(() => {
+    async function checkLogExportPermission() {
+      const hasPermission = await hasLogExportPermission();
+      setLogExportPermissionGranted(hasPermission);
+    }
+    checkLogExportPermission();
+  }, []);
 
   useEffect(() => {
     // Check battery optimization status when component mounts
@@ -158,6 +174,22 @@ export default function Preferences() {
       dispatch(clearDebugInfoAsync());
     }
   };
+
+  async function handleRequestLogExportPermission() {
+    const granted = await requestLogExportDirectory();
+    setLogExportPermissionGranted(granted);
+    if (granted) {
+      setSnackbarMessage("Log export folder selected");
+      setSnackbarVisible(true);
+    }
+  }
+
+  async function handleClearLogExportPermission() {
+    await clearLogExportPermission();
+    setLogExportPermissionGranted(false);
+    setSnackbarMessage("Log export permission cleared");
+    setSnackbarVisible(true);
+  }
 
   const handleMinNotificationBufferChange = (value: string) => {
     setNotificationBufferInput(value);
@@ -754,6 +786,43 @@ export default function Preferences() {
               />
             )}
           />
+          {preferences.debugInfoEnabled && Platform.OS === "android" && (
+            <View style={styles.subsection}>
+              <List.Item
+                title="Log File Export"
+                description={
+                  logExportPermissionGranted
+                    ? "Logs will be saved to external storage when background task runs"
+                    : "Select a folder to automatically export logs"
+                }
+                left={(props) => <List.Icon {...props} icon="file-export" />}
+                right={() =>
+                  logExportPermissionGranted ? (
+                    <Icon source="check-circle" size={24} color={theme.colors.primary} />
+                  ) : null
+                }
+              />
+              {logExportPermissionGranted ? (
+                <Button
+                  mode="outlined"
+                  onPress={handleClearLogExportPermission}
+                  style={styles.actionButton}
+                  icon="folder-remove"
+                >
+                  Clear Export Folder
+                </Button>
+              ) : (
+                <Button
+                  mode="contained"
+                  onPress={handleRequestLogExportPermission}
+                  style={styles.actionButton}
+                  icon="folder"
+                >
+                  Select Export Folder
+                </Button>
+              )}
+            </View>
+          )}
           <View style={[styles.subsection, { marginTop: 16 }]}>
             <TextInput
               label="Notification Buffer Size"

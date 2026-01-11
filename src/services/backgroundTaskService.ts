@@ -3,7 +3,7 @@ import * as BackgroundTask from "expo-background-task";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { debugLog } from "@/src/utils/debug";
+import { debugLog, exportLogsToFile } from "@/src/utils/debug";
 import {
   getLastScheduledTime,
   getPersistedState,
@@ -162,6 +162,15 @@ TaskManager.defineTask(BACKGROUND_CHECK_TASK_ID, async () => {
             `(${scheduled.length}/${minNotificationBuffer} notifications)`,
         ),
       );
+    }
+
+    // Export logs to file if debug info is enabled
+    if (state.preferences.debugInfoEnabled) {
+      try {
+        await exportLogsToFile();
+      } catch (exportError) {
+        console.error("[BackgroundTask] Failed to export logs:", exportError);
+      }
     }
 
     return BackgroundTask.BackgroundTaskResult.Success;
