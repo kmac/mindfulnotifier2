@@ -260,7 +260,7 @@ async function shouldProceedWithScheduling(
 
       console.log(
         debugLog(
-          `${logPrefix} Proceeding: ${timeSinceLastAttempt}ms since last attempt`,
+          `${logPrefix} Proceeding: ${timeSinceLastAttempt/1000}s since last attempt`,
         ),
       );
     } else {
@@ -440,11 +440,11 @@ export async function scheduleWarningNotification(
     );
 
     if (existingWarningId) {
-      console.log(
-        debugLog(
-          `${logPrefix} Canceling existing warning notification with ID: ${existingWarningId}`,
-        ),
-      );
+      // console.log(
+      //   debugLog(
+      //     `${logPrefix} Canceling existing warning notification with ID: ${existingWarningId}`,
+      //   ),
+      // );
       await Notifications.cancelScheduledNotificationAsync(existingWarningId);
     } else {
       console.log(
@@ -452,13 +452,13 @@ export async function scheduleWarningNotification(
       );
     }
 
-    // Schedule the new warning notification 20 seconds after the last scheduled notification
-    const warningTime = new Date(lastScheduled.getTime() + 20000);
-    console.log(
-      debugLog(
-        `${logPrefix} Scheduling warning notification for ${warningTime} (20s after last scheduled)`,
-      ),
-    );
+    // Schedule the new warning notification 60 seconds after the last scheduled notification
+    const warningTime = new Date(lastScheduled.getTime() + 60000);
+    // console.log(
+    //   debugLog(
+    //     `${logPrefix} Scheduling warning notification for ${warningTime} (+60s)`,
+    //   ),
+    // );
 
     const warningNotificationId = await scheduleNotification(
       "Mindful Notifier",
@@ -474,7 +474,7 @@ export async function scheduleWarningNotification(
 
     console.log(
       debugLog(
-        `${logPrefix} Warning notification scheduled successfully with ID: ${warningNotificationId}`,
+        `${logPrefix} Warning notification scheduled for ${warningTime} (+60s) ID: ${warningNotificationId}`,
       ),
     );
   } catch (error) {

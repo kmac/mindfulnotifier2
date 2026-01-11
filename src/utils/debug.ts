@@ -4,22 +4,30 @@ import { MAX_DEBUG_INFO } from "@/src/constants/scheduleConstants";
 // AsyncStorage key for debug logs
 const DEBUG_INFO_KEY = "debugInfo";
 
+// Queue to serialize write operations and prevent race conditions
+let writeQueue: Promise<void> = Promise.resolve();
+
 /**
  * Add a debug log entry to AsyncStorage
  * This works in both foreground and headless background contexts
+ * Uses a queue to serialize writes and prevent race conditions when
+ * multiple logs happen in rapid succession
  */
 async function addDebugLog(message: string): Promise<void> {
-  try {
-    const logsJson = await AsyncStorage.getItem(DEBUG_INFO_KEY);
-    const logs: string[] = logsJson ? JSON.parse(logsJson) : [];
-    logs.push(message);
+  writeQueue = writeQueue.then(async () => {
+    try {
+      const logsJson = await AsyncStorage.getItem(DEBUG_INFO_KEY);
+      const logs: string[] = logsJson ? JSON.parse(logsJson) : [];
+      logs.push(message);
 
-    // Keep only the last MAX_DEBUG_INFO entries
-    const trimmedLogs = logs.slice(-MAX_DEBUG_INFO);
-    await AsyncStorage.setItem(DEBUG_INFO_KEY, JSON.stringify(trimmedLogs));
-  } catch (error) {
-    console.error("[DebugLog] Failed to persist debug log:", error);
-  }
+      // Keep only the last MAX_DEBUG_INFO entries
+      const trimmedLogs = logs.slice(-MAX_DEBUG_INFO);
+      await AsyncStorage.setItem(DEBUG_INFO_KEY, JSON.stringify(trimmedLogs));
+    } catch (error) {
+      console.error("[DebugLog] Failed to persist debug log:", error);
+    }
+  });
+  return writeQueue;
 }
 
 /**
