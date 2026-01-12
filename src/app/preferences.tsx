@@ -303,22 +303,38 @@ export default function Preferences() {
         .replace(/[:.]/g, "-")
         .slice(0, -5);
       const fileName = `mindful-notifier-backup-${timestamp}.json`;
-      const file = new FileSystem.File(FileSystem.Paths.document, fileName);
-      file.write(jsonString);
-
-      // Check if sharing is available
-      const isAvailable = await Sharing.isAvailableAsync();
-      if (isAvailable) {
-        await Sharing.shareAsync(file.uri, {
-          mimeType: "application/json",
-          dialogTitle: "Save Backup File",
-          UTI: "public.json",
-        });
-        setSnackbarMessage("Backup exported successfully");
+      if (Platform.OS === "web") {
+        // Web platform: use Blob + anchor download
+        const blob = new Blob([jsonString], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setSnackbarMessage("Backup downloaded");
         setSnackbarVisible(true);
       } else {
-        setSnackbarMessage(`Backup created at: ${file.uri}`);
-        setSnackbarVisible(true);
+        // Native platforms: use FileSystem and Sharing
+        const file = new FileSystem.File(FileSystem.Paths.document, fileName);
+        file.write(jsonString);
+
+        // Check if sharing is available
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (isAvailable) {
+          await Sharing.shareAsync(file.uri, {
+            mimeType: "application/json",
+            dialogTitle: "Save Backup File",
+            UTI: "public.json",
+          });
+          setSnackbarMessage("Backup exported successfully");
+          setSnackbarVisible(true);
+        } else {
+          setSnackbarMessage(`Backup created at: ${file.uri}`);
+          setSnackbarVisible(true);
+        }
       }
     } catch (error) {
       Alert.alert("Error", "Failed to export preferences");
