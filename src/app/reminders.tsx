@@ -70,6 +70,18 @@ export default function Reminders() {
   const [editTagDialogVisible, setEditTagDialogVisible] = useState(false);
   const [newTagName, setNewTagName] = useState("");
 
+  // Stabilized menu toggle - defers open to avoid flicker from re-render race
+  const handleMoreMenuToggle = useCallback(() => {
+    if (moreMenuVisible) {
+      setMoreMenuVisible(false);
+    } else {
+      // Small delay to let any pending renders complete before opening
+      setTimeout(() => {
+        setMoreMenuVisible(true);
+      }, 50);
+    }
+  }, [moreMenuVisible]);
+
   // Handle navigation from index.tsx with editIndex parameter
   // Use useFocusEffect to trigger every time the screen comes into focus
   useFocusEffect(
@@ -342,7 +354,7 @@ export default function Reminders() {
                 <IconButton
                   icon="dots-vertical"
                   mode="contained-tonal"
-                  onPress={() => setMoreMenuVisible(true)}
+                  onPress={handleMoreMenuToggle}
                   size={24}
                 />
               }
@@ -389,7 +401,7 @@ export default function Reminders() {
               <Chip
                 mode="outlined"
                 icon="filter"
-                onPress={() => setFilterMenuVisible(!filterMenuVisible)}
+                onPress={() => setFilterMenuVisible((prev) => !prev)}
               >
                 {selectedTagFilter || "All tags"}
               </Chip>
@@ -788,11 +800,13 @@ const styles = StyleSheet.create({
   },
   statsContainer: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
     marginBottom: 8,
   },
   filterContainer: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     gap: 8,
     marginTop: 12,
