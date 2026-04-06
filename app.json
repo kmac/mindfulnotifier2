@@ -80,6 +80,7 @@
       "expo-background-task",
       "./plugins/withRawResourceKeep.js",
       "./plugins/withForegroundService.js",
+      "./plugins/withAsyncStorageMaven.js",
       "expo-asset"
     ],
     "experiments": {
