@@ -508,10 +508,10 @@ export async function cancelAllScheduled(): Promise<void> {
 
   // Clear persisted scheduling state
   try {
-    await AsyncStorage.multiRemove([
-      LAST_SCHEDULED_TIME_KEY,
-      LAST_SCHEDULE_ATTEMPT_KEY,
-      WARNING_NOTIFICATION_ID_KEY,
+    await Promise.all([
+      AsyncStorage.removeItem(LAST_SCHEDULED_TIME_KEY),
+      AsyncStorage.removeItem(LAST_SCHEDULE_ATTEMPT_KEY),
+      AsyncStorage.removeItem(WARNING_NOTIFICATION_ID_KEY),
     ]);
     console.log(
       debugLog(

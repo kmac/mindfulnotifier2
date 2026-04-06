@@ -201,9 +201,9 @@ export async function getBackgroundTaskHistory(): Promise<number[]> {
  */
 export async function clearBackgroundTaskData(): Promise<void> {
   try {
-    await AsyncStorage.multiRemove([
-      BACKGROUND_TASK_HISTORY_KEY,
-      LAST_BUFFER_REPLENISH_TIME_KEY,
+    await Promise.all([
+      AsyncStorage.removeItem(BACKGROUND_TASK_HISTORY_KEY),
+      AsyncStorage.removeItem(LAST_BUFFER_REPLENISH_TIME_KEY),
     ]);
   } catch (error) {
     console.error("[BackgroundTask] Failed to clear task data:", error);
